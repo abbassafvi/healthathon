@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+dist/
+build/
+.vite/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Patient-facing and clinical material. Nothing from the document set,
+# the gold set, or any crop is ever committed.
+data/documents/
+data/gold/
+data/crops/
+storage/
+*.jpg
+*.jpeg
+*.png.orig
+
+# Local database and model artefacts
+*.sqlite3
+pgdata/
+models/
+*.onnx
+*.pdparams
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+*.swp
