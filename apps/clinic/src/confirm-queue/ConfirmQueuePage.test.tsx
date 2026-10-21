@@ -67,7 +67,7 @@ describe('ConfirmQueuePage', () => {
     expect(screen.getByText('2 of 2')).toBeInTheDocument()
     expect(calls).toHaveLength(0)
 
-    await waitFor(() => expect(calls).toHaveLength(1))
+    await waitFor(() => expect(calls).toHaveLength(1), { timeout: UNDO_MS * 3 })
     expect(calls[0].url).toBe('/api/confirm-queue/a/decision')
     expect(calls[0].body).toMatchObject({ action: 'confirm' })
   })
@@ -98,14 +98,15 @@ describe('ConfirmQueuePage', () => {
     mockApi(409)
     renderPage()
     await paintAndPress('Enter')
-    expect(await screen.findByText(/someone else settled/i)).toBeInTheDocument()
+    // The decision is held for UNDO_MS before it is sent, so wait past that.
+    expect(await screen.findByText(/someone else settled/i, {}, { timeout: UNDO_MS * 3 })).toBeInTheDocument()
   })
 
   it('puts the item back when a decision fails to save', async () => {
     mockApi(500)
     renderPage()
     await paintAndPress('Enter')
-    expect(await screen.findByText(/was not saved/i)).toBeInTheDocument()
+    expect(await screen.findByText(/was not saved/i, {}, { timeout: UNDO_MS * 3 })).toBeInTheDocument()
     expect(await screen.findByText('162')).toBeInTheDocument()
   })
 
