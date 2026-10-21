@@ -8,6 +8,7 @@ from healthathon import storage
 from healthathon.auth import CurrentUser, User
 from healthathon.confirm_queue.routes import router as confirm_queue_router
 from healthathon.db import close_pool, open_pool
+from healthathon.record.routes import router as record_router
 
 
 @asynccontextmanager
@@ -19,6 +20,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(title="Healthathon API", version="0.1.0", lifespan=lifespan)
 app.include_router(confirm_queue_router)
+app.include_router(record_router)
 
 
 @app.get("/api/health", tags=["meta"])
