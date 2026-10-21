@@ -8,6 +8,8 @@ import type {
   PaperFormSubmission,
   RegimenItem,
   RegimenReview,
+  UploadRequest,
+  UploadStatus,
   VisitSummary,
 } from './pending'
 
@@ -28,6 +30,8 @@ export const pendingApi = {
   paperFormQuestions: () => request<PaperFormQuestion[]>('/api/paper-form/questions'),
   submitPaperForm: (patientId: string, form: PaperFormSubmission) =>
     request<PaperFormResult>(`/api/patients/${patientId}/paper-form`, { method: 'POST', body: JSON.stringify(form) }),
+  upload: (req: UploadRequest) => request<UploadStatus>('/api/uploads', { method: 'POST', body: JSON.stringify(req) }),
+  uploadStatus: (id: string) => request<UploadStatus>(`/api/uploads/${id}`),
   visit: (patientId: string) => request<VisitSummary>(`/api/patients/${patientId}/visit`),
   activate: (regimenId: string) =>
     request<{ activated_at: string }>(`/api/regimens/${regimenId}/activate`, { method: 'POST' }),

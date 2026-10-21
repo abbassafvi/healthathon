@@ -23,6 +23,7 @@ export function AppShell() {
               )}
             </NavItem>
             <NavItem to="/patients">{en.app.navPatients}</NavItem>
+            <NavItem to="/upload">{en.app.navUpload}</NavItem>
           </nav>
           {me.data && (
             <span className="ml-auto hidden text-sm text-ink-3 md:inline">{fmt(en.app.signedInAs, { name: me.data.full_name })}</span>
