@@ -2,6 +2,7 @@ import { setupServer } from 'msw/node'
 import { afterAll, afterEach, beforeAll } from 'vitest'
 
 import { handlers } from '../mocks/handlers'
+import { resetPaperFormIdempotency } from '../mocks/handlers/paperForm'
 import { setPatientLookup, type PatientRef } from '../mocks/patients'
 import { resetMockState } from '../mocks/state'
 
@@ -22,6 +23,7 @@ export function installMockServer() {
   afterEach(() => {
     server.resetHandlers()
     resetMockState(new Date('2026-10-21T09:00:00'))
+    resetPaperFormIdempotency()
     setPatientLookup(async () => TEST_PATIENTS)
   })
   afterAll(() => server.close())

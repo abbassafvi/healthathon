@@ -1,5 +1,15 @@
 import { request } from './client'
-import type { Checklist, EntriesPage, ItemDecision, RegimenItem, RegimenReview, VisitSummary } from './pending'
+import type {
+  Checklist,
+  EntriesPage,
+  ItemDecision,
+  PaperFormQuestion,
+  PaperFormResult,
+  PaperFormSubmission,
+  RegimenItem,
+  RegimenReview,
+  VisitSummary,
+} from './pending'
 
 /* Calls to endpoints served by the mock layer until they are built in api/. */
 export const pendingApi = {
@@ -15,6 +25,9 @@ export const pendingApi = {
     request<EntriesPage>(
       `/api/patients/${patientId}/entries` + (range ? `?from=${range.from}&to=${range.to}` : ''),
     ),
+  paperFormQuestions: () => request<PaperFormQuestion[]>('/api/paper-form/questions'),
+  submitPaperForm: (patientId: string, form: PaperFormSubmission) =>
+    request<PaperFormResult>(`/api/patients/${patientId}/paper-form`, { method: 'POST', body: JSON.stringify(form) }),
   visit: (patientId: string) => request<VisitSummary>(`/api/patients/${patientId}/visit`),
   activate: (regimenId: string) =>
     request<{ activated_at: string }>(`/api/regimens/${regimenId}/activate`, { method: 'POST' }),

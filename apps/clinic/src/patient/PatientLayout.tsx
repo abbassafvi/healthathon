@@ -9,6 +9,7 @@ const PATIENT_TABS = [
   { path: 'timeline', label: en.patient.tabs.timeline },
   { path: 'checklist', label: en.patient.tabs.checklist },
   { path: 'documents', label: en.patient.tabs.documents },
+  { path: 'paper-form', label: en.patient.tabs.paperForm },
 ] as const
 
 /*

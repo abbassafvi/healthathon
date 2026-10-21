@@ -4,6 +4,7 @@ import { AppShell } from './app/AppShell'
 import { ChecklistPage } from './checklist/ChecklistPage'
 import { ReviewPage } from './checklist/ReviewPage'
 import { ConfirmQueuePage } from './confirm-queue/ConfirmQueuePage'
+import { PaperFormPage } from './paperform/PaperFormPage'
 import { PatientLayout } from './patient/PatientLayout'
 import { PatientsPage } from './record/PatientsPage'
 import { RecordPage } from './record/RecordPage'
@@ -24,6 +25,7 @@ export function App() {
           <Route path="visit" element={<VisitPage />} />
           <Route path="timeline" element={<TimelinePage />} />
           <Route path="checklist" element={<ChecklistPage />} />
+          <Route path="paper-form" element={<PaperFormPage />} />
           <Route path="documents" element={<RecordPage />}>
             <Route path="values/:valueId" element={<TracePanel />} />
           </Route>

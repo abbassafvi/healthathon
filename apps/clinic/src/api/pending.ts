@@ -168,3 +168,24 @@ export type VisitSummary = {
   orders: TestOrder[]
   compliance: ComplianceScore | null
 }
+
+/* ---------------------------------------------------------------------
+ * Paper form route: clinic staff transcribe a week's paper form.
+ * Everything is stored as written, marked paper_form / clinic_staff.
+ * ------------------------------------------------------------------- */
+
+export type PaperFormSubmission = {
+  /* Generated when the form is opened: the idempotency key end to end. */
+  client_capture_id: string
+  week_from: string
+  week_to: string
+  /* The language the patient wrote in, for the answers. */
+  language: string
+  ticks: { regimen_item_id: string; date: string; ticked: boolean }[]
+  glucose: { date: string; time: string | null; value_text: string; context: GlucoseContext; insulin_units: number | null }[]
+  answers: { date: string; question_key: string; answer_text: string }[]
+}
+
+export type PaperFormResult = { created: number; duplicate: boolean }
+
+export type PaperFormQuestion = { key: string; text: string }
