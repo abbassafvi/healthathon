@@ -13,7 +13,7 @@ afterEach(() => vi.unstubAllGlobals())
 function setup(props: Partial<Parameters<typeof PageViewer>[0]> = {}) {
   const images = controlImages()
   const user = userEvent.setup()
-  render(<PageViewer url={URL_} width={1000} height={2000} box={box} alt="the page" {...props} />)
+  render(<PageViewer url={URL_} width={1000} height={2000} marks={[{ box }]} alt="the page" {...props} />)
   return { images, user }
 }
 
@@ -45,7 +45,7 @@ describe('PageViewer', () => {
   })
 
   it('shows the whole page, with no box and no zoom controls, when there is no region', () => {
-    const { images } = setup({ box: null })
+    const { images } = setup({ marks: [] })
     act(() => images.load(URL_))
     expect(screen.getByRole('img')).toHaveAttribute('data-mode', 'page')
     expect(screen.getByRole('img')).toHaveAttribute('viewBox', '0.0 0.0 1000.0 2000.0')
@@ -60,5 +60,31 @@ describe('PageViewer', () => {
     await user.click(screen.getByRole('button', { name: 'Try again' }))
     act(() => images.load(URL_))
     expect(screen.getByRole('img')).toBeInTheDocument()
+  })
+})
+
+describe('PageViewer with several marks', () => {
+  const marks = [
+    { box: { x: 0.1, y: 0.2, w: 0.3, h: 0.02 }, label: '1' },
+    { box: { x: 0.1, y: 0.5, w: 0.3, h: 0.02 }, label: '2' },
+  ]
+
+  it('draws every mark and highlights only the focused one', () => {
+    const images = controlImages()
+    render(<PageViewer url={URL_} width={1000} height={2000} marks={marks} focus={1} alt="rx" />)
+    act(() => images.load(URL_))
+    expect(screen.getAllByTestId('page-mark')).toHaveLength(1)
+    expect(screen.getByTestId('trace-box')).toHaveAttribute('data-box', '100.0 1000.0 300.0 40.0')
+    expect(screen.getByText('1')).toBeInTheDocument()
+    expect(screen.getByText('2')).toBeInTheDocument()
+  })
+
+  it('moves the highlight when focus moves', () => {
+    const images = controlImages()
+    const { rerender } = render(<PageViewer url={URL_} width={1000} height={2000} marks={marks} focus={0} alt="rx" />)
+    act(() => images.load(URL_))
+    expect(screen.getByTestId('trace-box')).toHaveAttribute('data-box', '100.0 400.0 300.0 40.0')
+    rerender(<PageViewer url={URL_} width={1000} height={2000} marks={marks} focus={1} alt="rx" />)
+    expect(screen.getByTestId('trace-box')).toHaveAttribute('data-box', '100.0 1000.0 300.0 40.0')
   })
 })

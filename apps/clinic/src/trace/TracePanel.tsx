@@ -22,7 +22,7 @@ export function TracePanel() {
     queryFn: () => api.trace(valueId),
     retry: (n, err) => !(err instanceof ApiError && err.status === 404) && n < 1,
   })
-  const close = () => navigate(`/patients/${patientId}`)
+  const close = () => navigate(`/patients/${patientId}/documents`)
 
   useEffect(() => headingRef.current?.focus(), [valueId])
 
@@ -30,7 +30,7 @@ export function TracePanel() {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && !hasModifier(e) && !isTypingTarget(e.target)) {
         e.preventDefault()
-        navigate(`/patients/${patientId}`)
+        navigate(`/patients/${patientId}/documents`)
       }
     }
     window.addEventListener('keydown', onKey)
@@ -83,7 +83,7 @@ function TraceBody({ t }: { t: Trace }) {
           url={t.page.url}
           width={t.page.width_px}
           height={t.page.height_px}
-          box={t.box}
+          marks={t.box ? [{ box: t.box }] : []}
           alt={fmt(en.trace.pageAlt, { n: t.page.page_no, doc: docLabel })}
         />
       )}

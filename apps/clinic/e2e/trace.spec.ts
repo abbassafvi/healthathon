@@ -37,7 +37,7 @@ test('the record lists only values in the record, in page order', async ({ page 
 test('tapping a value draws its stored region on the original page', async ({ page }) => {
   await openAsha(page)
   await valueRows(page).filter({ hasText: 'HbA1c' }).click()
-  await expect(page).toHaveURL(/\/patients\/[\w-]+\/values\/[\w-]+$/)
+  await expect(page).toHaveURL(/\/patients\/[\w-]+\/documents\/values\/[\w-]+$/)
   await expect(panel(page)).toBeVisible()
   const svg = panel(page).getByRole('img', { name: /Page 1 of Lab report/ })
   await expect(svg).toBeVisible()
@@ -128,7 +128,7 @@ test('a value still in the queue cannot be traced, even by URL', async ({ page }
   const [v] = query<{ id: string; patient_id: string }>(
     `SELECT id, patient_id FROM core.extracted_value WHERE state = 'needs_confirm' LIMIT 1`,
   )
-  await page.goto(`/patients/${v.patient_id}/values/${v.id}`)
+  await page.goto(`/patients/${v.patient_id}/documents/values/${v.id}`)
   await expect(panel(page).getByText(/this value is not shown in the record/i)).toBeVisible()
   await expect(panel(page).getByRole('img')).toHaveCount(0)
 })

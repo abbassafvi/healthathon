@@ -2,7 +2,8 @@ import type { ReactNode } from 'react'
 
 type Props = {
   children: ReactNode
-  kbd: string
+  /* Shown only where the key works right now. */
+  kbd?: string
   onClick: () => void
   disabled?: boolean
   primary?: boolean
@@ -22,9 +23,11 @@ export function ActionButton({ children, kbd, onClick, disabled, primary, type =
       className={`inline-flex h-10 items-center gap-2.5 rounded-lg border px-3.5 text-sm font-medium transition-colors duration-150 disabled:cursor-not-allowed disabled:border-line disabled:bg-sunken disabled:text-ink-3 ${tone}`}
     >
       {children}
-      <kbd className={`kbd ${primary && !disabled ? 'border-transparent bg-accent-hover text-accent-ink' : ''}`}>
-        {kbd === 'Enter' ? '↵' : kbd}
-      </kbd>
+      {kbd && (
+        <kbd className={`kbd ${primary && !disabled ? 'border-transparent bg-accent-hover text-accent-ink' : ''}`}>
+          {kbd === 'Enter' ? '↵' : kbd}
+        </kbd>
+      )}
     </button>
   )
 }

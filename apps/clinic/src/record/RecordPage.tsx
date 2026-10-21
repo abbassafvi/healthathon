@@ -4,10 +4,10 @@ import { Link, Outlet, useParams } from 'react-router'
 
 import { api, ApiError, type RecordDocument } from '../api/client'
 import { formatDate } from '../lib/dates'
-import { en, fmt } from '../strings/en'
+import { en } from '../strings/en'
 
 /*
- * The document half of a patient's record: each document's values exactly
+ * The Documents tab of a patient's record: each document's values exactly
  * as printed, newest document first, in page order within it. Every value
  * opens its trace. Patient entries join this page with the timeline.
  */
@@ -28,10 +28,7 @@ export function RecordPage() {
 
   return (
     <div className={valueId ? 'md:pr-[min(46rem,58vw)]' : undefined}>
-      <main className="mx-auto w-full max-w-5xl px-4 pt-8 pb-16 sm:px-6">
-        <Link to="/patients" className="text-sm text-ink-2 underline-offset-4 hover:text-ink hover:underline">
-          {en.record.backToPatients}
-        </Link>
+      <main className="mx-auto w-full max-w-5xl px-4 pt-6 pb-16 sm:px-6">
         {query.status === 'pending' && <div className="mt-6 h-64 rounded-xl bg-sunken" aria-busy="true" />}
         {query.status === 'error' && (
           <p className="mt-6 text-ink-2">
@@ -40,15 +37,6 @@ export function RecordPage() {
         )}
         {query.status === 'success' && (
           <>
-            <header className="mt-4 mb-8 flex flex-wrap items-baseline gap-x-4 gap-y-1">
-              <h1 className="text-2xl font-semibold tracking-tight">{query.data.patient.full_name}</h1>
-              <span className="font-mono text-sm text-ink-2">{query.data.patient.registration_no}</span>
-              {query.data.patient.year_of_birth && (
-                <span className="text-sm text-ink-2">
-                  {fmt(en.record.born, { year: query.data.patient.year_of_birth })}
-                </span>
-              )}
-            </header>
             {query.data.documents.length === 0 ? (
               <p className="text-ink-2">{en.record.empty}</p>
             ) : (
@@ -88,7 +76,7 @@ function DocumentValues({ doc, patientId, selected }: { doc: RecordDocument; pat
           {doc.values.map((v) => (
             <li key={v.id} className="border-b border-line">
               <Link
-                to={`/patients/${patientId}/values/${v.id}`}
+                to={`/patients/${patientId}/documents/values/${v.id}`}
                 data-value-id={v.id}
                 aria-current={selected === v.id ? 'true' : undefined}
                 className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-4 px-2 py-3 transition-colors duration-150 hover:bg-surface aria-[current=true]:bg-accent-soft"

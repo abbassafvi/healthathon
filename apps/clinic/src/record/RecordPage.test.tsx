@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { trace } from '../test/fixtures'
 import { controlImages } from '../test/images'
+import { PatientLayout } from '../patient/PatientLayout'
 import { TracePanel } from '../trace/TracePanel'
 import { RecordPage } from './RecordPage'
 
@@ -26,10 +27,11 @@ function Where() {
   return <span data-testid="where">{useLocation().pathname}</span>
 }
 
-function setup(start = '/patients/p-1', traceStatus = 200) {
+function setup(start = '/patients/p-1/documents', traceStatus = 200) {
   controlImages()
   vi.stubGlobal('fetch', vi.fn(async (input: string | URL) => {
     const url = new URL(String(input)).pathname
+    if (url === '/api/patients') return Response.json([record.patient])
     if (url === '/api/patients/p-1/record') return Response.json(record)
     if (url.startsWith('/api/values/')) {
       return traceStatus === 200
@@ -43,8 +45,10 @@ function setup(start = '/patients/p-1', traceStatus = 200) {
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={[start]}>
         <Routes>
-          <Route path="/patients/:patientId" element={<RecordPage />}>
-            <Route path="values/:valueId" element={<TracePanel />} />
+          <Route path="/patients/:patientId" element={<PatientLayout />}>
+            <Route path="documents" element={<RecordPage />}>
+              <Route path="values/:valueId" element={<TracePanel />} />
+            </Route>
           </Route>
         </Routes>
         <Where />
@@ -68,7 +72,7 @@ describe('RecordPage', () => {
     const user = setup()
     const row = await screen.findByRole('link', { name: /HbA1c/ })
     await user.click(row)
-    expect(screen.getByTestId('where')).toHaveTextContent('/patients/p-1/values/v-1')
+    expect(screen.getByTestId('where')).toHaveTextContent('/patients/p-1/documents/values/v-1')
     const panel = await screen.findByRole('dialog', { name: 'Where this value came from' })
     expect(panel).toBeInTheDocument()
     expect(row).toHaveAttribute('aria-current', 'true')
@@ -76,24 +80,24 @@ describe('RecordPage', () => {
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Where this value came from' })).toHaveFocus())
 
     await user.keyboard('{Escape}')
-    expect(screen.getByTestId('where')).toHaveTextContent(/^\/patients\/p-1$/)
+    expect(screen.getByTestId('where')).toHaveTextContent(/^\/patients\/p-1\/documents$/)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     await waitFor(() => expect(screen.getByRole('link', { name: /HbA1c/ })).toHaveFocus())
   })
 
   it('the close button closes the trace', async () => {
-    const user = setup('/patients/p-1/values/v-1')
+    const user = setup('/patients/p-1/documents/values/v-1')
     await user.click(await screen.findByRole('button', { name: /close/i }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
   it('explains a value that is not in the record', async () => {
-    setup('/patients/p-1/values/v-9', 404)
+    setup('/patients/p-1/documents/values/v-9', 404)
     expect(await screen.findByText(/this value is not shown in the record/i)).toBeInTheDocument()
   })
 
   it('says so when the patient does not exist', async () => {
-    setup('/patients/nobody')
+    setup('/patients/nobody/documents')
     expect(await screen.findByText('There is no patient with this record.')).toBeInTheDocument()
   })
 })

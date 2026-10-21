@@ -5,11 +5,16 @@ import { isTypingTarget, hasModifier } from '../lib/keys'
 import { en } from '../strings/en'
 import { boxInPixels, easeOutQuart, lerpRect, toViewBox, zoomViewBox, type Rect } from './viewBox'
 
+/* A region to outline on the page, with an optional label drawn beside it. */
+export type Mark = { box: Box; label?: string }
+
 type Props = {
   url: string
   width: number
   height: number
-  box: Box | null
+  marks: Mark[]
+  /* The mark to zoom to and draw in the accent. Others are drawn quietly. */
+  focus?: number
   alt: string
 }
 
@@ -17,12 +22,14 @@ type Mode = 'zoom' | 'page'
 const ZOOM_MS = 320
 
 /*
- * The original page with the value's region outlined. One SVG holds the
- * image and the outline, so the outline stays exactly on the region at
- * every zoom level. Zooming animates the viewBox; with reduced motion it
- * jumps. W toggles between the value and the whole page.
+ * The original page with regions outlined. One SVG holds the image and the
+ * outlines, so they stay exactly on their regions at every zoom level. The
+ * focused mark is zoomed to and drawn in the accent; moving focus pans to
+ * it. Zooming animates the viewBox; with reduced motion it jumps. W
+ * toggles between the focused region and the whole page.
  */
-export function PageViewer({ url, width, height, box, alt }: Props) {
+export function PageViewer({ url, width, height, marks, focus = 0, alt }: Props) {
+  const box = marks[focus]?.box ?? null
   const [status, setStatus] = useState<'loading' | 'ready' | 'failed'>('loading')
   const [attempt, setAttempt] = useState(0)
   const [mode, setMode] = useState<Mode>(box ? 'zoom' : 'page')
@@ -61,6 +68,11 @@ export function PageViewer({ url, width, height, box, alt }: Props) {
   }, [])
 
   const key = toViewBox(target)
+  const lastFocus = useRef(focus)
+  if (lastFocus.current !== focus) {
+    lastFocus.current = focus
+    userZoomed.current = true
+  }
   useEffect(() => {
     const from = viewRef.current
     const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
@@ -95,10 +107,8 @@ export function PageViewer({ url, width, height, box, alt }: Props) {
   }, [box])
 
   const b = box ? boxInPixels(box, width, height) : null
-  // The page, with a hole cut where the value is: everything else is dimmed.
-  const dim = b
-    ? `M0 0H${width}V${height}H0Z M${b.x} ${b.y}h${b.w}v${b.h}h${-b.w}Z`
-    : null
+  // The page, with a hole cut where the focused region is: the rest is dimmed.
+  const dim = b ? `M0 0H${width}V${height}H0Z M${b.x} ${b.y}h${b.w}v${b.h}h${-b.w}Z` : null
 
   return (
     <div className="flex flex-col gap-3">
@@ -113,15 +123,32 @@ export function PageViewer({ url, width, height, box, alt }: Props) {
             className="absolute inset-0 h-full w-full"
           >
             <image href={url} x={0} y={0} width={width} height={height} />
-            {dim && b && (
-              <g data-testid="trace-box" data-box={`${b.x.toFixed(1)} ${b.y.toFixed(1)} ${b.w.toFixed(1)} ${b.h.toFixed(1)}`}>
-                <path d={dim} fill="oklch(0.21 0 0 / 0.12)" fillRule="evenodd" />
-                <rect x={b.x} y={b.y} width={b.w} height={b.h} rx={4} fill="none"
-                  stroke="white" strokeWidth={6} vectorEffect="non-scaling-stroke" />
-                <rect x={b.x} y={b.y} width={b.w} height={b.h} rx={4} fill="none"
-                  stroke="var(--color-accent)" strokeWidth={2.5} vectorEffect="non-scaling-stroke" />
-              </g>
-            )}
+            {dim && <path d={dim} fill="oklch(0.21 0 0 / 0.12)" fillRule="evenodd" />}
+            {marks.map((m, i) => {
+              const r = boxInPixels(m.box, width, height)
+              const focused = i === focus
+              return (
+                <g
+                  key={i}
+                  data-testid={focused ? 'trace-box' : 'page-mark'}
+                  data-box={`${r.x.toFixed(1)} ${r.y.toFixed(1)} ${r.w.toFixed(1)} ${r.h.toFixed(1)}`}
+                >
+                  <rect x={r.x} y={r.y} width={r.w} height={r.h} rx={4} fill="none"
+                    stroke="white" strokeWidth={6} vectorEffect="non-scaling-stroke" />
+                  <rect x={r.x} y={r.y} width={r.w} height={r.h} rx={4} fill="none"
+                    stroke={focused ? 'var(--color-accent)' : 'var(--color-line-strong)'}
+                    strokeWidth={focused ? 2.5 : 1.5} vectorEffect="non-scaling-stroke" />
+                  {m.label && (
+                    <g transform={`translate(${r.x - 46} ${r.y + r.h / 2})`}>
+                      <circle r={18} fill={focused ? 'var(--color-accent)' : 'white'}
+                        stroke={focused ? 'none' : 'var(--color-line-strong)'} />
+                      <text textAnchor="middle" dy="0.35em" fontSize={20} fontFamily="var(--font-mono)"
+                        fill={focused ? 'white' : 'var(--color-ink-2)'}>{m.label}</text>
+                    </g>
+                  )}
+                </g>
+              )
+            })}
           </svg>
         )}
         {status === 'loading' && (
