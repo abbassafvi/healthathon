@@ -21,8 +21,9 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(path, {
+export async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  // Absolute, so the same call works in the browser and under Node in tests.
+  const res = await fetch(new URL(path, window.location.origin), {
     ...init,
     headers: { 'Content-Type': 'application/json', ...init?.headers },
   })
@@ -31,6 +32,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     const detail = typeof body?.detail === 'string' ? body.detail : res.statusText
     throw new ApiError(res.status, detail)
   }
+  if (res.status === 204) return undefined as T
   return (await res.json()) as T
 }
 

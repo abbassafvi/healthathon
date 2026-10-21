@@ -19,7 +19,8 @@ function mockApi(decisionStatus = 200) {
   let open = [first, second]
   vi.stubGlobal(
     'fetch',
-    vi.fn(async (url: string, init?: RequestInit) => {
+    vi.fn(async (input: string | URL, init?: RequestInit) => {
+      const url = new URL(String(input)).pathname
       if (url === '/api/confirm-queue') {
         return Response.json({ items: open, open_count: open.length })
       }

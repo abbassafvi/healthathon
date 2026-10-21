@@ -2,8 +2,12 @@ import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
 
 import { query, reseed } from './db'
+import { withoutMocks } from './mocks'
 
-test.beforeEach(() => reseed())
+test.beforeEach(async ({ page }) => {
+  reseed()
+  await withoutMocks(page)
+})
 
 const WCAG = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
 

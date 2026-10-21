@@ -28,7 +28,8 @@ function Where() {
 
 function setup(start = '/patients/p-1', traceStatus = 200) {
   controlImages()
-  vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+  vi.stubGlobal('fetch', vi.fn(async (input: string | URL) => {
+    const url = new URL(String(input)).pathname
     if (url === '/api/patients/p-1/record') return Response.json(record)
     if (url.startsWith('/api/values/')) {
       return traceStatus === 200

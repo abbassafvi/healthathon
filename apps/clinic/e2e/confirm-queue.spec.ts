@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 
 import { query, reseed } from './db'
+import { withoutMocks } from './mocks'
 
 /*
  * Seeded queue, in arrival order:
@@ -12,7 +13,10 @@ import { query, reseed } from './db'
  */
 const UNDO_WINDOW_MS = 5000
 
-test.beforeEach(() => reseed())
+test.beforeEach(async ({ page }) => {
+  reseed()
+  await withoutMocks(page)
+})
 
 const reading = (page: Page) => page.locator('#queue-reading')
 const confirmButton = (page: Page) => page.getByRole('button', { name: /confirm as read/i })
