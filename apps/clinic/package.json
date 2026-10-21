@@ -17,7 +17,8 @@
     "prebuild": "npm run api-types --silent",
     "pretypecheck": "npm run api-types --silent",
     "pretest": "npm run api-types --silent",
-    "pree2e": "npm run api-types --silent && msw init public --save=false >/dev/null"
+    "pree2e": "npm run api-types --silent && msw init public --save=false >/dev/null",
+    "check": "npm run typecheck --silent && npm run lint --silent && npm test --silent"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",

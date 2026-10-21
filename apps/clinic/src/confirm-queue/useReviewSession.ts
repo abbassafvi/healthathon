@@ -7,6 +7,13 @@ export const UNDO_WINDOW_MS = 5000
 const QUEUE_KEY = ['confirm-queue'] as const
 
 export type Pending = { item: QueueItem; decision: Decision }
+
+/* Runs fn after ms and returns a cancel. Injectable so tests decide when time passes. */
+export type Scheduler = (fn: () => void, ms: number) => () => void
+export const realTimer: Scheduler = (fn, ms) => {
+  const id = window.setTimeout(fn, ms)
+  return () => window.clearTimeout(id)
+}
 export type Notice = 'alreadySettled' | 'saveFailed'
 
 /*
@@ -17,7 +24,7 @@ export type Notice = 'alreadySettled' | 'saveFailed'
  * server). The next decision, leaving the page, or the window running out
  * all send it. Only one decision is ever held at a time.
  */
-export function useReviewSession(undoWindowMs = UNDO_WINDOW_MS) {
+export function useReviewSession(undoWindowMs = UNDO_WINDOW_MS, schedule: Scheduler = realTimer) {
   const queryClient = useQueryClient()
   const query = useQuery({ queryKey: QUEUE_KEY, queryFn: api.queue })
   const [hidden, setHidden] = useState<ReadonlySet<string>>(new Set())
@@ -25,7 +32,7 @@ export function useReviewSession(undoWindowMs = UNDO_WINDOW_MS) {
   const [pending, setPending] = useState<Pending | null>(null)
   const [notice, setNotice] = useState<Notice | null>(null)
   const pendingRef = useRef<Pending | null>(null)
-  const timer = useRef<number | undefined>(undefined)
+  const cancelTimer = useRef<() => void>(() => {})
 
   const unhide = useCallback((id: string) => {
     setHidden((prev) => {
@@ -56,7 +63,7 @@ export function useReviewSession(undoWindowMs = UNDO_WINDOW_MS) {
 
   const flush = useCallback(
     (keepalive = false) => {
-      window.clearTimeout(timer.current)
+      cancelTimer.current()
       const p = pendingRef.current
       pendingRef.current = null
       setPending(null)
@@ -74,15 +81,15 @@ export function useReviewSession(undoWindowMs = UNDO_WINDOW_MS) {
       setNotice(null)
       setHidden((prev) => new Set(prev).add(item.id))
       setSettled((n) => n + 1)
-      timer.current = window.setTimeout(() => flush(), undoWindowMs)
+      cancelTimer.current = schedule(() => flush(), undoWindowMs)
     },
-    [flush, undoWindowMs],
+    [flush, undoWindowMs, schedule],
   )
 
   const undo = useCallback(() => {
     const p = pendingRef.current
     if (!p) return
-    window.clearTimeout(timer.current)
+    cancelTimer.current()
     pendingRef.current = null
     setPending(null)
     unhide(p.item.id)

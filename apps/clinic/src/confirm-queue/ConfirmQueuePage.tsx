@@ -1,10 +1,16 @@
 import { en, fmt } from '../strings/en'
 import { DecisionToast } from './DecisionToast'
 import { ReviewItem } from './ReviewItem'
-import { UNDO_WINDOW_MS, useReviewSession } from './useReviewSession'
+import { realTimer, UNDO_WINDOW_MS, useReviewSession, type Scheduler } from './useReviewSession'
 
-export function ConfirmQueuePage({ undoWindowMs = UNDO_WINDOW_MS }: { undoWindowMs?: number }) {
-  const s = useReviewSession(undoWindowMs)
+export function ConfirmQueuePage({
+  undoWindowMs = UNDO_WINDOW_MS,
+  schedule = realTimer,
+}: {
+  undoWindowMs?: number
+  schedule?: Scheduler
+}) {
+  const s = useReviewSession(undoWindowMs, schedule)
 
   return (
     <main className="mx-auto w-full max-w-5xl px-4 pt-8 pb-28 sm:px-6">
