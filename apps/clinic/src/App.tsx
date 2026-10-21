@@ -7,6 +7,7 @@ import { ConfirmQueuePage } from './confirm-queue/ConfirmQueuePage'
 import { PatientLayout } from './patient/PatientLayout'
 import { PatientsPage } from './record/PatientsPage'
 import { RecordPage } from './record/RecordPage'
+import { TimelinePage } from './timeline/TimelinePage'
 import { TracePanel } from './trace/TracePanel'
 
 export function App() {
@@ -19,6 +20,7 @@ export function App() {
         <Route path="patients/:patientId/checklist/review/:regimenId" element={<ReviewPage />} />
         <Route path="patients/:patientId" element={<PatientLayout />}>
           <Route index element={<Navigate to="documents" replace />} />
+          <Route path="timeline" element={<TimelinePage />} />
           <Route path="checklist" element={<ChecklistPage />} />
           <Route path="documents" element={<RecordPage />}>
             <Route path="values/:valueId" element={<TracePanel />} />

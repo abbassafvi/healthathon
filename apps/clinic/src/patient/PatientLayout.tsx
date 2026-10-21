@@ -5,6 +5,7 @@ import { api } from '../api/client'
 import { en, fmt } from '../strings/en'
 
 const PATIENT_TABS = [
+  { path: 'timeline', label: en.patient.tabs.timeline },
   { path: 'checklist', label: en.patient.tabs.checklist },
   { path: 'documents', label: en.patient.tabs.documents },
 ] as const

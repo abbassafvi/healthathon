@@ -3,7 +3,9 @@
  * number, so it lines up with the real seeded patients (DEV-0001..4), and
  * it lasts until reload. resetMockState() puts it back for tests.
  */
-import type { RegimenItem } from '../api/pending'
+import type { PatientEntry, RegimenItem } from '../api/pending'
+import { localIsoDate } from '../lib/localDate'
+import { generateEntries } from './entries'
 import { lineBox, type RxLine, type RxPage } from './pages'
 
 export const DEMO_CLINICIAN = 'Dr. Demo Clinician'
@@ -19,7 +21,11 @@ export type MockRegimen = {
   superseded_at: string | null
 }
 
-export type MockState = { regimens: MockRegimen[] }
+export type MockState = {
+  regimens: MockRegimen[]
+  /* Patient-reported entries by registration number. */
+  entries: Record<string, PatientEntry[]>
+}
 
 const DOCTOR = 'Dr. Kavita Rao, MD (fictional)'
 const CLINIC = 'Diabetes Clinic, Lucknow (fictional)'
@@ -27,7 +33,7 @@ const CLINIC = 'Diabetes Clinic, Lucknow (fictional)'
 export function daysAgo(n: number, now = new Date()): string {
   const d = new Date(now)
   d.setDate(d.getDate() - n)
-  return d.toISOString().slice(0, 10)
+  return localIsoDate(d)
 }
 
 function printed(iso: string): string {
@@ -85,8 +91,7 @@ export function pageUrl(docId: string): string {
 
 function initialState(now = new Date()): MockState {
   const d = (n: number) => daysAgo(n, now)
-  return {
-    regimens: [
+  const regimens: MockRegimen[] = [
       regimen('rx-0001-a', 'DEV-0001', 'Asha Verma', d(19), [
         { drug: 'Tab. Metformin', dose: '500 mg', schedule: '1-0-1' },
         { drug: 'Tab. Glimepiride', dose: '1 mg', schedule: '1-0-0' },
@@ -106,8 +111,8 @@ function initialState(now = new Date()): MockState {
         { drug: 'Tab. Metformin', dose: '500 mg', schedule: '1-1-1' },
         { drug: 'Tab. Empagliflozin', dose: '10 mg', schedule: '1-0-0' },
       ], { at: d(30) }),
-    ],
-  }
+  ]
+  return { regimens, entries: generateEntries(regimens, now) }
 }
 
 let state: MockState = initialState()

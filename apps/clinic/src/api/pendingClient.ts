@@ -1,5 +1,5 @@
 import { request } from './client'
-import type { Checklist, ItemDecision, RegimenItem, RegimenReview } from './pending'
+import type { Checklist, EntriesPage, ItemDecision, RegimenItem, RegimenReview } from './pending'
 
 /* Calls to endpoints served by the mock layer until they are built in api/. */
 export const pendingApi = {
@@ -11,6 +11,10 @@ export const pendingApi = {
       body: JSON.stringify(decision),
     }),
   removeItem: (itemId: string) => request<void>(`/api/regimen-items/${itemId}`, { method: 'DELETE' }),
+  entries: (patientId: string, range?: { from: string; to: string }) =>
+    request<EntriesPage>(
+      `/api/patients/${patientId}/entries` + (range ? `?from=${range.from}&to=${range.to}` : ''),
+    ),
   activate: (regimenId: string) =>
     request<{ activated_at: string }>(`/api/regimens/${regimenId}/activate`, { method: 'POST' }),
 }

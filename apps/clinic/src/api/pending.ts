@@ -64,3 +64,65 @@ export type ItemDecision = {
   dose_text?: string
   schedule_text?: string | null
 }
+
+/* ---------------------------------------------------------------------
+ * Patient-reported entries (pat schema). Stored as the patient gave
+ * them. Nothing here is scored, totalled or interpreted.
+ * ------------------------------------------------------------------- */
+
+export type Channel = 'patient_app' | 'paper_form' | 'sms'
+export type EnteredBy = 'patient' | 'caregiver' | 'clinic_staff'
+export type GlucoseContext = 'fasting' | 'before_meal' | 'after_meal' | 'bedtime' | 'overnight' | 'random'
+
+type EntryBase = {
+  id: string
+  channel: Channel
+  entered_by: EnteredBy
+  caregiver_name: string | null
+  language: string
+  /* When it happened, per the patient. */
+  occurred_at: string
+  /* When the clinic received it. */
+  recorded_at: string
+}
+
+export type GlucoseEntry = EntryBase & {
+  kind: 'glucose_reading'
+  value_text: string
+  context: GlucoseContext
+  insulin_units: number | null
+}
+
+export type TickEntry = EntryBase & {
+  kind: 'medication_tick'
+  regimen_item: { id: string; drug_text: string; dose_text: string; schedule_text: string | null }
+  tick_date: string
+  ticked: boolean
+}
+
+export type AnswerEntry = EntryBase & {
+  kind: 'survey_answer'
+  /* 'daily' is the day's question; 'survey' is the short survey. */
+  set: 'daily' | 'survey'
+  question_key: string
+  /* The question in English for the clinician, and as the patient saw it. */
+  question_text: string
+  question_text_shown: string
+  answer_text: string
+}
+
+export type MealPhotoEntry = EntryBase & {
+  kind: 'meal_photo'
+  photo_url: string
+}
+
+export type PatientEntry = GlucoseEntry | TickEntry | AnswerEntry | MealPhotoEntry
+
+export type EntriesPage = {
+  entries: PatientEntry[]
+  /* Every regimen item that was active in the range, so a day with no tick
+     for an item shows as a gap rather than disappearing. */
+  regimen_items: { id: string; drug_text: string; dose_text: string; schedule_text: string | null; active_from: string; active_until: string | null }[]
+  from: string
+  to: string
+}
