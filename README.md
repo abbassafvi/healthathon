@@ -41,3 +41,46 @@ scope document.
 
 - No real patient data at any stage.
 - PostgreSQL 16. The schema needs the `citext` extension.
+
+## Development
+
+| Path | What it is |
+| --- | --- |
+| `api/` | FastAPI service over the schema. Python 3.12, managed with `uv` |
+| `api/openapi.json` | The API contract. A test fails if it drifts from the code |
+| `api/dev_seed/` | Stand-in seed: four fictional patients with generated lab reports, until the Track A seed script lands |
+| `apps/clinic/` | Clinician web app. Vite, React, TypeScript |
+| `apps/patient/` | Patient Android app, Expo. Not started |
+
+Requires Docker, `uv`, and Node 20 or later.
+
+```
+docker compose up -d                      # PostgreSQL 16 on 127.0.0.1:5434, schema loaded
+cd api && uv sync
+uv run python -m dev_seed                 # fictional data; --reset to start again
+uv run uvicorn healthathon.main:app --reload --port 8000
+
+npm install                               # from the repo root
+npm run clinic                            # http://127.0.0.1:5173
+```
+
+Page images and crops go to `storage/`, which is never committed.
+
+### Tests
+
+Every layer is tested, and every one of these must pass before a commit.
+
+```
+# api/
+uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest
+
+# apps/clinic/
+npm run typecheck && npm run lint && npm test
+npm run e2e        # Playwright against the real API and a real database
+```
+
+`pytest` builds `healthathon_test` from `db/schema.sql`, and the end-to-end
+suite builds `healthathon_e2e` and reseeds it before every test. The
+schema guardrail runs as part of `pytest`. After changing the API, run
+`uv run python -m healthathon.export_openapi` and agree the change with the
+other track.

@@ -1,0 +1,8 @@
+{
+  "name": "healthathon",
+  "private": true,
+  "workspaces": ["apps/*"],
+  "scripts": {
+    "clinic": "npm run dev -w apps/clinic"
+  }
+}
