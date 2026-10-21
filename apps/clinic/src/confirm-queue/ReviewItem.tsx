@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import type { Decision, QueueItem } from '../api/client'
+import { formatDate } from '../lib/dates'
 import { hasModifier, isButtonTarget, isTypingTarget } from '../lib/keys'
 import { en, fmt } from '../strings/en'
 import { CorrectionForm } from './CorrectionForm'
@@ -68,13 +69,7 @@ export function ReviewItem({ item, onDecide }: Props) {
   }, [ready, correcting, send, pickAlternative])
 
   const docType = en.docTypes[item.document.doc_type] ?? en.docTypes.other
-  const dated = item.document.document_date
-    ? new Date(item.document.document_date).toLocaleDateString('en-GB', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      })
-    : en.queue.noDate
+  const dated = item.document.document_date ? formatDate(item.document.document_date) : en.queue.noDate
 
   return (
     <article aria-labelledby="queue-reading" className="flex flex-col gap-6">
