@@ -80,3 +80,36 @@ test('every control is reachable by Tab with a visible focus ring', async ({ pag
     expect(reached.some((r) => r.startsWith(label))).toBe(true)
   }
 })
+
+test('patient list', async ({ page }) => {
+  await page.goto('/patients')
+  await expect(page.getByRole('link', { name: 'Asha Verma' })).toBeVisible()
+  await expectNoViolations(page)
+})
+
+test('record with the trace open, zoomed and whole page', async ({ page }) => {
+  await page.goto('/patients')
+  await page.getByRole('link', { name: 'Asha Verma' }).click()
+  await page.locator('[data-value-id]').first().click()
+  const trace = page.getByRole('dialog', { name: 'Where this value came from' })
+  await expect(trace.getByRole('img')).toBeVisible()
+  await expectNoViolations(page)
+  await page.keyboard.press('w')
+  await expect(trace.getByRole('img')).toHaveAttribute('data-mode', 'page')
+  await expectNoViolations(page)
+})
+
+test('the record and trace work from the keyboard alone', async ({ page }) => {
+  await page.goto('/patients')
+  await page.getByRole('link', { name: 'Asha Verma' }).focus()
+  await page.keyboard.press('Enter')
+  const first = page.locator('[data-value-id]').first()
+  await first.focus()
+  await page.keyboard.press('Enter')
+  const trace = page.getByRole('dialog', { name: 'Where this value came from' })
+  await expect(trace.getByRole('heading', { name: 'Where this value came from' })).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(trace.getByRole('button', { name: /close/i })).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(first).toBeFocused()
+})

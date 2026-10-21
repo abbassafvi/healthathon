@@ -5,6 +5,12 @@ export type QueueList = components['schemas']['QueueList']
 export type Decision = components['schemas']['Decision']
 export type DecisionResult = components['schemas']['DecisionResult']
 export type CurrentUser = components['schemas']['CurrentUser']
+export type PatientSummary = components['schemas']['PatientSummary']
+export type PatientRecord = components['schemas']['PatientRecord']
+export type RecordDocument = components['schemas']['RecordDocument']
+export type RecordValue = components['schemas']['RecordValue']
+export type Trace = components['schemas']['Trace']
+export type Box = components['schemas']['Box']
 
 export class ApiError extends Error {
   readonly status: number
@@ -31,6 +37,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   me: () => request<CurrentUser>('/api/me'),
   queue: () => request<QueueList>('/api/confirm-queue'),
+  patients: () => request<PatientSummary[]>('/api/patients'),
+  record: (patientId: string) => request<PatientRecord>(`/api/patients/${patientId}/record`),
+  trace: (valueId: string) => request<Trace>(`/api/values/${valueId}/trace`),
   // keepalive lets a held decision still reach the server as the page closes.
   decide: (itemId: string, decision: Decision, keepalive = false) =>
     request<DecisionResult>(`/api/confirm-queue/${itemId}/decision`, {

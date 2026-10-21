@@ -28,6 +28,7 @@
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
 
   --z-sticky: 10;
+  --z-panel: 30;
   --z-toast: 40;
 }
 
@@ -96,6 +97,17 @@
   }
 }
 
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 @keyframes gate-progress {
   from {
     transform: scaleX(0);
@@ -109,6 +121,10 @@
   animation: crop-in 220ms var(--ease-out-quart) both;
 }
 
+.animate-panel-in {
+  animation: panel-in 240ms var(--ease-out-quart) both;
+}
+
 .animate-gate {
   transform-origin: left;
   animation: gate-progress 1.6s var(--ease-out-quart) both;
@@ -116,7 +132,11 @@
 
 @media (prefers-reduced-motion: reduce) {
   .animate-crop-in,
-  .animate-gate {
+  .animate-panel-in {
+  animation: panel-in 240ms var(--ease-out-quart) both;
+}
+
+.animate-gate {
     animation: none;
   }
 }
