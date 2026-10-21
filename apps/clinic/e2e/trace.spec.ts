@@ -13,6 +13,7 @@ async function openAsha(page: Page) {
   await page.getByRole('link', { name: 'Patients' }).click()
   await page.getByRole('link', { name: 'Asha Verma' }).click()
   await expect(page.getByRole('heading', { name: 'Asha Verma' })).toBeVisible()
+  await page.getByRole('link', { name: 'Documents', exact: true }).click()
 }
 
 function provenanceBox(registrationNo: string, analyte: string) {

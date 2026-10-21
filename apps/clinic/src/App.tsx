@@ -8,6 +8,7 @@ import { PatientLayout } from './patient/PatientLayout'
 import { PatientsPage } from './record/PatientsPage'
 import { RecordPage } from './record/RecordPage'
 import { TimelinePage } from './timeline/TimelinePage'
+import { VisitPage } from './visit/VisitPage'
 import { TracePanel } from './trace/TracePanel'
 
 export function App() {
@@ -19,7 +20,8 @@ export function App() {
         <Route path="patients" element={<PatientsPage />} />
         <Route path="patients/:patientId/checklist/review/:regimenId" element={<ReviewPage />} />
         <Route path="patients/:patientId" element={<PatientLayout />}>
-          <Route index element={<Navigate to="documents" replace />} />
+          <Route index element={<Navigate to="visit" replace />} />
+          <Route path="visit" element={<VisitPage />} />
           <Route path="timeline" element={<TimelinePage />} />
           <Route path="checklist" element={<ChecklistPage />} />
           <Route path="documents" element={<RecordPage />}>

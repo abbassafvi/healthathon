@@ -12,7 +12,7 @@ export function ChecklistPage() {
   const query = useQuery({ queryKey: ['checklist', patientId], queryFn: () => pendingApi.checklist(patientId) })
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 pt-6 pb-16 sm:px-6">
+    <main className="mx-auto w-full max-w-6xl px-4 pt-6 pb-16 sm:px-6">
       {query.status === 'pending' && <div className="h-64 rounded-xl bg-sunken" aria-busy="true" />}
       {query.status === 'error' && <p className="text-ink-2">{en.checklist.loadFailed}</p>}
       {query.status === 'success' && (

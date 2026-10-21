@@ -126,3 +126,45 @@ export type EntriesPage = {
   from: string
   to: string
 }
+
+/* ---------------------------------------------------------------------
+ * The visit page. Fixed layout: nothing ranked, highlighted or left out.
+ * ------------------------------------------------------------------- */
+
+export type DayCell = {
+  date: string
+  state: 'ticked' | 'not_ticked' | 'no_entry'
+  /* The tick the cell came from; null for a gap. */
+  entry_id: string | null
+}
+
+/*
+ * The one approved score (pat.compliance_score). Computed from medication
+ * ticks only, shown to clinicians only, and always shipped with the day
+ * array it came from, so it can be recomputed and checked.
+ */
+export type ComplianceScore = {
+  id: string
+  period_from: string
+  period_to: string
+  ticked_count: number
+  expected_count: number
+  score_percent: number
+  computed_at: string
+  rows: { item: { id: string; drug_text: string; dose_text: string; schedule_text: string | null }; days: DayCell[] }[]
+}
+
+export type TestOrder = {
+  id: string
+  analyte_name: string
+  ordered_on: string
+  /* Null means there is no matching report in this record. */
+  matched_value_id: string | null
+}
+
+export type VisitSummary = {
+  visit: { scheduled_for: string; clinician_name: string }
+  period: { from: string; to: string; previous_visit: string | null }
+  orders: TestOrder[]
+  compliance: ComplianceScore | null
+}

@@ -94,6 +94,7 @@ test('patient list', async ({ page }) => {
 test('record with the trace open, zoomed and whole page', async ({ page }) => {
   await page.goto('/patients')
   await page.getByRole('link', { name: 'Asha Verma' }).click()
+  await page.getByRole('link', { name: 'Documents', exact: true }).click()
   await page.locator('[data-value-id]').first().click()
   const trace = page.getByRole('dialog', { name: 'Where this value came from' })
   await expect(trace.getByRole('img')).toBeVisible()
@@ -106,6 +107,8 @@ test('record with the trace open, zoomed and whole page', async ({ page }) => {
 test('the record and trace work from the keyboard alone', async ({ page }) => {
   await page.goto('/patients')
   await page.getByRole('link', { name: 'Asha Verma' }).focus()
+  await page.keyboard.press('Enter')
+  await page.getByRole('link', { name: 'Documents', exact: true }).focus()
   await page.keyboard.press('Enter')
   const first = page.locator('[data-value-id]').first()
   await first.focus()

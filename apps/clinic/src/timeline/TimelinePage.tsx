@@ -114,7 +114,7 @@ export function TimelinePage() {
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  return <main className="mx-auto w-full max-w-5xl px-4 pt-6 pb-16 sm:px-6">{children}</main>
+  return <main className="mx-auto w-full max-w-6xl px-4 pt-6 pb-16 sm:px-6">{children}</main>
 }
 
 type DayProps = {

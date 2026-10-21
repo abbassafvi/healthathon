@@ -1,5 +1,5 @@
 import { request } from './client'
-import type { Checklist, EntriesPage, ItemDecision, RegimenItem, RegimenReview } from './pending'
+import type { Checklist, EntriesPage, ItemDecision, RegimenItem, RegimenReview, VisitSummary } from './pending'
 
 /* Calls to endpoints served by the mock layer until they are built in api/. */
 export const pendingApi = {
@@ -15,6 +15,7 @@ export const pendingApi = {
     request<EntriesPage>(
       `/api/patients/${patientId}/entries` + (range ? `?from=${range.from}&to=${range.to}` : ''),
     ),
+  visit: (patientId: string) => request<VisitSummary>(`/api/patients/${patientId}/visit`),
   activate: (regimenId: string) =>
     request<{ activated_at: string }>(`/api/regimens/${regimenId}/activate`, { method: 'POST' }),
 }

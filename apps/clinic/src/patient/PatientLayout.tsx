@@ -5,6 +5,7 @@ import { api } from '../api/client'
 import { en, fmt } from '../strings/en'
 
 const PATIENT_TABS = [
+  { path: 'visit', label: en.patient.tabs.visit },
   { path: 'timeline', label: en.patient.tabs.timeline },
   { path: 'checklist', label: en.patient.tabs.checklist },
   { path: 'documents', label: en.patient.tabs.documents },
@@ -21,7 +22,7 @@ export function PatientLayout() {
 
   if (patients.isSuccess && !patient) {
     return (
-      <main className="mx-auto w-full max-w-5xl px-4 pt-6 sm:px-6">
+      <main className="mx-auto w-full max-w-6xl px-4 pt-6 sm:px-6">
         <Link to="/patients" className="text-sm text-ink-2 underline-offset-4 hover:text-ink hover:underline">
           {en.record.backToPatients}
         </Link>
@@ -32,7 +33,7 @@ export function PatientLayout() {
 
   return (
     <>
-      <div className="mx-auto w-full max-w-5xl px-4 pt-6 sm:px-6">
+      <div className="mx-auto w-full max-w-6xl px-4 pt-6 sm:px-6">
         <Link to="/patients" className="text-sm text-ink-2 underline-offset-4 hover:text-ink hover:underline">
           {en.record.backToPatients}
         </Link>
