@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useLayoutEffect } from 'react'
 
 import { hasModifier, isTypingTarget } from '../lib/keys'
 import { en, fmt } from '../strings/en'
@@ -24,7 +24,8 @@ function describe({ item, decision }: Pending): string {
  * any notice about a decision that did not land.
  */
 export function DecisionToast({ pending, notice, onUndo, onDismiss }: Props) {
-  useEffect(() => {
+  // Layout effect: Z works from the moment Undo is shown.
+  useLayoutEffect(() => {
     if (!pending) return
     const onKey = (e: KeyboardEvent) => {
       if (isTypingTarget(e.target) || hasModifier(e)) return
