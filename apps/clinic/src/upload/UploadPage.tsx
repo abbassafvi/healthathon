@@ -83,7 +83,7 @@ export function UploadPage() {
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 pt-8 pb-16 sm:px-6">
-      <h1 className="text-xl font-semibold tracking-tight">{en.upload.title}</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">{en.upload.title}</h1>
       <p className="mt-2 inline-block rounded-lg border border-line-strong bg-surface px-3 py-1.5 text-sm">{en.upload.fictionalOnly}</p>
 
       <div className="mt-8 grid gap-10 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">

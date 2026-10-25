@@ -68,6 +68,25 @@ describe('ReviewPage', () => {
     expect(screen.getByText('1 of 4 confirmed')).toBeInTheDocument()
   })
 
+  it('shows Correct and Not a medicine only on the line in focus', async () => {
+    const user = setup()
+    await paintAll()
+    await waitFor(() => expect(confirmIn(row(1))).toBeEnabled())
+    expect(within(row(1)).getByRole('button', { name: /^Correct/ })).toBeInTheDocument()
+    expect(within(row(2)).queryByRole('button', { name: /^Correct/ })).not.toBeInTheDocument()
+    expect(within(row(2)).getByRole('button', { name: /^Confirm/ })).toBeInTheDocument()
+    await user.keyboard('j')
+    expect(within(row(2)).getByRole('button', { name: /^Correct/ })).toBeInTheDocument()
+    expect(within(row(1)).queryByRole('button', { name: /^Correct/ })).not.toBeInTheDocument()
+  })
+
+  it('keeps heading levels in order', async () => {
+    setup()
+    await screen.findAllByRole('listitem')
+    const levels = [...document.querySelectorAll('h1, h2, h3, h4')].map((h) => Number(h.tagName[1]))
+    levels.forEach((l, i) => i > 0 && expect(l - levels[i - 1]).toBeLessThanOrEqual(1))
+  })
+
   it('J and K move between lines', async () => {
     const user = setup()
     await paintAll()

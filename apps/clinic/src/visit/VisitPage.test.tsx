@@ -107,6 +107,19 @@ describe('VisitPage', () => {
     expect(document.activeElement).toHaveAttribute('data-date')
   })
 
+  it('shows the newest readings and answers, with the rest in place on request', async () => {
+    const user = setup()
+    const table = await screen.findByRole('table')
+    expect(table.querySelectorAll('tbody tr')).toHaveLength(10)
+    const more = screen.getAllByRole('button', { name: /^Show all \d+$/ })[0]
+    const total = Number(more.textContent!.match(/\d+/)![0])
+    await user.click(more)
+    expect(table.querySelectorAll('tbody tr')).toHaveLength(total)
+    expect(screen.getAllByRole('button', { name: 'Show fewer' })[0]).toHaveAttribute('aria-expanded', 'true')
+    // Nothing on the page scrolls inside the page.
+    expect(document.querySelector('[class*="overflow-y-auto"]')).toBeNull()
+  })
+
   it('states an order with no report as a fact about the record', async () => {
     setup()
     const orders = await screen.findByRole('region', { name: 'Tests ordered' })

@@ -9,7 +9,7 @@ export function PatientsPage() {
 
   return (
     <main className="mx-auto w-full max-w-5xl px-4 pt-8 pb-16 sm:px-6">
-      <h1 className="mb-6 text-xl font-semibold tracking-tight">{en.patients.title}</h1>
+      <h1 className="mb-6 text-2xl font-semibold tracking-tight">{en.patients.title}</h1>
       {query.status === 'pending' && <div className="h-48 rounded-xl bg-sunken" aria-busy="true" />}
       {query.status === 'error' && <p className="text-ink-2">{en.patients.loadFailed}</p>}
       {query.status === 'success' && query.data.length === 0 && <p className="text-ink-2">{en.patients.empty}</p>}

@@ -116,7 +116,37 @@ test('the record and trace work from the keyboard alone', async ({ page }) => {
   const trace = page.getByRole('dialog', { name: 'Where this value came from' })
   await expect(trace.getByRole('heading', { name: 'Where this value came from' })).toBeFocused()
   await page.keyboard.press('Tab')
+  await expect(trace.getByText('Keyboard')).toBeFocused()
+  await page.keyboard.press('Tab')
   await expect(trace.getByRole('button', { name: /close/i })).toBeFocused()
   await page.keyboard.press('Escape')
   await expect(first).toBeFocused()
+})
+
+/*
+ * Motion means movement: keyframe animations and transform transitions.
+ * Short colour transitions on buttons are not motion and are allowed.
+ */
+const moving = (page: Page) =>
+  page.evaluate(() =>
+    document.getAnimations().filter((a) =>
+      a instanceof CSSAnimation ||
+      (a instanceof CSSTransition && /transform|translate|scale|rotate/.test(a.transitionProperty)),
+    ).length,
+  )
+
+test('with reduced motion asked for, nothing moves', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.goto('/queue')
+  await expect(page.getByRole('button', { name: /confirm as read/i })).toBeEnabled()
+  expect(await moving(page)).toBe(0)
+  await page.keyboard.press('Enter') // the toast and the next crop would animate
+  await expect(page.getByRole('button', { name: /undo/i })).toBeVisible()
+  expect(await moving(page)).toBe(0)
+  await page.goto('/patients')
+  await page.getByRole('link', { name: 'Asha Verma' }).click()
+  await page.getByRole('link', { name: 'Documents', exact: true }).click()
+  await page.locator('[data-value-id]').first().click()
+  await expect(page.getByRole('dialog').getByRole('img')).toBeVisible()
+  expect(await moving(page)).toBe(0)
 })

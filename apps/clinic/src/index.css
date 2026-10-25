@@ -63,12 +63,13 @@
     letter-spacing: -0.03em;
   }
 
+  /* Field and block labels. Sans, so mono stays reserved for data
+     (registration numbers, times, keys, schedules). */
   .label {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    line-height: 1rem;
-    letter-spacing: 0.02em;
-    color: var(--color-ink-3);
+    font-size: 0.8125rem;
+    line-height: 1.125rem;
+    font-weight: 500;
+    color: var(--color-ink-2);
   }
 
   .kbd {
@@ -132,11 +133,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .animate-crop-in,
-  .animate-panel-in {
-  animation: panel-in 240ms var(--ease-out-quart) both;
-}
-
-.animate-gate {
+  .animate-panel-in,
+  .animate-gate {
     animation: none;
   }
 }

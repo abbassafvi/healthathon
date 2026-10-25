@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState, useLayoutEffect } from 'react'
 import { Link, useParams } from 'react-router'
 
 import type { RegimenReview } from '../api/pending'
 import { pendingApi } from '../api/pendingClient'
 import { formatDate } from '../lib/dates'
 import { hasModifier, isButtonTarget, isTypingTarget } from '../lib/keys'
+import { KeysHelp } from '../app/KeysHelp'
 import { en, fmt } from '../strings/en'
 import { PageViewer } from '../trace/PageViewer'
 import { ActivationBar } from './ActivationBar'
@@ -60,7 +61,8 @@ export function ReviewPage() {
     if (next >= 0) setFocus(next)
   }
 
-  useEffect(() => {
+  // Layout effect: keys work in the same commit that enables a line.
+  useLayoutEffect(() => {
     if (!data || data.activated_at) return
     const onKey = (e: KeyboardEvent) => {
       if (hasModifier(e) || e.repeat || isTypingTarget(e.target) || correcting) return
@@ -109,7 +111,10 @@ export function ReviewPage() {
               />
             </div>
             <div>
-              {!data.activated_at && <p className="mb-3 text-sm text-ink-3">{en.review.keys}</p>}
+              <div className="mb-3 flex items-center justify-between gap-4">
+                <h2 className="text-base font-semibold">{en.review.listTitle}</h2>
+                {!data.activated_at && <KeysHelp keys={en.keys.review} />}
+              </div>
               {items.length === 0 ? (
                 <p className="rounded-xl border border-line bg-surface p-6 text-ink-2">{en.review.empty}</p>
               ) : (

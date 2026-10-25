@@ -1,3 +1,4 @@
+import { KeysHelp } from '../app/KeysHelp'
 import { en, fmt } from '../strings/en'
 import { DecisionToast } from './DecisionToast'
 import { ReviewItem } from './ReviewItem'
@@ -15,12 +16,15 @@ export function ConfirmQueuePage({
   return (
     <main className="mx-auto w-full max-w-5xl px-4 pt-8 pb-28 sm:px-6">
       <header className="mb-8 flex items-baseline justify-between gap-4">
-        <h1 className="text-xl font-semibold tracking-tight">{en.queue.title}</h1>
-        {s.status === 'success' && s.current && (
-          <p className="numerals font-mono text-sm text-ink-2">
-            {fmt(en.queue.position, { n: s.position, total: s.total })}
-          </p>
-        )}
+        <h1 className="text-2xl font-semibold tracking-tight">{en.queue.title}</h1>
+        <div className="flex items-center gap-4">
+          {s.status === 'success' && s.current && (
+            <p className="numerals font-mono text-sm text-ink-2">
+              {fmt(en.queue.position, { n: s.position, total: s.total })}
+            </p>
+          )}
+          <KeysHelp keys={en.keys.queue} />
+        </div>
       </header>
 
       {s.status === 'pending' && <QueueSkeleton />}

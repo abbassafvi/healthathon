@@ -67,8 +67,13 @@ export function ReviewRow(p: Props) {
           ) : (
             <div className="flex flex-wrap gap-2" role="group" aria-label={fmt(en.review.item, { n: p.n })}>
               <ActionButton primary={p.focused} disabled={locked} kbd={p.focused ? 'Enter' : undefined} onClick={p.onConfirm}>{en.review.confirm}</ActionButton>
-              <ActionButton disabled={locked} kbd={p.focused ? 'C' : undefined} onClick={p.onStartCorrect}>{en.review.correct}</ActionButton>
-              <ActionButton disabled={locked} kbd={p.focused ? 'X' : undefined} onClick={p.onRemove}>{en.review.remove}</ActionButton>
+              {/* The other two actions belong to the line in focus only. */}
+              {p.focused && (
+                <>
+                  <ActionButton disabled={locked} kbd="C" onClick={p.onStartCorrect}>{en.review.correct}</ActionButton>
+                  <ActionButton disabled={locked} kbd="X" onClick={p.onRemove}>{en.review.remove}</ActionButton>
+                </>
+              )}
             </div>
           )}
         </div>

@@ -5,6 +5,7 @@ import { useNavigate, useParams } from 'react-router'
 import { api, ApiError, type Trace } from '../api/client'
 import { formatDate } from '../lib/dates'
 import { hasModifier, isTypingTarget } from '../lib/keys'
+import { KeysHelp } from '../app/KeysHelp'
 import { en, fmt } from '../strings/en'
 import { describeHistory } from './history'
 import { PageViewer } from './PageViewer'
@@ -48,6 +49,8 @@ export function TracePanel() {
         <h2 id="trace-title" ref={headingRef} tabIndex={-1} className="text-base font-semibold tracking-tight outline-none">
           {en.trace.title}
         </h2>
+        <div className="flex items-center gap-2">
+        <KeysHelp keys={en.keys.trace} />
         <button
           type="button"
           onClick={close}
@@ -57,6 +60,7 @@ export function TracePanel() {
           {en.trace.close}
           <kbd className="kbd">Esc</kbd>
         </button>
+        </div>
       </header>
       <div className="flex flex-col gap-6 px-6 py-6">
         {query.status === 'pending' && <div className="h-[min(58vh,34rem)] rounded-xl bg-sunken" aria-busy="true" />}
