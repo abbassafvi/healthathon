@@ -1,0 +1,68 @@
+import type { Strings } from './en'
+
+/*
+ * DRAFT, NOT REVIEWED BY A SPEAKER. Do not use with patients or at the
+ * demonstration until an Urdu speaker has reviewed every string. The
+ * project requires translations made and reviewed by people.
+ */
+export const REVIEWED = false
+
+export const ur: Strings = {
+  langName: 'اردو',
+  welcome: {
+    title: 'السلام علیکم',
+    body: 'ہر روز اپنی دواؤں پر نشان لگائیں اور شوگر کی ریڈنگ لکھیں۔ اگلی ملاقات پر ڈاکٹر انہیں دیکھیں گے۔',
+    chooseLanguage: 'اپنی زبان چنیں',
+    choosePatient: 'یہ فون کون استعمال کر رہا ہے؟',
+    demo: 'ڈیمو: یہ فرضی مریض ہیں۔',
+    start: 'شروع کریں',
+  },
+  today: {
+    greeting: 'السلام علیکم، {name}',
+    medicines: 'دوائیں',
+    medicinesHelp: 'ہر دوا لینے پر اس پر نشان لگائیں۔',
+    noChecklist: 'آپ کے ڈاکٹر نے ابھی دواؤں کی فہرست نہیں دی۔',
+    ticked: 'لے لی',
+    notTicked: 'ابھی نشان نہیں',
+    tickLabel: '{drug} {dose}، {schedule}۔ {state}',
+    sugar: 'شوگر ریڈنگ',
+    addReading: 'ریڈنگ شامل کریں',
+    noReadings: 'آج کوئی ریڈنگ نہیں۔',
+    reading: '{value} mg/dL، {context}، {time}',
+    question: 'آج کا سوال',
+    answered: 'آپ کا جواب: {answer}',
+    yes: 'ہاں',
+    no: 'نہیں',
+    writeAnswer: 'اپنا جواب لکھیں',
+    send: 'بھیجیں',
+    meal: 'کھانے کی تصویر',
+    mealHelp: 'اپنی پلیٹ کی تصویر لیں۔ یہ جیسی ہے ویسی ڈاکٹر تک جائے گی۔',
+    addMeal: 'کھانے کی تصویر شامل کریں',
+    mealsToday: 'آج {n} تصاویر',
+    survey: 'اس ہفتے',
+    surveyOpen: 'اس ہفتے کے سوالوں کے جواب دیں',
+    surveyDone: 'شکریہ۔ اس ہفتے کے جواب بھیج دیے گئے۔',
+    switchUser: 'زبان یا شخص بدلیں',
+    savedNote: 'محفوظ',
+  },
+  glucose: {
+    title: 'شوگر ریڈنگ',
+    value: 'میٹر کی ریڈنگ (mg/dL)',
+    when: 'آپ نے یہ کب لی؟',
+    contexts: {
+      fasting: 'ناشتے سے پہلے',
+      before_meal: 'کھانے سے پہلے',
+      after_meal: 'کھانے کے بعد',
+      bedtime: 'سونے سے پہلے',
+      overnight: 'رات میں',
+      random: 'کسی اور وقت',
+    },
+    save: 'ریڈنگ محفوظ کریں',
+    cancel: 'منسوخ کریں',
+    needValue: 'میٹر کا نمبر لکھیں۔',
+    needContext: 'چنیں کہ آپ نے یہ کب لی۔',
+  },
+  survey: { title: 'اس ہفتے', done: 'جواب بھیجیں', back: 'واپس' },
+  days: { short: ['اتوار', 'پیر', 'منگل', 'بدھ', 'جمعرات', 'جمعہ', 'ہفتہ'] },
+  months: ['جنوری', 'فروری', 'مارچ', 'اپریل', 'مئی', 'جون', 'جولائی', 'اگست', 'ستمبر', 'اکتوبر', 'نومبر', 'دسمبر'],
+}

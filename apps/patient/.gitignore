@@ -1,0 +1,5 @@
+dist-web
+web-build
+.expo
+playwright-report
+test-results

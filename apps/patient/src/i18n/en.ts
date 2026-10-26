@@ -1,0 +1,69 @@
+/*
+ * English strings for the patient app. Every visible string lives in
+ * en.ts, hi.ts and ur.ts, with the same keys. Placeholders use {name}.
+ */
+export const en = {
+  langName: 'English',
+  welcome: {
+    title: 'Hello',
+    body: 'Each day, tick your medicines and note your sugar readings. Your doctor sees them at your next visit.',
+    chooseLanguage: 'Choose your language',
+    choosePatient: 'Who is using this phone?',
+    demo: 'Demo: these are fictional patients.',
+    start: 'Start',
+  },
+  today: {
+    greeting: 'Hello, {name}',
+    medicines: 'Medicines',
+    medicinesHelp: 'Tick each one when you take it.',
+    noChecklist: 'Your doctor has not given you a medicine list yet.',
+    ticked: 'Taken',
+    notTicked: 'Not ticked yet',
+    tickLabel: '{drug} {dose}, {schedule}. {state}',
+    sugar: 'Sugar readings',
+    addReading: 'Add a reading',
+    noReadings: 'No readings today.',
+    reading: '{value} mg/dL, {context}, {time}',
+    question: "Today's question",
+    answered: 'Your answer: {answer}',
+    yes: 'Yes',
+    no: 'No',
+    writeAnswer: 'Write your own answer',
+    send: 'Send',
+    meal: 'Meal photo',
+    mealHelp: 'Take a photo of your plate. It goes to your doctor as it is.',
+    addMeal: 'Add a meal photo',
+    mealsToday: '{n} photos today',
+    survey: 'This week',
+    surveyOpen: 'Answer this week’s questions',
+    surveyDone: 'Thank you. This week’s answers are sent.',
+    switchUser: 'Change language or person',
+    savedNote: 'Saved',
+  },
+  glucose: {
+    title: 'Sugar reading',
+    value: 'Reading from your meter (mg/dL)',
+    when: 'When did you take it?',
+    contexts: {
+      fasting: 'Before breakfast',
+      before_meal: 'Before a meal',
+      after_meal: 'After a meal',
+      bedtime: 'At bedtime',
+      overnight: 'At night',
+      random: 'Another time',
+    },
+    save: 'Save reading',
+    cancel: 'Cancel',
+    needValue: 'Type the number from your meter.',
+    needContext: 'Choose when you took it.',
+  },
+  survey: {
+    title: 'This week',
+    done: 'Send answers',
+    back: 'Back',
+  },
+  days: { short: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] },
+  months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+}
+
+export type Strings = typeof en
