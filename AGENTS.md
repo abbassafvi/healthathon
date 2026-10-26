@@ -211,6 +211,8 @@ Scope is in `docs/Prototype-Scope.pdf`. Anything not in that document is out of
 scope. If you think something should be added, say so and let a human decide.
 Do not widen the scope yourself.
 
-The work split between the two tracks is in `docs/work-split.md`. Three
+The work split between the two tracks is in `docs/work-split.md`. The current
+state of the build, the endpoints still mocked, and the next steps are in
+`docs/HANDOFF.md`: read it before starting work. Three
 artefacts are frozen and must not be changed unilaterally: the database schema,
 the OpenAPI spec, and the English interface strings.

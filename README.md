@@ -50,7 +50,8 @@ scope document.
 | `api/openapi.json` | The API contract. A test fails if it drifts from the code |
 | `api/dev_seed/` | Stand-in seed: four fictional patients with generated lab reports, until the Track A seed script lands |
 | `apps/clinic/` | Clinician web app. Vite, React, TypeScript |
-| `apps/patient/` | Patient Android app, Expo. Not started |
+| `apps/patient/` | Patient Android app. Expo, tested on its web target |
+| `docs/HANDOFF.md` | What is real, what is mocked, and what comes next |
 
 Requires Docker, `uv`, and Node 20 or later.
 
@@ -60,8 +61,9 @@ cd api && uv sync
 uv run python -m dev_seed                 # fictional data; --reset to start again
 uv run uvicorn healthathon.main:app --reload --port 8000
 
-npm install                               # from the repo root
+npx npm@11 install                        # from the repo root (npm 10 crashes here)
 npm run clinic                            # http://127.0.0.1:5173
+cd apps/patient && npx expo start         # patient app: a for Android, w for web
 ```
 
 Page images and crops go to `storage/`, which is never committed.
@@ -75,8 +77,12 @@ Every layer is tested, and every one of these must pass before a commit.
 uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest
 
 # apps/clinic/
-npm run typecheck && npm run lint && npm test
+npm run check      # types, lint, unit tests
 npm run e2e        # Playwright against the real API and a real database
+
+# apps/patient/
+npm run check      # types and Jest
+npm run e2e        # Playwright and axe on the Expo web build
 ```
 
 `pytest` builds `healthathon_test` from `db/schema.sql`, and the end-to-end
