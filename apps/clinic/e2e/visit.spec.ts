@@ -67,3 +67,26 @@ test('a patient with no checklist sees no score', async ({ page }) => {
   await expect(page.getByText('No checklist was active in this period, so there are no ticks to count.')).toBeVisible()
   await expect(page.getByTestId('score-count')).toHaveCount(0)
 })
+
+test('the documents half stays in view while the patient half scrolls', async ({ page }) => {
+  await openVisit(page)
+  const docs = page.getByRole('region', { name: /From documents since the last visit/ })
+  await expect(docs).toHaveAttribute('data-pinned', 'true')
+  await page.getByRole('heading', { name: 'Meal photographs' }).scrollIntoViewIfNeeded()
+  await expect(docs.getByRole('heading', { name: 'Laboratory values' })).toBeInViewport()
+})
+
+test('a tick made in the patient app today appears in the day array', async ({ page, request }) => {
+  const patients = (await (await request.get('/api/app/patients')).json()) as { id: string; registration_no: string }[]
+  const asha = patients.find((p) => p.registration_no === 'DEV-0001')!
+  const today = (await (await request.get(`/api/app/patients/${asha.id}/today`)).json()) as { date: string; items: { id: string; drug_text: string }[] }
+  const item = today.items[0]
+  const res = await request.put(`/api/app/patients/${asha.id}/ticks/${item.id}`, {
+    data: { ticked: true, capture_id: 'e2e-visit-tick-0001' },
+  })
+  expect(res.status()).toBe(204)
+  await openVisit(page)
+  await page.getByRole('button', { name: 'Show the days' }).click()
+  const row = page.getByRole('row').filter({ has: page.getByRole('rowheader', { name: new RegExp(item.drug_text) }) }).last()
+  await expect(row.locator(`[data-date="${today.date}"]`)).toHaveAttribute('data-cell-state', 'ticked')
+})

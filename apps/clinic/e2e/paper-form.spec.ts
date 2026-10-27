@@ -63,3 +63,12 @@ test('the form will not continue with a reading that has no context', async ({ p
   await expect(page.getByRole('alert')).toContainText('Reading 1 needs its context.')
   await expectNoViolations(page)
 })
+
+test("answers start in the patient's language, and days answered in the app are shown, not retyped", async ({ page }) => {
+  await openForm(page)
+  await expect(page.getByLabel('Answers written in')).toHaveValue('hi')
+  const locked = page.locator('[data-answer-locked]')
+  await expect(locked.first()).toContainText('Already recorded in the app')
+  expect((await locked.count()) + (await page.locator('input[id^="answer-"]').count())).toBe(7)
+  await expectNoViolations(page)
+})

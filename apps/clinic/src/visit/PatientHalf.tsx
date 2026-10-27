@@ -49,7 +49,7 @@ export function PatientHalf({ entries, score }: { entries: PatientEntry[]; score
                       )}
                     </td>
                     <td className="px-3 py-1.5 whitespace-nowrap">{en.entries.contexts[g.context] ?? g.context}</td>
-                    <td className="px-3 py-1.5"><Source e={g} />{g.channel === 'patient_app' && g.entered_by === 'patient' && <span className="font-mono text-xs text-ink-3">{en.visit.fromApp}</span>}</td>
+                    <td className="px-3 py-1.5"><Source e={g} />{g.channel === 'patient_app' && g.entered_by === 'patient' && <span className="text-xs text-ink-2">{en.visit.fromApp}</span>}</td>
                   </tr>
                 ))}
               </tbody>
