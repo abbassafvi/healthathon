@@ -369,6 +369,397 @@
         }
       }
     },
+    "/api/app/patients": {
+      "get": {
+        "tags": [
+          "patient-app"
+        ],
+        "summary": "Get Patients",
+        "operationId": "get_patients_api_app_patients_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AppPatient"
+                  },
+                  "type": "array",
+                  "title": "Response Get Patients Api App Patients Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/app/patients/{patient_id}/today": {
+      "get": {
+        "tags": [
+          "patient-app"
+        ],
+        "summary": "Get Today",
+        "operationId": "get_today_api_app_patients__patient_id__today_get",
+        "parameters": [
+          {
+            "name": "patient_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Patient Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Today"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/app/patients/{patient_id}/ticks/{item_id}": {
+      "put": {
+        "tags": [
+          "patient-app"
+        ],
+        "summary": "Put Tick",
+        "operationId": "put_tick_api_app_patients__patient_id__ticks__item_id__put",
+        "parameters": [
+          {
+            "name": "patient_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Patient Id"
+            }
+          },
+          {
+            "name": "item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Item Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TickRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/app/patients/{patient_id}/readings": {
+      "post": {
+        "tags": [
+          "patient-app"
+        ],
+        "summary": "Post Reading",
+        "operationId": "post_reading_api_app_patients__patient_id__readings_post",
+        "parameters": [
+          {
+            "name": "patient_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Patient Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReadingRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppReading"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/app/patients/{patient_id}/answers": {
+      "post": {
+        "tags": [
+          "patient-app"
+        ],
+        "summary": "Post Answer",
+        "operationId": "post_answer_api_app_patients__patient_id__answers_post",
+        "parameters": [
+          {
+            "name": "patient_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Patient Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnswerRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/app/patients/{patient_id}/meals": {
+      "post": {
+        "tags": [
+          "patient-app"
+        ],
+        "summary": "Post Meal",
+        "operationId": "post_meal_api_app_patients__patient_id__meals_post",
+        "parameters": [
+          {
+            "name": "patient_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Patient Id"
+            }
+          },
+          {
+            "name": "capture_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9-]{8,64}$",
+              "title": "Capture Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "contentMediaType": "application/octet-stream",
+                "title": "Body"
+              }
+            },
+            "image/jpeg": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "image/png": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppMeal"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/app/patients/{patient_id}/survey": {
+      "get": {
+        "tags": [
+          "patient-app"
+        ],
+        "summary": "Get Survey",
+        "operationId": "get_survey_api_app_patients__patient_id__survey_get",
+        "parameters": [
+          {
+            "name": "patient_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Patient Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AppQuestion"
+                  },
+                  "title": "Response Get Survey Api App Patients  Patient Id  Survey Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "patient-app"
+        ],
+        "summary": "Post Survey",
+        "operationId": "post_survey_api_app_patients__patient_id__survey_post",
+        "parameters": [
+          {
+            "name": "patient_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Patient Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SurveyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/health": {
       "get": {
         "tags": [
@@ -550,6 +941,197 @@
           "answer_text"
         ],
         "title": "AnswerEntry"
+      },
+      "AnswerRequest": {
+        "properties": {
+          "question_key": {
+            "type": "string",
+            "title": "Question Key"
+          },
+          "answer_text": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Answer Text"
+          },
+          "capture_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9-]{8,64}$",
+            "title": "Capture Id"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "en",
+                  "hi",
+                  "ur"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          }
+        },
+        "type": "object",
+        "required": [
+          "question_key",
+          "answer_text",
+          "capture_id"
+        ],
+        "title": "AnswerRequest"
+      },
+      "AppChecklistItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "drug_text": {
+            "type": "string",
+            "title": "Drug Text"
+          },
+          "dose_text": {
+            "type": "string",
+            "title": "Dose Text"
+          },
+          "schedule_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Schedule Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "drug_text",
+          "dose_text",
+          "schedule_text"
+        ],
+        "title": "AppChecklistItem",
+        "description": "Exactly as printed on the activated prescription."
+      },
+      "AppMeal": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "uri": {
+            "type": "string",
+            "title": "Uri"
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Occurred At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "uri",
+          "occurred_at"
+        ],
+        "title": "AppMeal"
+      },
+      "AppPatient": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "registration_no": {
+            "type": "string",
+            "title": "Registration No"
+          },
+          "full_name": {
+            "type": "string",
+            "title": "Full Name"
+          },
+          "preferred_language": {
+            "type": "string",
+            "title": "Preferred Language"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "registration_no",
+          "full_name",
+          "preferred_language"
+        ],
+        "title": "AppPatient"
+      },
+      "AppQuestion": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "text": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "text"
+        ],
+        "title": "AppQuestion"
+      },
+      "AppReading": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "value_text": {
+            "type": "string",
+            "title": "Value Text"
+          },
+          "context": {
+            "type": "string",
+            "enum": [
+              "fasting",
+              "before_meal",
+              "after_meal",
+              "bedtime",
+              "overnight",
+              "random"
+            ],
+            "title": "Context"
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Occurred At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "value_text",
+          "context",
+          "occurred_at"
+        ],
+        "title": "AppReading"
       },
       "Box": {
         "properties": {
@@ -1444,6 +2026,55 @@
         ],
         "title": "QueuePatient"
       },
+      "ReadingRequest": {
+        "properties": {
+          "value_text": {
+            "type": "string",
+            "maxLength": 20,
+            "title": "Value Text"
+          },
+          "context": {
+            "type": "string",
+            "enum": [
+              "fasting",
+              "before_meal",
+              "after_meal",
+              "bedtime",
+              "overnight",
+              "random"
+            ],
+            "title": "Context"
+          },
+          "capture_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9-]{8,64}$",
+            "title": "Capture Id"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "en",
+                  "hi",
+                  "ur"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          }
+        },
+        "type": "object",
+        "required": [
+          "value_text",
+          "context",
+          "capture_id"
+        ],
+        "title": "ReadingRequest"
+      },
       "RecordDocument": {
         "properties": {
           "id": {
@@ -1642,6 +2273,63 @@
         ],
         "title": "RegimenItemSpan"
       },
+      "SurveyRequest": {
+        "properties": {
+          "answers": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "maxProperties": 20,
+            "title": "Answers"
+          },
+          "capture_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9-]{8,64}$",
+            "title": "Capture Id"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "en",
+                  "hi",
+                  "ur"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          }
+        },
+        "type": "object",
+        "required": [
+          "answers",
+          "capture_id"
+        ],
+        "title": "SurveyRequest"
+      },
+      "SurveyState": {
+        "properties": {
+          "open": {
+            "type": "boolean",
+            "title": "Open"
+          },
+          "done": {
+            "type": "boolean",
+            "title": "Done"
+          }
+        },
+        "type": "object",
+        "required": [
+          "open",
+          "done"
+        ],
+        "title": "SurveyState"
+      },
       "TickEntry": {
         "properties": {
           "id": {
@@ -1725,6 +2413,109 @@
           "ticked"
         ],
         "title": "TickEntry"
+      },
+      "TickRequest": {
+        "properties": {
+          "ticked": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ticked"
+          },
+          "capture_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9-]{8,64}$",
+            "title": "Capture Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ticked",
+          "capture_id"
+        ],
+        "title": "TickRequest"
+      },
+      "Today": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "patient": {
+            "$ref": "#/components/schemas/AppPatient"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AppChecklistItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "ticks": {
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "type": "object",
+            "title": "Ticks"
+          },
+          "readings": {
+            "items": {
+              "$ref": "#/components/schemas/AppReading"
+            },
+            "type": "array",
+            "title": "Readings"
+          },
+          "question": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AppQuestion"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "answer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Answer"
+          },
+          "meals": {
+            "items": {
+              "$ref": "#/components/schemas/AppMeal"
+            },
+            "type": "array",
+            "title": "Meals"
+          },
+          "survey": {
+            "$ref": "#/components/schemas/SurveyState"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "patient",
+          "items",
+          "ticks",
+          "readings",
+          "question",
+          "answer",
+          "meals",
+          "survey"
+        ],
+        "title": "Today"
       },
       "Trace": {
         "properties": {

@@ -67,7 +67,7 @@ def verify_audit_chain(db: psycopg.Connection[Any]) -> list[dict[str, Any]]:
         }
         fields |= {
             "occurred_at": r["occurred_at"].isoformat(),
-            "actor_id": str(r["actor_id"]),
+            "actor_id": str(r["actor_id"]) if r["actor_id"] else None,
             "actor_role": r["actor_role"],
             "entity_id": str(r["entity_id"]) if r["entity_id"] else None,
         }
