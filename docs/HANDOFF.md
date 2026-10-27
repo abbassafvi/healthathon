@@ -1,8 +1,7 @@
 # Handoff: state of the build and what comes next
 
 Last updated 27 October 2026, after Track B built the patient, regimen and
-visit endpoints and wired the clinician screens to them (PRs #4 to #6,
-stacked on #3). Written for Abbas and for any agent working on Track A.
+visit endpoints and wired both apps to them (PRs #4 to #7, stacked on #3). Written for Abbas and for any agent working on Track A.
 Read `AGENTS.md` first; everything here sits under its rules.
 
 ## In one paragraph
@@ -11,8 +10,8 @@ Every interface surface in the scope exists: the clinician web app
 (`apps/clinic`) and the patient Android app (`apps/patient`, Expo). Every
 clinician screen except upload now runs on real endpoints (`api/`). Upload
 still runs against a typed mock, because the reading pipeline behind it is
-Track A's. The patient app's endpoints exist (`/api/app/...`); wiring the
-app to them is the next Track B step.
+Track A's. The patient app runs on its endpoints (`/api/app/...`) when
+`EXPO_PUBLIC_API_URL` is set, and on its in-memory mock otherwise.
 
 ## What is real and what is mocked
 
@@ -25,7 +24,7 @@ app to them is the next Track B step.
 | Visit page and compliance score | `apps/clinic/src/visit` | Real (score computed on read, see below) |
 | Paper form | `apps/clinic/src/paperform` | Real |
 | Upload | `apps/clinic/src/upload` | Mock (stands in for the reading pipeline) |
-| Patient app | `apps/patient` | Endpoints real; the app still uses its in-app mock |
+| Patient app | `apps/patient` | Real when `EXPO_PUBLIC_API_URL` is set (`src/data/httpApi.ts`) |
 
 The browser mock layer now serves upload only. The other handlers in
 `apps/clinic/src/mocks/handlers` are fixtures for the Vitest screen tests,
@@ -113,10 +112,9 @@ These came up while building and need a decision from the schema owner.
   `ur.ts` are marked `REVIEWED = false`, and a test keeps them that way until
   a speaker reviews every string. Do not use them at the demonstration
   before then. The clinician app is English only.
-- **The patient app still uses its in-app mock.** The endpoints exist;
-  the HTTP client that implements `PatientApi` is next.
-- **A tick cannot yet be recorded as "not taken" in the patient app.** The
-  endpoint takes `ticked: false`; the app's toggle does not send it yet.
+- **A day's answer can be changed in the app,** and each answer is stored
+  as its own entry, so the clinician sees both, with their times. There is
+  no supersede link between them.
 - **Meal photos** are stored under `storage/meals/`, never committed. The
   patient app endpoints have no authentication, as the scope allows.
 - **The SMS endpoint** (scope: Other routes) has no UI and is not built.
@@ -141,6 +139,11 @@ npm run e2e          # Playwright and axe on the Expo web build
 ```
 
 Things that will trip you up:
+
+- Every route's database dependency runs at `scope="function"` (see
+  `api/src/healthathon/auth.py`), so the commit happens before the
+  response is sent. A new dependency with `yield` must do the same; a test
+  checks every route.
 
 - Use `npx npm@11` (or npm 11 on `PATH`). npm 10.8 crashes on this workspace.
   `npx expo install` shells out to whichever npm is on `PATH`.
@@ -167,8 +170,7 @@ Things that will trip you up:
 
 **Track B (Saadat)**
 
-1. Wire the patient app to `/api/app/...`; add the "not taken" tick.
-2. Get the Hindi and Urdu strings reviewed by speakers.
-3. Run the patient app on an Android phone.
-4. SMS endpoint, if the cut list allows.
-5. `/impeccable critique` and `/impeccable audit` again after wiring.
+1. Get the Hindi and Urdu strings reviewed by speakers.
+2. Run the patient app on an Android phone.
+3. SMS endpoint, if the cut list allows.
+4. Wire upload once the pipeline lands, then `/impeccable audit`.

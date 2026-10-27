@@ -63,8 +63,14 @@ uv run uvicorn healthathon.main:app --reload --port 8000
 
 npx npm@11 install                        # from the repo root (npm 10 crashes here)
 npm run clinic                            # http://127.0.0.1:5173
-cd apps/patient && npx expo start         # patient app: a for Android, w for web
+cd apps/patient && EXPO_PUBLIC_API_URL=http://10.0.2.2:8000 npx expo start
+                                          # patient app: a for Android, w for web
 ```
+
+The patient app talks to the API at `EXPO_PUBLIC_API_URL`: `http://10.0.2.2:8000`
+from the Android emulator, the computer's LAN address from a phone (start
+uvicorn with `--host 0.0.0.0`), or `http://127.0.0.1:8000` for the web
+target. Without it the app runs on its in-memory mock.
 
 Page images and crops go to `storage/`, which is never committed.
 
@@ -82,7 +88,7 @@ npm run e2e        # Playwright against the real API and a real database
 
 # apps/patient/
 npm run check      # types and Jest
-npm run e2e        # Playwright and axe on the Expo web build
+npm run e2e        # Playwright and axe on the Expo web build, against the real API
 ```
 
 `pytest` builds `healthathon_test` from `db/schema.sql`, and the end-to-end

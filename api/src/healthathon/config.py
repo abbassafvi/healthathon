@@ -18,6 +18,11 @@ class Settings(BaseSettings):
     # Dates the patient sees ("today", a tick's day, a paper form's week) are
     # days in the clinic's time zone, whatever the server's clock says.
     clinic_timezone: str = "Asia/Kolkata"
+    # Browser origins allowed to call the API: the patient app's web build
+    # in development and tests. The clinic app is served through the Vite
+    # proxy and the Android app is not a browser, so neither needs this.
+    # Set as JSON, e.g. HEALTHATHON_CORS_ORIGINS='["http://127.0.0.1:8091"]'.
+    cors_origins: list[str] = ["http://localhost:8081", "http://127.0.0.1:8081"]
 
 
 @lru_cache
