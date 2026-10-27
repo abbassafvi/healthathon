@@ -20,9 +20,18 @@ const json = (body: unknown, status = 200) =>
 const empty = () => new Response(null, { status: 204 })
 const body = (c: Call) => JSON.parse(String(c.init?.body)) as Record<string, unknown>
 
+const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 1])
+
 function api(...answers: (Response | Error)[]) {
   const { f, calls } = fakeFetch(...answers)
-  return { calls, client: createHttpApi({ baseUrl: 'http://clinic.test:8000/', language: () => 'hi', fetch: f }) }
+  const photos: string[] = []
+  const readPhoto = async (uri: string) => {
+    photos.push(uri)
+    if (uri.includes('missing')) throw new Error('The photo could not be read')
+    return { body: jpeg, type: 'image/jpeg' }
+  }
+  const client = createHttpApi({ baseUrl: 'http://clinic.test:8000/', language: () => 'hi', fetch: f, readPhoto })
+  return { calls, photos, client }
 }
 
 describe('the HTTP patient API', () => {
@@ -64,16 +73,22 @@ describe('the HTTP patient API', () => {
   })
 
   it('uploads a meal photo as it is, with its capture id', async () => {
-    const photo = new Blob([new Uint8Array([0xff, 0xd8, 0xff, 1])], { type: 'image/jpeg' })
-    const { client, calls } = api(
-      new Response(photo),
-      json({ id: 'm1', uri: '/api/storage/meals/p1/m1.jpg', occurred_at: 'x' }),
-    )
+    const { client, calls, photos } = api(json({ id: 'm1', uri: '/api/storage/meals/p1/m1.jpg', occurred_at: 'x' }))
     const meal = await client.addMeal('p1', 'file:///photo.jpg', 'cap-m')
-    expect(calls[0].url).toBe('file:///photo.jpg')
-    expect(calls[1].url).toBe('http://clinic.test:8000/api/app/patients/p1/meals?capture_id=cap-m')
-    expect(calls[1].init?.method).toBe('POST')
+    expect(photos).toEqual(['file:///photo.jpg'])
+    expect(calls[0].url).toBe('http://clinic.test:8000/api/app/patients/p1/meals?capture_id=cap-m')
+    expect(calls[0].init?.method).toBe('POST')
+    expect(calls[0].init?.headers).toEqual({ 'Content-Type': 'image/jpeg' })
+    expect(calls[0].init?.body).toBe(jpeg)
     expect(meal.uri).toBe('http://clinic.test:8000/api/storage/meals/p1/m1.jpg')
+  })
+
+  it('sends nothing when the photo cannot be read', async () => {
+    const { client, calls } = api()
+    const err = await client.addMeal('p1', 'file:///missing.jpg', 'cap-m').catch((e: unknown) => e)
+    expect(err).toBeInstanceOf(ApiError)
+    expect((err as ApiError).status).toBe(0)
+    expect(calls).toEqual([])
   })
 
   it('turns a refusal into an ApiError with the server’s reason', async () => {

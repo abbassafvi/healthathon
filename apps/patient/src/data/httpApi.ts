@@ -1,4 +1,5 @@
 import type { Lang } from '../theme'
+import { readPhoto } from './readPhoto'
 import type { Meal, PatientApi, PatientRef, Reading, SurveyQuestion, Today } from './types'
 
 /* A request the API refused or could not answer. `status` is 0 when the network failed. */
@@ -16,6 +17,8 @@ type Options = {
   /* The language the patient is using now; written answers are stored with it. */
   language: () => Lang
   fetch?: typeof fetch
+  /* Reads a photo the phone saved; expo-file-system on Android, fetch on the web. */
+  readPhoto?: (uri: string) => Promise<{ body: BodyInit; type: string }>
 }
 
 /*
@@ -23,7 +26,7 @@ type Options = {
  * write sends the capture id made on the device, so a retried request is
  * stored once. Photos are sent as they are taken.
  */
-export function createHttpApi({ baseUrl, language, fetch: f = fetch }: Options): PatientApi {
+export function createHttpApi({ baseUrl, language, fetch: f = fetch, readPhoto: read = readPhoto }: Options): PatientApi {
   const root = baseUrl.replace(/\/+$/, '')
   const url = (path: string) => `${root}/api/app${path}`
   const abs = (path: string) => (path.startsWith('/') ? `${root}${path}` : path)
@@ -64,16 +67,16 @@ export function createHttpApi({ baseUrl, language, fetch: f = fetch }: Options):
         language: language(),
       }),
     async addMeal(patientId, uri, captureId) {
-      let photo: Blob
+      let photo: { body: BodyInit; type: string }
       try {
-        photo = await (await f(uri)).blob()
+        photo = await read(uri)
       } catch {
         throw new ApiError(0, 'The photo could not be read')
       }
       const meal = await call<Meal>(`${p(patientId)}/meals?capture_id=${encodeURIComponent(captureId)}`, {
         method: 'POST',
         headers: { 'Content-Type': photo.type || 'image/jpeg' },
-        body: photo,
+        body: photo.body,
       })
       return { ...meal, uri: abs(meal.uri) }
     },
