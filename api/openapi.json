@@ -760,6 +760,260 @@
         }
       }
     },
+    "/api/patients/{patient_id}/checklist": {
+      "get": {
+        "tags": [
+          "regimens"
+        ],
+        "summary": "Get Checklist",
+        "operationId": "get_checklist_api_patients__patient_id__checklist_get",
+        "parameters": [
+          {
+            "name": "patient_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Patient Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Checklist"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/regimens/{regimen_id}/review": {
+      "get": {
+        "tags": [
+          "regimens"
+        ],
+        "summary": "Get Review",
+        "operationId": "get_review_api_regimens__regimen_id__review_get",
+        "parameters": [
+          {
+            "name": "regimen_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Regimen Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegimenReview"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/regimen-items/{item_id}/confirm": {
+      "post": {
+        "tags": [
+          "regimens"
+        ],
+        "summary": "Post Confirm",
+        "operationId": "post_confirm_api_regimen_items__item_id__confirm_post",
+        "parameters": [
+          {
+            "name": "item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Item Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ItemDecision"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegimenItem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/regimen-items/{item_id}": {
+      "delete": {
+        "tags": [
+          "regimens"
+        ],
+        "summary": "Delete Item",
+        "operationId": "delete_item_api_regimen_items__item_id__delete",
+        "parameters": [
+          {
+            "name": "item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Item Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/regimens/{regimen_id}/activate": {
+      "post": {
+        "tags": [
+          "regimens"
+        ],
+        "summary": "Post Activate",
+        "operationId": "post_activate_api_regimens__regimen_id__activate_post",
+        "parameters": [
+          {
+            "name": "regimen_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Regimen Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Activated"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/regimen-items/{item_id}/crop": {
+      "get": {
+        "tags": [
+          "regimens"
+        ],
+        "summary": "Get Crop",
+        "operationId": "get_crop_api_regimen_items__item_id__crop_get",
+        "parameters": [
+          {
+            "name": "item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Item Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/health": {
       "get": {
         "tags": [
@@ -844,6 +1098,57 @@
   },
   "components": {
     "schemas": {
+      "Activated": {
+        "properties": {
+          "activated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Activated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "activated_at"
+        ],
+        "title": "Activated"
+      },
+      "ActiveRegimen": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "activated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Activated At"
+          },
+          "activated_by_name": {
+            "type": "string",
+            "title": "Activated By Name"
+          },
+          "source_document": {
+            "$ref": "#/components/schemas/DocumentRef"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RegimenItem"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "activated_at",
+          "activated_by_name",
+          "source_document",
+          "items"
+        ],
+        "title": "ActiveRegimen"
+      },
       "AnswerEntry": {
         "properties": {
           "id": {
@@ -1133,6 +1438,34 @@
         ],
         "title": "AppReading"
       },
+      "AwaitingReview": {
+        "properties": {
+          "regimen_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Regimen Id"
+          },
+          "document": {
+            "$ref": "#/components/schemas/DocumentRef"
+          },
+          "item_count": {
+            "type": "integer",
+            "title": "Item Count"
+          },
+          "confirmed_count": {
+            "type": "integer",
+            "title": "Confirmed Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "regimen_id",
+          "document",
+          "item_count",
+          "confirmed_count"
+        ],
+        "title": "AwaitingReview"
+      },
       "Box": {
         "properties": {
           "x": {
@@ -1185,6 +1518,33 @@
           "value_text"
         ],
         "title": "CandidateReading"
+      },
+      "Checklist": {
+        "properties": {
+          "active": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ActiveRegimen"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "awaiting_review": {
+            "items": {
+              "$ref": "#/components/schemas/AwaitingReview"
+            },
+            "type": "array",
+            "title": "Awaiting Review"
+          }
+        },
+        "type": "object",
+        "required": [
+          "active",
+          "awaiting_review"
+        ],
+        "title": "Checklist"
       },
       "CurrentUser": {
         "properties": {
@@ -1341,6 +1701,45 @@
           "issuing_source"
         ],
         "title": "DocumentInfo"
+      },
+      "DocumentRef": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "document_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Date"
+          },
+          "issuing_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issuing Source"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "document_date",
+          "issuing_source"
+        ],
+        "title": "DocumentRef"
       },
       "EntriesPage": {
         "properties": {
@@ -1512,6 +1911,57 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "ItemDecision": {
+        "properties": {
+          "decision_latency_ms": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Decision Latency Ms"
+          },
+          "drug_text": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Drug Text"
+          },
+          "dose_text": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dose Text"
+          },
+          "schedule_text": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Schedule Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "decision_latency_ms"
+        ],
+        "title": "ItemDecision",
+        "description": "A reviewer's confirmation of one line. The text fields are present only\nwhen the reviewer corrected what was read; the original stays in the\naudit log."
+      },
       "MealPhotoEntry": {
         "properties": {
           "id": {
@@ -1585,6 +2035,29 @@
           "photo_url"
         ],
         "title": "MealPhotoEntry"
+      },
+      "PageRef": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "width_px": {
+            "type": "integer",
+            "title": "Width Px"
+          },
+          "height_px": {
+            "type": "integer",
+            "title": "Height Px"
+          }
+        },
+        "type": "object",
+        "required": [
+          "url",
+          "width_px",
+          "height_px"
+        ],
+        "title": "PageRef"
       },
       "PaperAnswer": {
         "properties": {
@@ -2182,6 +2655,76 @@
         "title": "RecordValue",
         "description": "A renderable value, exactly as printed. Nothing derived is attached."
       },
+      "RegimenItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "drug_text": {
+            "type": "string",
+            "title": "Drug Text"
+          },
+          "dose_text": {
+            "type": "string",
+            "title": "Dose Text"
+          },
+          "schedule_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Schedule Text"
+          },
+          "box": {
+            "$ref": "#/components/schemas/Box"
+          },
+          "crop_url": {
+            "type": "string",
+            "title": "Crop Url"
+          },
+          "confirmed_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confirmed By Name"
+          },
+          "confirmed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confirmed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "drug_text",
+          "dose_text",
+          "schedule_text",
+          "box",
+          "crop_url",
+          "confirmed_by_name",
+          "confirmed_at"
+        ],
+        "title": "RegimenItem"
+      },
       "RegimenItemRef": {
         "properties": {
           "id": {
@@ -2272,6 +2815,107 @@
           "active_until"
         ],
         "title": "RegimenItemSpan"
+      },
+      "RegimenReview": {
+        "properties": {
+          "regimen_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Regimen Id"
+          },
+          "patient": {
+            "$ref": "#/components/schemas/ReviewPatient"
+          },
+          "document": {
+            "$ref": "#/components/schemas/DocumentRef"
+          },
+          "page": {
+            "$ref": "#/components/schemas/PageRef"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RegimenItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "replaces": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Replaces"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "activated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Activated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "regimen_id",
+          "patient",
+          "document",
+          "page",
+          "items",
+          "replaces",
+          "activated_at"
+        ],
+        "title": "RegimenReview"
+      },
+      "Replaces": {
+        "properties": {
+          "activated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Activated At"
+          },
+          "item_count": {
+            "type": "integer",
+            "title": "Item Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "activated_at",
+          "item_count"
+        ],
+        "title": "Replaces"
+      },
+      "ReviewPatient": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "registration_no": {
+            "type": "string",
+            "title": "Registration No"
+          },
+          "full_name": {
+            "type": "string",
+            "title": "Full Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "registration_no",
+          "full_name"
+        ],
+        "title": "ReviewPatient"
       },
       "SurveyRequest": {
         "properties": {
