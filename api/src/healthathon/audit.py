@@ -15,7 +15,7 @@ _CHAIN_LOCK_KEY = 7_240_001
 
 def record_event(
     conn: Connection[DictRow],
-    actor: CurrentUser,
+    actor: CurrentUser | None,
     action: str,
     entity_table: str,
     entity_id: UUID | None,
@@ -25,6 +25,9 @@ def record_event(
 ) -> None:
     """
     Append one row to audit.event and extend the hash chain.
+
+    actor is None for a write the patient made in the app: the patient is
+    not a clinic user, and entity_id leads to the entry and so to the patient.
 
     this_hash = sha256(prev_hash || canonical JSON of the row). The advisory
     lock is held to the end of the transaction, so two writers cannot both
@@ -37,8 +40,8 @@ def record_event(
 
     row = {
         "occurred_at": occurred_at.isoformat(),
-        "actor_id": str(actor.id),
-        "actor_role": actor.role,
+        "actor_id": str(actor.id) if actor else None,
+        "actor_role": actor.role if actor else None,
         "action": action,
         "entity_table": entity_table,
         "entity_id": str(entity_id) if entity_id else None,

@@ -6,6 +6,12 @@ import psycopg
 
 DEMO = "Dr. Demo Clinician"
 
+# Words that would mean a response carries a judgement about a value.
+BANNED_KEYS = (
+    "flag", "abnormal", "range", "severity", "score", "trend", "risk", "status", "target",
+    "average", "total", "normal",
+)  # fmt: skip
+
 
 def queue_item_for(client: Any, registration_no: str, analyte: str) -> dict[str, Any]:
     items = client.get("/api/confirm-queue").json()["items"]
@@ -61,7 +67,7 @@ def verify_audit_chain(db: psycopg.Connection[Any]) -> list[dict[str, Any]]:
         }
         fields |= {
             "occurred_at": r["occurred_at"].isoformat(),
-            "actor_id": str(r["actor_id"]),
+            "actor_id": str(r["actor_id"]) if r["actor_id"] else None,
             "actor_role": r["actor_role"],
             "entity_id": str(r["entity_id"]) if r["entity_id"] else None,
         }
