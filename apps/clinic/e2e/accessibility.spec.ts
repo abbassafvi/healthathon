@@ -123,6 +123,15 @@ test('the visit page fits a phone, and its readings table scrolls on its own', a
   await expectNoViolations(page)
 })
 
+test('a patient opens from anywhere on their row', async ({ page }) => {
+  const [{ id }] = query<{ id: string }>("SELECT id FROM core.patient WHERE registration_no = 'DEV-0001'")
+  await page.goto('/patients')
+  const born = page.getByRole('row', { name: /Asha Verma/ }).getByRole('cell').nth(2)
+  const box = (await born.boundingBox())!
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
+  await expect(page).toHaveURL(new RegExp(`/patients/${id}/visit$`))
+})
+
 test('patient list', async ({ page }) => {
   await page.goto('/patients')
   await expect(page.getByRole('link', { name: 'Asha Verma' })).toBeVisible()

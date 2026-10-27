@@ -25,10 +25,15 @@ export function PatientsPage() {
           </thead>
           <tbody>
             {query.data.map((p) => (
-              <tr key={p.id} className="border-b border-line hover:bg-surface">
+              // The name's link stretches over the whole row, so a click anywhere opens the
+              // patient while the row stays one link for the keyboard and screen readers.
+              <tr key={p.id} className="group relative border-b border-line hover:bg-surface">
                 <td className="py-3 pr-6 font-mono text-xs text-ink-2">{p.registration_no}</td>
                 <td className="py-3 pr-6">
-                  <Link to={`/patients/${p.id}`} className="font-medium text-ink underline-offset-4 hover:underline">
+                  <Link
+                    to={`/patients/${p.id}`}
+                    className="font-medium text-ink underline-offset-4 after:absolute after:inset-0 after:content-[''] group-hover:underline"
+                  >
                     {p.full_name}
                   </Link>
                 </td>
