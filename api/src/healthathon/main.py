@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
 from healthathon import storage, thumbnails
+from healthathon.audit_log.routes import router as audit_log_router
 from healthathon.auth import CurrentUser, User
 from healthathon.clinic_day.routes import router as clinic_day_router
 from healthathon.config import get_settings
@@ -44,6 +45,7 @@ app.include_router(visit_router)
 app.include_router(sms_router)
 app.include_router(clinic_day_router)
 app.include_router(reading_router)
+app.include_router(audit_log_router)
 
 
 @app.get("/api/health", tags=["meta"])
