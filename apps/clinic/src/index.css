@@ -45,7 +45,10 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  :focus-visible {
+  :focus-visible,
+  /* Chrome can keep keyboard focus inside a date field's own segments.
+     The field then matches only :focus-within, and showed no ring. */
+  input[type='date']:focus-within {
     outline: 2px solid var(--color-accent);
     outline-offset: 2px;
   }

@@ -85,6 +85,33 @@ test('every control is reachable by Tab with a visible focus ring', async ({ pag
   }
 })
 
+/* Tabs through every control on a page and returns those without a visible ring. */
+async function unringed(page: Page, limit = 80) {
+  const missing: string[] = []
+  for (let i = 0; i < limit; i++) {
+    await page.keyboard.press('Tab')
+    const info = await page.evaluate(() => {
+      const el = document.activeElement as HTMLElement
+      const style = getComputedStyle(el)
+      const name = el.getAttribute('aria-label') || el.id || el.textContent?.trim().slice(0, 40) || el.tagName
+      return { tag: el.tagName, name, ring: style.outlineStyle !== 'none' && parseFloat(style.outlineWidth) > 0 }
+    })
+    if (info.tag === 'BODY') break
+    if (!info.ring) missing.push(`${info.tag} ${info.name}`)
+  }
+  return missing
+}
+
+test('every control on every screen shows a focus ring when reached by Tab', async ({ page }) => {
+  const [{ id: patient }] = query<{ id: string }>("SELECT id FROM core.patient WHERE registration_no = 'DEV-0001'")
+  for (const path of ['/patients', `/patients/${patient}/visit`, `/patients/${patient}/timeline`,
+    `/patients/${patient}/checklist`, `/patients/${patient}/documents`, `/patients/${patient}/paper-form`, '/upload']) {
+    await page.goto(path)
+    await expect(page.locator('main h1, main h2').first()).toBeVisible()
+    expect(await unringed(page), path).toEqual([])
+  }
+})
+
 test('patient list', async ({ page }) => {
   await page.goto('/patients')
   await expect(page.getByRole('link', { name: 'Asha Verma' })).toBeVisible()
