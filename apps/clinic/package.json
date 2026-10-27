@@ -13,22 +13,24 @@
     "api-types": "openapi-typescript ../../api/openapi.json -o src/api/schema.d.ts",
     "preview": "vite preview",
     "e2e": "playwright test",
-    "predev": "npm run api-types --silent",
+    "predev": "npm run api-types --silent && msw init public --save=false >/dev/null",
     "prebuild": "npm run api-types --silent",
     "pretypecheck": "npm run api-types --silent",
     "pretest": "npm run api-types --silent",
-    "pree2e": "npm run api-types --silent"
+    "pree2e": "npm run api-types --silent && msw init public --save=false >/dev/null",
+    "check": "npm run typecheck --silent && npm run lint --silent && npm test --silent"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",
     "@fontsource-variable/geist-mono": "^5.3.0",
     "@tanstack/react-query": "^5.104.5",
-    "react": "^19.3.1",
-    "react-dom": "^19.3.1",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
     "react-router": "^7.18.4"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
+    "@fontsource/caveat": "^5.3.0",
     "@playwright/test": "^1.64.1",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/dom": "^10.4.2",
@@ -40,6 +42,7 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
     "jsdom": "^29.1.1",
+    "msw": "^2.15.0",
     "openapi-typescript": "^7.13.0",
     "oxlint": "^1.88.0",
     "tailwindcss": "^4.3.3",

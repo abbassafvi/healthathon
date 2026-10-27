@@ -1,13 +1,10 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { queueItem } from '../test/fixtures'
 import { ConfirmQueuePage } from './ConfirmQueuePage'
-
-// Short enough to keep tests fast, long enough to act inside it.
-const UNDO_MS = 1000
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+import type { Scheduler } from './useReviewSession'
 
 const first = queueItem({ id: 'a', value_text: '162', unit_text: 'mg/dL', candidate_readings: [] })
 const second = queueItem({ id: 'b', value_text: '7.1' })
@@ -19,7 +16,8 @@ function mockApi(decisionStatus = 200) {
   let open = [first, second]
   vi.stubGlobal(
     'fetch',
-    vi.fn(async (url: string, init?: RequestInit) => {
+    vi.fn(async (input: string | URL, init?: RequestInit) => {
+      const url = new URL(String(input)).pathname
       if (url === '/api/confirm-queue') {
         return Response.json({ items: open, open_count: open.length })
       }
@@ -35,13 +33,39 @@ function mockApi(decisionStatus = 200) {
   return calls
 }
 
-function renderPage() {
+/*
+ * A scheduler the test drives: the undo window ends only when the test
+ * says so, so nothing here depends on how fast the machine is.
+ */
+function manualClock() {
+  let queued: { fn: () => void; ms: number } | null = null
+  const schedule: Scheduler = (fn, ms) => {
+    const job = { fn, ms }
+    queued = job
+    return () => {
+      if (queued === job) queued = null
+    }
+  }
+  return {
+    schedule,
+    pendingMs: () => queued?.ms ?? null,
+    elapse: () =>
+      act(() => {
+        const job = queued
+        queued = null
+        job?.fn()
+      }),
+  }
+}
+
+function renderPage(clock = manualClock()) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  return render(
+  render(
     <QueryClientProvider client={client}>
-      <ConfirmQueuePage undoWindowMs={UNDO_MS} />
+      <ConfirmQueuePage schedule={clock.schedule} />
     </QueryClientProvider>,
   )
+  return clock
 }
 
 async function paintAndPress(key: string) {
@@ -57,15 +81,17 @@ afterEach(() => {
 describe('ConfirmQueuePage', () => {
   it('holds a decision for the undo window, then sends it', async () => {
     const calls = mockApi()
-    renderPage()
+    const clock = renderPage()
     expect(await screen.findByText('1 of 2')).toBeInTheDocument()
     await paintAndPress('Enter')
 
     expect(await screen.findByText('Confirmed 162 mg/dL')).toBeInTheDocument()
     expect(screen.getByText('7.1')).toBeInTheDocument() // next item already showing
     expect(screen.getByText('2 of 2')).toBeInTheDocument()
+    expect(clock.pendingMs()).toBe(5000)
     expect(calls).toHaveLength(0)
 
+    clock.elapse()
     await waitFor(() => expect(calls).toHaveLength(1))
     expect(calls[0].url).toBe('/api/confirm-queue/a/decision')
     expect(calls[0].body).toMatchObject({ action: 'confirm' })
@@ -73,14 +99,15 @@ describe('ConfirmQueuePage', () => {
 
   it('undo with Z brings the item back and sends nothing', async () => {
     const calls = mockApi()
-    renderPage()
+    const clock = renderPage()
     await paintAndPress('x')
     expect(await screen.findByText('Marked not a value')).toBeInTheDocument()
     fireEvent.keyDown(window, { key: 'z' })
 
     expect(await screen.findByText('162')).toBeInTheDocument()
     expect(screen.getByText('1 of 2')).toBeInTheDocument()
-    await sleep(UNDO_MS * 2)
+    expect(clock.pendingMs()).toBeNull() // the window was cancelled
+    clock.elapse()
     expect(calls).toHaveLength(0)
   })
 
@@ -95,15 +122,17 @@ describe('ConfirmQueuePage', () => {
 
   it('says so when someone else settled the item first', async () => {
     mockApi(409)
-    renderPage()
+    const clock = renderPage()
     await paintAndPress('Enter')
+    clock.elapse()
     expect(await screen.findByText(/someone else settled/i)).toBeInTheDocument()
   })
 
   it('puts the item back when a decision fails to save', async () => {
     mockApi(500)
-    renderPage()
+    const clock = renderPage()
     await paintAndPress('Enter')
+    clock.elapse()
     expect(await screen.findByText(/was not saved/i)).toBeInTheDocument()
     expect(await screen.findByText('162')).toBeInTheDocument()
   })

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState, useLayoutEffect } from 'react'
 
 import type { Decision, QueueItem } from '../api/client'
 import { formatDate } from '../lib/dates'
@@ -47,7 +47,10 @@ export function ReviewItem({ item, onDecide }: Props) {
     [alternatives, send],
   )
 
-  useEffect(() => {
+  // A layout effect, so the keys work in the same commit that enables the
+  // buttons; a passive effect left a moment where they looked ready but
+  // Enter did nothing.
+  useLayoutEffect(() => {
     if (!ready || correcting) return
     const onKey = (e: KeyboardEvent) => {
       if (hasModifier(e) || e.repeat || isTypingTarget(e.target)) return
