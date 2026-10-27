@@ -3,6 +3,7 @@ import { NavLink, Outlet } from 'react-router'
 
 import { api } from '../api/client'
 import { en, fmt } from '../strings/en'
+import { PAGE } from './page'
 
 export function AppShell() {
   const me = useQuery({ queryKey: ['me'], queryFn: api.me, staleTime: Infinity })
@@ -11,7 +12,7 @@ export function AppShell() {
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="sticky top-0 z-(--z-sticky) border-b border-line bg-bg/95 backdrop-blur-sm">
-        <div className="mx-auto flex h-14 w-full max-w-5xl items-center gap-6 px-4 sm:gap-8 sm:px-6">
+        <div className={`${PAGE} flex h-14 items-center gap-6 sm:gap-8`}>
           <span className="hidden text-sm font-semibold tracking-tight whitespace-nowrap sm:inline">{en.app.name}</span>
           <nav className="flex h-full items-stretch gap-6 text-sm">
             <NavItem to="/queue">

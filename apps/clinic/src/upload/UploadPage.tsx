@@ -6,6 +6,7 @@ import { pendingApi } from '../api/pendingClient'
 import { en, fmt } from '../strings/en'
 import { sha256Hex } from './sha256'
 import { UploadRow, type SessionUpload } from './UploadRow'
+import { PAGE } from '../app/page'
 
 type Picked = { key: string; file: File; preview: string }
 type DocType = 'prescription' | 'lab_report'
@@ -82,7 +83,7 @@ export function UploadPage() {
   const ready = !!patientId && !!docType && picked.length > 0 && !busy
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 pt-8 pb-16 sm:px-6">
+    <main className={`${PAGE} pt-8 pb-16`}>
       <h1 className="text-2xl font-semibold tracking-tight">{en.upload.title}</h1>
       <p className="mt-2 inline-block rounded-lg border border-line-strong bg-surface px-3 py-1.5 text-sm">{en.upload.fictionalOnly}</p>
 

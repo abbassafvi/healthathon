@@ -5,6 +5,7 @@ import { Link, Outlet, useParams } from 'react-router'
 import { api, ApiError, type RecordDocument } from '../api/client'
 import { formatDate } from '../lib/dates'
 import { en } from '../strings/en'
+import { PAGE } from '../app/page'
 
 /*
  * The Documents tab of a patient's record: each document's values exactly
@@ -28,7 +29,7 @@ export function RecordPage() {
 
   return (
     <div className={valueId ? 'md:pr-[min(46rem,58vw)]' : undefined}>
-      <main className="mx-auto w-full max-w-6xl px-4 pt-6 pb-16 sm:px-6">
+      <main className={`${PAGE} pt-6 pb-16`}>
         {query.status === 'pending' && <div className="mt-6 h-64 rounded-xl bg-sunken" aria-busy="true" />}
         {query.status === 'error' && (
           <p className="mt-6 text-ink-2">

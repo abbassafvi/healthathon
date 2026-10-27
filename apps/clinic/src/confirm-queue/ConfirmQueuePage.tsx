@@ -3,6 +3,7 @@ import { en, fmt } from '../strings/en'
 import { DecisionToast } from './DecisionToast'
 import { ReviewItem } from './ReviewItem'
 import { realTimer, UNDO_WINDOW_MS, useReviewSession, type Scheduler } from './useReviewSession'
+import { PAGE } from '../app/page'
 
 export function ConfirmQueuePage({
   undoWindowMs = UNDO_WINDOW_MS,
@@ -14,7 +15,7 @@ export function ConfirmQueuePage({
   const s = useReviewSession(undoWindowMs, schedule)
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 pt-8 pb-28 sm:px-6">
+    <main className={`${PAGE} pt-8 pb-28`}>
       <header className="mb-8 flex items-baseline justify-between gap-4">
         <h1 className="text-2xl font-semibold tracking-tight">{en.queue.title}</h1>
         <div className="flex items-center gap-4">

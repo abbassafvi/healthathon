@@ -7,6 +7,7 @@ import { en, fmt } from '../strings/en'
 import { DocumentsHalf } from './DocumentsHalf'
 import { PatientHalf } from './PatientHalf'
 import { useFitsViewport } from './useFitsViewport'
+import { PAGE } from '../app/page'
 
 /*
  * One page for the visit, in a fixed layout: what documents say on the
@@ -68,5 +69,5 @@ export function VisitPage() {
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  return <main className="mx-auto w-full max-w-6xl px-4 pt-6 pb-16 sm:px-6">{children}</main>
+  return <main className={`${PAGE} pt-6 pb-16`}>{children}</main>
 }

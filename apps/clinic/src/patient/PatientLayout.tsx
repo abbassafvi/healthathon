@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, useParams } from 'react-router'
 
 import { api } from '../api/client'
 import { en, fmt } from '../strings/en'
+import { PAGE } from '../app/page'
 
 const PATIENT_TABS = [
   { path: 'visit', label: en.patient.tabs.visit },
@@ -23,7 +24,7 @@ export function PatientLayout() {
 
   if (patients.isSuccess && !patient) {
     return (
-      <main className="mx-auto w-full max-w-6xl px-4 pt-6 sm:px-6">
+      <main className={`${PAGE} pt-6`}>
         <Link to="/patients" className="text-sm text-ink-2 underline-offset-4 hover:text-ink hover:underline">
           {en.record.backToPatients}
         </Link>
@@ -34,7 +35,7 @@ export function PatientLayout() {
 
   return (
     <>
-      <div className="mx-auto w-full max-w-6xl px-4 pt-6 sm:px-6">
+      <div className={`${PAGE} pt-6`}>
         <Link to="/patients" className="text-sm text-ink-2 underline-offset-4 hover:text-ink hover:underline">
           {en.record.backToPatients}
         </Link>

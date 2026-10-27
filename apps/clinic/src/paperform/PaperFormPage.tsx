@@ -10,6 +10,7 @@ import { en, fmt } from '../strings/en'
 import { cellKey, counts, toSubmission, validate, weekDates, type Draft } from './formModel'
 import { GlucoseEditor } from './GlucoseEditor'
 import { TickGrid } from './TickGrid'
+import { PAGE } from '../app/page'
 
 function lastWeekStart(): string {
   const d = new Date()
@@ -244,5 +245,5 @@ export function PaperFormPage() {
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  return <main className="mx-auto w-full max-w-6xl px-4 pt-6 pb-16 sm:px-6">{children}</main>
+  return <main className={`${PAGE} pt-6 pb-16`}>{children}</main>
 }

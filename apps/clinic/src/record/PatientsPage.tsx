@@ -3,12 +3,13 @@ import { Link } from 'react-router'
 
 import { api } from '../api/client'
 import { en } from '../strings/en'
+import { PAGE } from '../app/page'
 
 export function PatientsPage() {
   const query = useQuery({ queryKey: ['patients'], queryFn: api.patients })
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 pt-8 pb-16 sm:px-6">
+    <main className={`${PAGE} pt-8 pb-16`}>
       <h1 className="mb-6 text-2xl font-semibold tracking-tight">{en.patients.title}</h1>
       {query.status === 'pending' && <div className="h-48 rounded-xl bg-sunken" aria-busy="true" />}
       {query.status === 'error' && <p className="text-ink-2">{en.patients.loadFailed}</p>}

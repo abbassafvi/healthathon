@@ -11,6 +11,7 @@ import { en, fmt } from '../strings/en'
 import { PageViewer } from '../trace/PageViewer'
 import { ActivationBar } from './ActivationBar'
 import { ReviewRow } from './ReviewRow'
+import { PAGE } from '../app/page'
 
 /*
  * Confirm a prescription line by line against the page, then activate it
@@ -90,7 +91,7 @@ export function ReviewPage() {
   }, [data, items.length, current, renderedAt, busy, correcting, confirm, remove])
 
   return (
-    <main className="mx-auto w-full max-w-7xl px-4 pt-6 pb-40 sm:px-6">
+    <main className={`${PAGE} pt-6 pb-40`}>
       <Link to={`/patients/${patientId}/checklist`} className="text-sm text-ink-2 underline-offset-4 hover:text-ink hover:underline">
         {data ? `${en.review.back}: ${data.patient.full_name}` : en.review.back}
       </Link>

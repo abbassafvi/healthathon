@@ -10,6 +10,7 @@ import { itemsOn } from '../entries/ticks'
 import { formatDate } from '../lib/dates'
 import { localIsoDate } from '../lib/localDate'
 import { en, fmt } from '../strings/en'
+import { PAGE } from '../app/page'
 
 const WEEKS = 4
 
@@ -113,7 +114,7 @@ export function TimelinePage() {
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  return <main className="mx-auto w-full max-w-6xl px-4 pt-6 pb-16 sm:px-6">{children}</main>
+  return <main className={`${PAGE} pt-6 pb-16`}>{children}</main>
 }
 
 type DayProps = {

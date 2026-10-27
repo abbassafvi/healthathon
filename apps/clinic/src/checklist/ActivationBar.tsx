@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import type { RegimenReview } from '../api/client'
 import { formatDate, formatDateTime } from '../lib/dates'
 import { en, fmt } from '../strings/en'
+import { PAGE } from '../app/page'
 
 type Props = {
   data: RegimenReview
@@ -23,7 +24,7 @@ export function ActivationBar({ data, patientId, failed, activating, onActivate 
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-(--z-sticky) border-t border-line bg-bg/95 backdrop-blur-sm">
-      <div className="mx-auto grid w-full max-w-7xl grid-cols-[minmax(0,1fr)_auto] items-center gap-x-6 gap-y-2 px-4 py-3 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:px-6 sm:py-4" aria-live="polite">
+      <div className={`${PAGE} grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-6 gap-y-2 py-3 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:py-4`} aria-live="polite">
         {data.activated_at ? (
           <>
             <p className="font-medium sm:col-span-2">{fmt(en.review.activated, { when: formatDateTime(data.activated_at) })}</p>
