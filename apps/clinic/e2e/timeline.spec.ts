@@ -53,3 +53,15 @@ test('timeline has no accessibility violations', async ({ page }) => {
     .analyze()
   expect(violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target).join(', ')}`)).toEqual([])
 })
+
+test('a reading sent by SMS reaches the timeline, marked SMS', async ({ page, request }) => {
+  const res = await request.post('/api/sms/inbound', {
+    headers: { 'X-Gateway-Key': 'dev-only-gateway-key' },
+    data: { message_id: 'e2e-sms-0001', from: '+91 55500 00003', body: 'G 128 F' },
+  })
+  expect((await res.json()).stored).toHaveLength(1)
+  await openTimeline(page, 'Meera Pillai')
+  const today = page.locator('[data-day]').first()
+  await expect(today).toContainText('128')
+  await expect(today).toContainText('SMS')
+})
