@@ -16,12 +16,13 @@ import { fmt } from '../i18n'
 import { color, radius, space } from '../theme'
 
 /*
- * The app is this one screen: today's date set large, the medicines to
- * tick, the sugar readings, the day's question and a meal photo. It shows
- * only what the patient recorded today, as they recorded it. There is no
- * history, chart, average, score or colour that says good or bad.
+ * The app's main screen: today's date set large, the medicines to tick,
+ * the sugar readings, the day's question and a meal photo. It shows only
+ * what the patient recorded today, as they recorded it; earlier days have
+ * their own screen, shown the same way. There is no chart, average, score
+ * or colour that says good or bad.
  */
-export function TodayScreen({ onOpenSurvey }: { onOpenSurvey: () => void }) {
+export function TodayScreen({ onOpenSurvey, onOpenPast }: { onOpenSurvey: () => void; onOpenPast: () => void }) {
   const { api, patientId, t, rtl, signOut } = useApp()
   const [today, setToday] = useState<Today | null>(null)
   const [sheet, setSheet] = useState(false)
@@ -149,6 +150,7 @@ export function TodayScreen({ onOpenSurvey }: { onOpenSurvey: () => void }) {
         </Section>
       )}
 
+      <Button label={t.past.open} onPress={onOpenPast} testID="open-past" />
       <Button kind="quiet" label={t.today.switchUser} onPress={signOut} />
 
       <GlucoseSheet

@@ -152,6 +152,24 @@ export function createMockApi(clock: () => Date = () => new Date()): PatientApi 
       if (!once(captureId)) return
       surveys.add(`${pid}|${weekOf(clock())}`)
     },
+    // Every earlier day this mock has seen, newest first, in one page.
+    async pastDays(pid, before) {
+      patient(pid)
+      const end = before ?? localDay(clock())
+      const items = CHECKLISTS[pid] ?? []
+      const past = [...days.entries()]
+        .map(([key, s]) => ({ date: key.split('|')[1], who: key.split('|')[0], s }))
+        .filter((d) => d.who === pid && d.date < end)
+        .sort((a, b) => b.date.localeCompare(a.date))
+        .map(({ date, s }) => ({
+          date,
+          ticks: items.filter((i) => i.id in s.ticks).map((item) => ({ item, ticked: s.ticks[item.id] })),
+          readings: [...s.readings],
+          answers: s.answer ? [{ question: DAILY_QUESTION, answer_text: s.answer, occurred_at: `${date}T20:00:00` }] : [],
+          meals: [...s.meals],
+        }))
+      return { days: past, next_before: null }
+    },
   }
 }
 

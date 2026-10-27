@@ -152,3 +152,50 @@ test('a meal photo is sent as it is and shown back, with nothing estimated', asy
   expect(meals).toHaveLength(1)
   expect(Object.keys(meals[0]).filter((k) => /calor|portion|carb|protein|estimate/i.test(k))).toEqual([])
 })
+
+/* Yesterday as the clinician sees it, read from the clinician's own endpoint. */
+async function clinicYesterday(request: APIRequestContext, registrationNo: string) {
+  const patients = (await (await request.get(`${API_URL}/api/patients`)).json()) as { id: string; registration_no: string }[]
+  const id = patients.find((p) => p.registration_no === registrationNo)!.id
+  const today = ((await (await request.get(`${API_URL}/api/app/patients/${id}/today`)).json()) as { date: string }).date
+  const d = new Date(`${today}T12:00:00`)
+  d.setDate(d.getDate() - 1)
+  const yesterday = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  const page = (await (await request.get(`${API_URL}/api/patients/${id}/entries?from=${yesterday}&to=${yesterday}`)).json()) as {
+    entries: (Entry & { regimen_item?: { id: string } })[]
+  }
+  return { yesterday, entries: page.entries }
+}
+
+test('earlier days show what was recorded, as the clinic has it, and go back further', async ({ page, request }) => {
+  const { yesterday, entries } = await clinicYesterday(request, 'DEV-0001')
+  await start(page, 'English', 'Asha Verma')
+  await page.getByRole('button', { name: 'Earlier days' }).click()
+  await expect(page.getByRole('heading', { name: 'Earlier days' })).toBeVisible()
+
+  const day = page.getByTestId(`day-${yesterday}`)
+  await expect(day).toBeVisible()
+  const ticks = entries.filter((e) => e.kind === 'medication_tick')
+  for (const tick of ticks) {
+    await expect(day.getByTestId(`past-tick-${tick.regimen_item!.id}`)).toContainText(tick.ticked ? 'Taken' : 'Not taken')
+  }
+  const readings = entries.filter((e) => e.kind === 'glucose_reading').map((e) => e.value_text)
+  await expect(day.getByTestId('past-reading')).toHaveCount(readings.length)
+  for (const value of readings) await expect(day.getByText(value!, { exact: true }).first()).toBeVisible()
+  await expectNoViolations(page)
+
+  const shown = await page.locator('[data-testid^="day-"]').count()
+  await page.getByRole('button', { name: 'Show earlier days' }).click()
+  await expect(page.locator('[data-testid^="day-"]')).toHaveCount(shown + 7)
+  await page.getByRole('button', { name: 'Back to today' }).click()
+  await expect(page.getByText('Hello, Asha')).toBeVisible()
+})
+
+test('earlier days read right to left in Urdu, with medicines as printed', async ({ page }) => {
+  await start(page, 'اردو', 'Asha Verma')
+  await page.getByRole('button', { name: 'پچھلے دن' }).click()
+  await expect(page.getByRole('heading', { name: 'پچھلے دن' })).toBeVisible()
+  const dir = await page.locator('[data-testid^="day-"]').first().evaluate((el) => getComputedStyle(el).direction)
+  expect(dir).toBe('rtl')
+  await expect(page.getByText('Tab. Metformin').first()).toBeVisible()
+})

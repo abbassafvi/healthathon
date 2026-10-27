@@ -91,6 +91,22 @@ describe('the HTTP patient API', () => {
     expect(calls).toEqual([])
   })
 
+  it('reads earlier days, asking for those before a date, with photo links made absolute', async () => {
+    const page = {
+      days: [{ date: '2026-10-25', ticks: [], readings: [], answers: [], meals: [{ id: 'm1', uri: '/api/storage/meals/p1/m1.jpg', occurred_at: 'x' }] }],
+      next_before: '2026-10-19',
+    }
+    const { client, calls } = api(json(page), json({ days: [], next_before: null }))
+    const first = await client.pastDays('p1')
+    await client.pastDays('p1', '2026-10-19')
+    expect(calls.map((c) => c.url)).toEqual([
+      'http://clinic.test:8000/api/app/patients/p1/days',
+      'http://clinic.test:8000/api/app/patients/p1/days?before=2026-10-19',
+    ])
+    expect(first.days[0].meals[0].uri).toBe('http://clinic.test:8000/api/storage/meals/p1/m1.jpg')
+    expect(first.next_before).toBe('2026-10-19')
+  })
+
   it('turns a refusal into an ApiError with the server’s reason', async () => {
     const { client } = api(json({ detail: 'A reading must be a number' }, 422))
     const err = await client.addReading('p1', { value_text: 'high', context: 'fasting' }, 'cap').catch((e: unknown) => e)

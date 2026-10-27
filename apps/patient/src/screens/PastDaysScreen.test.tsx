@@ -1,0 +1,115 @@
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react-native'
+import { useEffect } from 'react'
+
+import { AppStateProvider, useApp } from '../AppState'
+import { createMockApi } from '../data/mockApi'
+import type { PastDay, PastDays, PatientApi } from '../data/types'
+import { en } from '../i18n/en'
+import type { Lang } from '../theme'
+import { PastDaysScreen } from './PastDaysScreen'
+
+const item = { id: 'i-1', drug_text: 'Tab. Metformin', dose_text: '500 mg', schedule_text: '1-0-1' }
+const day = (date: string, over: Partial<PastDay> = {}): PastDay => ({ date, ticks: [], readings: [], answers: [], meals: [], ...over })
+
+const yesterday = day('2026-10-25', {
+  ticks: [{ item, ticked: true }, { item: { ...item, id: 'i-2', drug_text: 'Tab. Atorvastatin', dose_text: '10 mg', schedule_text: null }, ticked: false }],
+  readings: [{ id: 'r-1', value_text: '142', context: 'fasting', occurred_at: '2026-10-25T07:31:00' }],
+  answers: [{ question: { key: 'felt_unwell_today', text: { en: 'Did you feel unwell today?', hi: 'क्या आज आपकी तबीयत ठीक नहीं थी?', ur: 'کیا آج آپ کی طبیعت ٹھیک نہیں تھی؟' } }, answer_text: 'No', occurred_at: '2026-10-25T20:00:00' }],
+  meals: [{ id: 'm-1', uri: 'http://clinic.test:8000/api/storage/meals/p/m-1.jpg', occurred_at: '2026-10-25T13:00:00' }],
+})
+
+function As({ lang = 'en', onBack = () => {} }: { lang?: Lang; onBack?: () => void }) {
+  const { choose, patientId, ready } = useApp()
+  useEffect(() => {
+    if (ready) choose({ lang, patientId: 'DEV-0001' })
+  }, [ready, choose, lang])
+  return patientId ? <PastDaysScreen onBack={onBack} /> : null
+}
+
+function setup(pages: (before?: string) => Promise<PastDays>, lang: Lang = 'en', onBack = () => {}) {
+  const calls: (string | undefined)[] = []
+  const api: PatientApi = {
+    ...createMockApi(() => new Date('2026-10-26T09:00:00')),
+    pastDays: (_pid, before) => {
+      calls.push(before)
+      return pages(before)
+    },
+  }
+  render(<AppStateProvider api={api}><As lang={lang} onBack={onBack} /></AppStateProvider>)
+  return { calls }
+}
+
+describe('PastDaysScreen', () => {
+  it('shows each earlier day as it was recorded, newest first', async () => {
+    setup(async () => ({ days: [yesterday, day('2026-10-24')], next_before: null }))
+    const y = await screen.findByTestId('day-2026-10-25')
+    expect(within(y).getByText('25')).toBeTruthy()
+    expect(within(y).getByText('Sun')).toBeTruthy()
+    expect(within(screen.getByTestId('past-tick-i-1')).getByText('Taken')).toBeTruthy()
+    expect(within(screen.getByTestId('past-tick-i-2')).getByText('Not taken')).toBeTruthy()
+    expect(within(y).getByText('142')).toBeTruthy()
+    expect(within(y).getByText('Before breakfast, 07:31')).toBeTruthy()
+    expect(within(y).getByText('Did you feel unwell today?')).toBeTruthy()
+    expect(within(y).getByText('No')).toBeTruthy()
+    expect(within(screen.getByTestId('day-2026-10-24')).getByText(en.past.nothing)).toBeTruthy()
+  })
+
+  it('asks the clinic for small copies of its photos', async () => {
+    setup(async () => ({ days: [yesterday], next_before: null }))
+    await screen.findByTestId('day-2026-10-25')
+    const img = screen.UNSAFE_getByType(require('react-native').Image)
+    expect(img.props.source).toEqual({ uri: 'http://clinic.test:8000/api/storage/meals/p/m-1.jpg?width=320' })
+  })
+
+  it('loads earlier days on request, and stops at the first entry', async () => {
+    const { calls } = setup(async (before) =>
+      before ? { days: [day('2026-10-18')], next_before: null } : { days: [yesterday], next_before: '2026-10-19' },
+    )
+    fireEvent.press(await screen.findByTestId('more-days'))
+    await screen.findByTestId('day-2026-10-18')
+    expect(screen.getByTestId('day-2026-10-25')).toBeTruthy()
+    expect(calls).toEqual([undefined, '2026-10-19'])
+    expect(screen.queryByTestId('more-days')).toBeNull()
+  })
+
+  it('says when nothing has been recorded yet', async () => {
+    setup(async () => ({ days: [], next_before: null }))
+    expect(await screen.findByText(en.past.none)).toBeTruthy()
+  })
+
+  it('says when the days could not be loaded, and tries again', async () => {
+    let fail = true
+    setup(async () => {
+      if (fail) throw new Error('offline')
+      return { days: [yesterday], next_before: null }
+    })
+    expect(await screen.findByText(en.past.loadFailed)).toBeTruthy()
+    fail = false
+    fireEvent.press(screen.getByTestId('retry'))
+    await screen.findByTestId('day-2026-10-25')
+    expect(screen.queryByText(en.past.loadFailed)).toBeNull()
+  })
+
+  it('goes back to today', async () => {
+    const onBack = jest.fn()
+    setup(async () => ({ days: [], next_before: null }), 'en', onBack)
+    fireEvent.press(await screen.findByTestId('back-to-today'))
+    expect(onBack).toHaveBeenCalled()
+  })
+
+  it('shows the question in the language in use, and the drug as printed', async () => {
+    setup(async () => ({ days: [yesterday], next_before: null }), 'hi')
+    const y = await screen.findByTestId('day-2026-10-25')
+    expect(within(y).getByText('क्या आज आपकी तबीयत ठीक नहीं थी?')).toBeTruthy()
+    expect(within(y).getByText('Tab. Metformin')).toBeTruthy()
+    expect(within(y).getByText('500 mg  1-0-1')).toBeTruthy()
+  })
+
+  it('shows nothing interpretive', async () => {
+    setup(async () => ({ days: [yesterday, day('2026-10-24')], next_before: null }))
+    await screen.findByTestId('day-2026-10-25')
+    await waitFor(() => expect(screen.toJSON()).toBeTruthy())
+    const text = JSON.stringify(screen.toJSON())
+    expect(text).not.toMatch(/\b(high|low|normal|good|bad|poor|target|range|average|trend|score|risk|missed|total|streak|well done|great)\b/i)
+  })
+})

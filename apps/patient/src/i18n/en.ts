@@ -68,6 +68,18 @@ export const en = {
     done: 'Send answers',
     back: 'Back',
   },
+  past: {
+    open: 'Earlier days',
+    title: 'Earlier days',
+    intro: 'What you recorded on earlier days, as you recorded it.',
+    back: 'Back to today',
+    nothing: 'Nothing recorded on this day.',
+    none: 'Nothing has been recorded yet.',
+    more: 'Show earlier days',
+    loadFailed: 'Earlier days could not be loaded. Check the internet connection.',
+    answers: 'Your answers',
+    meals: 'Meal photos',
+  },
   days: { short: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] },
   months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
 }

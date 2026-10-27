@@ -13,7 +13,7 @@ function As({ patient, lang = 'en' }: { patient: string; lang?: Lang }) {
   useEffect(() => {
     if (ready) choose({ lang, patientId: patient })
   }, [ready, choose, lang, patient])
-  return patientId ? <TodayScreen onOpenSurvey={() => {}} /> : null
+  return patientId ? <TodayScreen onOpenSurvey={() => {}} onOpenPast={() => {}} /> : null
 }
 
 describe('TodayScreen', () => {

@@ -1,6 +1,6 @@
 import type { Lang } from '../theme'
 import { readPhoto } from './readPhoto'
-import type { Meal, PatientApi, PatientRef, Reading, SurveyQuestion, Today } from './types'
+import type { Meal, PastDays, PatientApi, PatientRef, Reading, SurveyQuestion, Today } from './types'
 
 /* A request the API refused or could not answer. `status` is 0 when the network failed. */
 export class ApiError extends Error {
@@ -83,5 +83,9 @@ export function createHttpApi({ baseUrl, language, fetch: f = fetch, readPhoto: 
     surveyQuestions: (patientId) => call<SurveyQuestion[]>(`${p(patientId)}/survey`),
     submitSurvey: (patientId, answers, captureId) =>
       send<void>('POST', `${p(patientId)}/survey`, { answers, capture_id: captureId, language: language() }),
+    async pastDays(patientId, before) {
+      const page = await call<PastDays>(`${p(patientId)}/days${before ? `?before=${encodeURIComponent(before)}` : ''}`)
+      return { ...page, days: page.days.map((d) => ({ ...d, meals: d.meals.map((m) => ({ ...m, uri: abs(m.uri) })) })) }
+    },
   }
 }
