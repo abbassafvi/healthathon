@@ -1014,6 +1014,49 @@
         }
       }
     },
+    "/api/patients/{patient_id}/visit": {
+      "get": {
+        "tags": [
+          "visit"
+        ],
+        "summary": "Get Visit",
+        "operationId": "get_visit_api_patients__patient_id__visit_get",
+        "parameters": [
+          {
+            "name": "patient_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Patient Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisitSummary"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/health": {
       "get": {
         "tags": [
@@ -1546,6 +1589,81 @@
         ],
         "title": "Checklist"
       },
+      "ComplianceRow": {
+        "properties": {
+          "item": {
+            "$ref": "#/components/schemas/RegimenItemRef"
+          },
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/DayCell"
+            },
+            "type": "array",
+            "title": "Days"
+          }
+        },
+        "type": "object",
+        "required": [
+          "item",
+          "days"
+        ],
+        "title": "ComplianceRow"
+      },
+      "ComplianceScore": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "period_from": {
+            "type": "string",
+            "format": "date",
+            "title": "Period From"
+          },
+          "period_to": {
+            "type": "string",
+            "format": "date",
+            "title": "Period To"
+          },
+          "ticked_count": {
+            "type": "integer",
+            "title": "Ticked Count"
+          },
+          "expected_count": {
+            "type": "integer",
+            "title": "Expected Count"
+          },
+          "score_percent": {
+            "type": "integer",
+            "title": "Score Percent"
+          },
+          "computed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Computed At"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/ComplianceRow"
+            },
+            "type": "array",
+            "title": "Rows"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "period_from",
+          "period_to",
+          "ticked_count",
+          "expected_count",
+          "score_percent",
+          "computed_at",
+          "rows"
+        ],
+        "title": "ComplianceScore",
+        "description": "The one approved score. Computed from medication ticks only, shown to\nclinicians only, and always sent with the day array it came from, so\nthe page can recount it."
+      },
       "CurrentUser": {
         "properties": {
           "id": {
@@ -1569,6 +1687,43 @@
           "role"
         ],
         "title": "CurrentUser"
+      },
+      "DayCell": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "ticked",
+              "not_ticked",
+              "no_entry"
+            ],
+            "title": "State"
+          },
+          "entry_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entry Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "state",
+          "entry_id"
+        ],
+        "title": "DayCell"
       },
       "Decision": {
         "properties": {
@@ -2337,6 +2492,39 @@
         ],
         "title": "PatientSummary"
       },
+      "Period": {
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date",
+            "title": "From"
+          },
+          "to": {
+            "type": "string",
+            "format": "date",
+            "title": "To"
+          },
+          "previous_visit": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous Visit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "from",
+          "to",
+          "previous_visit"
+        ],
+        "title": "Period"
+      },
       "QueueDocument": {
         "properties": {
           "id": {
@@ -2974,6 +3162,44 @@
         ],
         "title": "SurveyState"
       },
+      "TestOrder": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "analyte_name": {
+            "type": "string",
+            "title": "Analyte Name"
+          },
+          "ordered_on": {
+            "type": "string",
+            "format": "date",
+            "title": "Ordered On"
+          },
+          "matched_value_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Matched Value Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "analyte_name",
+          "ordered_on",
+          "matched_value_id"
+        ],
+        "title": "TestOrder"
+      },
       "TickEntry": {
         "properties": {
           "id": {
@@ -3399,6 +3625,74 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "VisitInfo": {
+        "properties": {
+          "scheduled_for": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scheduled For"
+          },
+          "clinician_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clinician Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "scheduled_for",
+          "clinician_name"
+        ],
+        "title": "VisitInfo"
+      },
+      "VisitSummary": {
+        "properties": {
+          "visit": {
+            "$ref": "#/components/schemas/VisitInfo"
+          },
+          "period": {
+            "$ref": "#/components/schemas/Period"
+          },
+          "orders": {
+            "items": {
+              "$ref": "#/components/schemas/TestOrder"
+            },
+            "type": "array",
+            "title": "Orders"
+          },
+          "compliance": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ComplianceScore"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "visit",
+          "period",
+          "orders",
+          "compliance"
+        ],
+        "title": "VisitSummary"
       }
     }
   }
