@@ -6,6 +6,12 @@ import psycopg
 
 DEMO = "Dr. Demo Clinician"
 
+# Words that would mean a response carries a judgement about a value.
+BANNED_KEYS = (
+    "flag", "abnormal", "range", "severity", "score", "trend", "risk", "status", "target",
+    "average", "total", "normal",
+)  # fmt: skip
+
 
 def queue_item_for(client: Any, registration_no: str, analyte: str) -> dict[str, Any]:
     items = client.get("/api/confirm-queue").json()["items"]

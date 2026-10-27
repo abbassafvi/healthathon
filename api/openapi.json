@@ -214,6 +214,161 @@
         }
       }
     },
+    "/api/patients/{patient_id}/entries": {
+      "get": {
+        "tags": [
+          "entries"
+        ],
+        "summary": "Get Entries",
+        "operationId": "get_entries_api_patients__patient_id__entries_get",
+        "parameters": [
+          {
+            "name": "patient_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Patient Id"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntriesPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/paper-form/questions": {
+      "get": {
+        "tags": [
+          "entries"
+        ],
+        "summary": "Get Paper Form Questions",
+        "operationId": "get_paper_form_questions_api_paper_form_questions_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PaperFormQuestion"
+                  },
+                  "type": "array",
+                  "title": "Response Get Paper Form Questions Api Paper Form Questions Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/patients/{patient_id}/paper-form": {
+      "post": {
+        "tags": [
+          "entries"
+        ],
+        "summary": "Post Paper Form",
+        "operationId": "post_paper_form_api_patients__patient_id__paper_form_post",
+        "parameters": [
+          {
+            "name": "patient_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Patient Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaperFormSubmission"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaperFormResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/health": {
       "get": {
         "tags": [
@@ -298,6 +453,104 @@
   },
   "components": {
     "schemas": {
+      "AnswerEntry": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "channel": {
+            "type": "string",
+            "enum": [
+              "patient_app",
+              "paper_form",
+              "sms"
+            ],
+            "title": "Channel"
+          },
+          "entered_by": {
+            "type": "string",
+            "enum": [
+              "patient",
+              "caregiver",
+              "clinic_staff"
+            ],
+            "title": "Entered By"
+          },
+          "caregiver_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Caregiver Name"
+          },
+          "language": {
+            "type": "string",
+            "title": "Language"
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Occurred At"
+          },
+          "recorded_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Recorded At"
+          },
+          "kind": {
+            "type": "string",
+            "const": "survey_answer",
+            "title": "Kind"
+          },
+          "set": {
+            "type": "string",
+            "enum": [
+              "daily",
+              "survey"
+            ],
+            "title": "Set"
+          },
+          "question_key": {
+            "type": "string",
+            "title": "Question Key"
+          },
+          "question_text": {
+            "type": "string",
+            "title": "Question Text"
+          },
+          "question_text_shown": {
+            "type": "string",
+            "title": "Question Text Shown"
+          },
+          "answer_text": {
+            "type": "string",
+            "title": "Answer Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "channel",
+          "entered_by",
+          "caregiver_name",
+          "language",
+          "occurred_at",
+          "recorded_at",
+          "kind",
+          "set",
+          "question_key",
+          "question_text",
+          "question_text_shown",
+          "answer_text"
+        ],
+        "title": "AnswerEntry"
+      },
       "Box": {
         "properties": {
           "x": {
@@ -507,6 +760,163 @@
         ],
         "title": "DocumentInfo"
       },
+      "EntriesPage": {
+        "properties": {
+          "entries": {
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/GlucoseEntry"
+                },
+                {
+                  "$ref": "#/components/schemas/TickEntry"
+                },
+                {
+                  "$ref": "#/components/schemas/AnswerEntry"
+                },
+                {
+                  "$ref": "#/components/schemas/MealPhotoEntry"
+                }
+              ],
+              "discriminator": {
+                "propertyName": "kind",
+                "mapping": {
+                  "glucose_reading": "#/components/schemas/GlucoseEntry",
+                  "meal_photo": "#/components/schemas/MealPhotoEntry",
+                  "medication_tick": "#/components/schemas/TickEntry",
+                  "survey_answer": "#/components/schemas/AnswerEntry"
+                }
+              }
+            },
+            "type": "array",
+            "title": "Entries"
+          },
+          "regimen_items": {
+            "items": {
+              "$ref": "#/components/schemas/RegimenItemSpan"
+            },
+            "type": "array",
+            "title": "Regimen Items"
+          },
+          "from": {
+            "type": "string",
+            "format": "date",
+            "title": "From"
+          },
+          "to": {
+            "type": "string",
+            "format": "date",
+            "title": "To"
+          }
+        },
+        "type": "object",
+        "required": [
+          "entries",
+          "regimen_items",
+          "from",
+          "to"
+        ],
+        "title": "EntriesPage"
+      },
+      "GlucoseEntry": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "channel": {
+            "type": "string",
+            "enum": [
+              "patient_app",
+              "paper_form",
+              "sms"
+            ],
+            "title": "Channel"
+          },
+          "entered_by": {
+            "type": "string",
+            "enum": [
+              "patient",
+              "caregiver",
+              "clinic_staff"
+            ],
+            "title": "Entered By"
+          },
+          "caregiver_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Caregiver Name"
+          },
+          "language": {
+            "type": "string",
+            "title": "Language"
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Occurred At"
+          },
+          "recorded_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Recorded At"
+          },
+          "kind": {
+            "type": "string",
+            "const": "glucose_reading",
+            "title": "Kind"
+          },
+          "value_text": {
+            "type": "string",
+            "title": "Value Text"
+          },
+          "context": {
+            "type": "string",
+            "enum": [
+              "fasting",
+              "before_meal",
+              "after_meal",
+              "bedtime",
+              "overnight",
+              "random"
+            ],
+            "title": "Context"
+          },
+          "insulin_units": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Insulin Units"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "channel",
+          "entered_by",
+          "caregiver_name",
+          "language",
+          "occurred_at",
+          "recorded_at",
+          "kind",
+          "value_text",
+          "context",
+          "insulin_units"
+        ],
+        "title": "GlucoseEntry"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -519,6 +929,290 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "MealPhotoEntry": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "channel": {
+            "type": "string",
+            "enum": [
+              "patient_app",
+              "paper_form",
+              "sms"
+            ],
+            "title": "Channel"
+          },
+          "entered_by": {
+            "type": "string",
+            "enum": [
+              "patient",
+              "caregiver",
+              "clinic_staff"
+            ],
+            "title": "Entered By"
+          },
+          "caregiver_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Caregiver Name"
+          },
+          "language": {
+            "type": "string",
+            "title": "Language"
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Occurred At"
+          },
+          "recorded_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Recorded At"
+          },
+          "kind": {
+            "type": "string",
+            "const": "meal_photo",
+            "title": "Kind"
+          },
+          "photo_url": {
+            "type": "string",
+            "title": "Photo Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "channel",
+          "entered_by",
+          "caregiver_name",
+          "language",
+          "occurred_at",
+          "recorded_at",
+          "kind",
+          "photo_url"
+        ],
+        "title": "MealPhotoEntry"
+      },
+      "PaperAnswer": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "question_key": {
+            "type": "string",
+            "title": "Question Key"
+          },
+          "answer_text": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Answer Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "question_key",
+          "answer_text"
+        ],
+        "title": "PaperAnswer"
+      },
+      "PaperFormQuestion": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "text"
+        ],
+        "title": "PaperFormQuestion"
+      },
+      "PaperFormResult": {
+        "properties": {
+          "created": {
+            "type": "integer",
+            "title": "Created"
+          },
+          "duplicate": {
+            "type": "boolean",
+            "title": "Duplicate"
+          }
+        },
+        "type": "object",
+        "required": [
+          "created",
+          "duplicate"
+        ],
+        "title": "PaperFormResult"
+      },
+      "PaperFormSubmission": {
+        "properties": {
+          "client_capture_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9-]{8,64}$",
+            "title": "Client Capture Id"
+          },
+          "week_from": {
+            "type": "string",
+            "format": "date",
+            "title": "Week From"
+          },
+          "week_to": {
+            "type": "string",
+            "format": "date",
+            "title": "Week To"
+          },
+          "language": {
+            "type": "string",
+            "enum": [
+              "en",
+              "hi",
+              "ur"
+            ],
+            "title": "Language"
+          },
+          "ticks": {
+            "items": {
+              "$ref": "#/components/schemas/PaperTick"
+            },
+            "type": "array",
+            "maxItems": 200,
+            "title": "Ticks"
+          },
+          "glucose": {
+            "items": {
+              "$ref": "#/components/schemas/PaperGlucose"
+            },
+            "type": "array",
+            "maxItems": 200,
+            "title": "Glucose"
+          },
+          "answers": {
+            "items": {
+              "$ref": "#/components/schemas/PaperAnswer"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "title": "Answers"
+          }
+        },
+        "type": "object",
+        "required": [
+          "client_capture_id",
+          "week_from",
+          "week_to",
+          "language",
+          "ticks",
+          "glucose",
+          "answers"
+        ],
+        "title": "PaperFormSubmission",
+        "description": "A week of a paper form, transcribed by clinic staff, stored as written."
+      },
+      "PaperGlucose": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "time": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time"
+          },
+          "value_text": {
+            "type": "string",
+            "maxLength": 20,
+            "title": "Value Text"
+          },
+          "context": {
+            "type": "string",
+            "enum": [
+              "fasting",
+              "before_meal",
+              "after_meal",
+              "bedtime",
+              "overnight",
+              "random"
+            ],
+            "title": "Context"
+          },
+          "insulin_units": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 500.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Insulin Units"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "time",
+          "value_text",
+          "context",
+          "insulin_units"
+        ],
+        "title": "PaperGlucose"
+      },
+      "PaperTick": {
+        "properties": {
+          "regimen_item_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Regimen Item Id"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "ticked": {
+            "type": "boolean",
+            "title": "Ticked"
+          }
+        },
+        "type": "object",
+        "required": [
+          "regimen_item_id",
+          "date",
+          "ticked"
+        ],
+        "title": "PaperTick"
       },
       "PatientRecord": {
         "properties": {
@@ -856,6 +1550,181 @@
         ],
         "title": "RecordValue",
         "description": "A renderable value, exactly as printed. Nothing derived is attached."
+      },
+      "RegimenItemRef": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "drug_text": {
+            "type": "string",
+            "title": "Drug Text"
+          },
+          "dose_text": {
+            "type": "string",
+            "title": "Dose Text"
+          },
+          "schedule_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Schedule Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "drug_text",
+          "dose_text",
+          "schedule_text"
+        ],
+        "title": "RegimenItemRef"
+      },
+      "RegimenItemSpan": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "drug_text": {
+            "type": "string",
+            "title": "Drug Text"
+          },
+          "dose_text": {
+            "type": "string",
+            "title": "Dose Text"
+          },
+          "schedule_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Schedule Text"
+          },
+          "active_from": {
+            "type": "string",
+            "format": "date",
+            "title": "Active From"
+          },
+          "active_until": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Until"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "drug_text",
+          "dose_text",
+          "schedule_text",
+          "active_from",
+          "active_until"
+        ],
+        "title": "RegimenItemSpan"
+      },
+      "TickEntry": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "channel": {
+            "type": "string",
+            "enum": [
+              "patient_app",
+              "paper_form",
+              "sms"
+            ],
+            "title": "Channel"
+          },
+          "entered_by": {
+            "type": "string",
+            "enum": [
+              "patient",
+              "caregiver",
+              "clinic_staff"
+            ],
+            "title": "Entered By"
+          },
+          "caregiver_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Caregiver Name"
+          },
+          "language": {
+            "type": "string",
+            "title": "Language"
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Occurred At"
+          },
+          "recorded_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Recorded At"
+          },
+          "kind": {
+            "type": "string",
+            "const": "medication_tick",
+            "title": "Kind"
+          },
+          "regimen_item": {
+            "$ref": "#/components/schemas/RegimenItemRef"
+          },
+          "tick_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Tick Date"
+          },
+          "ticked": {
+            "type": "boolean",
+            "title": "Ticked"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "channel",
+          "entered_by",
+          "caregiver_name",
+          "language",
+          "occurred_at",
+          "recorded_at",
+          "kind",
+          "regimen_item",
+          "tick_date",
+          "ticked"
+        ],
+        "title": "TickEntry"
       },
       "Trace": {
         "properties": {
