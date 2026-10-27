@@ -1,11 +1,12 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import Annotated
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
-from healthathon import storage
+from healthathon import storage, thumbnails
 from healthathon.auth import CurrentUser, User
 from healthathon.config import get_settings
 from healthathon.confirm_queue.routes import router as confirm_queue_router
@@ -52,8 +53,19 @@ def me(user: User) -> CurrentUser:
 
 
 @app.get("/api/storage/{key:path}", tags=["storage"], response_class=FileResponse)
-def get_stored_file(key: str, _user: User) -> FileResponse:
+def get_stored_file(
+    key: str,
+    _user: User,
+    width: Annotated[
+        int | None,
+        Query(ge=64, le=1600, description="Send a JPEG copy no wider than this, for thumbnails"),
+    ] = None,
+) -> FileResponse:
     path = storage.resolve(key)
     if path is None:
         raise HTTPException(404, "Not found")
+    if width is not None:
+        path = thumbnails.thumbnail(key, width)
+        if path is None:
+            raise HTTPException(415, "Only an image can be sent smaller")
     return FileResponse(path, headers={"Cache-Control": "private, max-age=3600"})

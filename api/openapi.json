@@ -1179,6 +1179,26 @@
               "type": "string",
               "title": "Key"
             }
+          },
+          {
+            "name": "width",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 1600,
+                  "minimum": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Send a JPEG copy no wider than this, for thumbnails",
+              "title": "Width"
+            },
+            "description": "Send a JPEG copy no wider than this, for thumbnails"
           }
         ],
         "responses": {
