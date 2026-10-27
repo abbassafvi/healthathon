@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
 
 import { useApp } from '../AppState'
@@ -20,67 +20,80 @@ export function WelcomeScreen() {
   const [lang, setLang] = useState<Lang>(app.lang)
   const [patients, setPatients] = useState<PatientRef[]>([])
   const [patientId, setPatientId] = useState<string | null>(null)
+  const [failed, setFailed] = useState(false)
   const t = STRINGS[lang]
 
-  useEffect(() => {
-    void app.api.patients().then(setPatients)
+  const load = useCallback(() => {
+    setFailed(false)
+    app.api.patients().then(setPatients, () => setFailed(true))
   }, [app.api])
+  useEffect(load, [load])
 
   return (
-    <ScrollView contentContainerStyle={styles.page} style={{ direction: lang === 'ur' ? 'rtl' : 'ltr' }}>
-      <LinearGradient colors={['#F7C9A8', '#E9DCEB', color.bg]} locations={[0, 0.55, 1]} style={styles.glow}>
-        <Txt lang={lang} size={52} weight="bold" accessibilityRole="header">{t.welcome.title}</Txt>
-        <Txt lang={lang} size={18} tone="ink2" style={styles.body}>{t.welcome.body}</Txt>
-      </LinearGradient>
+    <View style={[styles.screen, { direction: lang === 'ur' ? 'rtl' : 'ltr' }]}>
+      <ScrollView contentContainerStyle={styles.page}>
+        <LinearGradient colors={['#F7C9A8', '#E9DCEB', color.bg]} locations={[0, 0.55, 1]} style={styles.glow}>
+          <Txt lang={lang} size={52} weight="bold" accessibilityRole="header">{t.welcome.title}</Txt>
+          <Txt lang={lang} size={18} tone="ink2" style={styles.body}>{t.welcome.body}</Txt>
+        </LinearGradient>
 
-      <View style={styles.block}>
-        <Txt lang={lang} size={20} weight="bold">{t.welcome.chooseLanguage}</Txt>
-        <View style={styles.langs} role="radiogroup" aria-label={t.welcome.chooseLanguage}>
-          {LANGS.map((l) => (
-            <Pressable
-              key={l}
-              role="radio"
-              aria-checked={lang === l}
-              accessibilityLabel={STRINGS[l].langName}
-              testID={`lang-${l}`}
-              onPress={() => setLang(l)}
-              style={[styles.choice, styles.langChoice, lang === l && styles.chosen]}
-            >
-              <Txt lang={l} size={20} weight="medium">{STRINGS[l].langName}</Txt>
-            </Pressable>
-          ))}
+        <View style={styles.block}>
+          <Txt lang={lang} size={20} weight="bold">{t.welcome.chooseLanguage}</Txt>
+          <View style={styles.langs} role="radiogroup" aria-label={t.welcome.chooseLanguage}>
+            {LANGS.map((l) => (
+              <Pressable
+                key={l}
+                role="radio"
+                aria-checked={lang === l}
+                accessibilityLabel={STRINGS[l].langName}
+                testID={`lang-${l}`}
+                onPress={() => setLang(l)}
+                style={[styles.choice, styles.langChoice, lang === l && styles.chosen]}
+              >
+                <Txt lang={l} size={20} weight="medium">{STRINGS[l].langName}</Txt>
+              </Pressable>
+            ))}
+          </View>
         </View>
-      </View>
 
-      <View style={styles.block}>
-        <Txt lang={lang} size={20} weight="bold">{t.welcome.choosePatient}</Txt>
-        <Txt lang={lang} size={15} tone="ink3">{t.welcome.demo}</Txt>
-        <View style={styles.list} role="radiogroup" aria-label={t.welcome.choosePatient}>
-          {patients.map((p) => (
-            <Pressable
-              key={p.id}
-              role="radio"
-              aria-checked={patientId === p.id}
-              accessibilityLabel={p.full_name}
-              testID={`patient-${p.id}`}
-              onPress={() => setPatientId(p.id)}
-              style={[styles.choice, styles.patient, patientId === p.id && styles.chosen]}
-            >
-              <Txt latin size={20} weight="medium">{p.full_name}</Txt>
-              <Txt latin size={14} tone="ink3">{p.registration_no}</Txt>
-            </Pressable>
-          ))}
+        <View style={styles.block}>
+          <Txt lang={lang} size={20} weight="bold">{t.welcome.choosePatient}</Txt>
+          <Txt lang={lang} size={15} tone="ink3">{t.welcome.demo}</Txt>
+          {failed && (
+            <View style={styles.failed} role="alert">
+              <Txt lang={lang} size={17}>{t.today.loadFailed}</Txt>
+              <Button label={t.today.retry} onPress={load} testID="retry-patients" />
+            </View>
+          )}
+          <View style={styles.list} role="radiogroup" aria-label={t.welcome.choosePatient}>
+            {patients.map((p) => (
+              <Pressable
+                key={p.id}
+                role="radio"
+                aria-checked={patientId === p.id}
+                accessibilityLabel={p.full_name}
+                testID={`patient-${p.id}`}
+                onPress={() => setPatientId(p.id)}
+                style={[styles.choice, styles.patient, patientId === p.id && styles.chosen]}
+              >
+                <Txt latin size={20} weight="medium">{p.full_name}</Txt>
+                <Txt latin size={14} tone="ink3">{p.registration_no}</Txt>
+              </Pressable>
+            ))}
+          </View>
         </View>
-      </View>
 
-      <Button
-        kind="primary"
-        label={t.welcome.start}
-        disabled={!patientId}
-        onPress={() => patientId && app.choose({ lang, patientId })}
-        style={styles.start}
-      />
-    </ScrollView>
+      </ScrollView>
+      {/* Start stays in reach of the thumb, however long the list above. */}
+      <View style={styles.footer}>
+        <Button
+          kind="primary"
+          label={t.welcome.start}
+          disabled={!patientId}
+          onPress={() => patientId && app.choose({ lang, patientId })}
+        />
+      </View>
+    </View>
   )
 }
 
@@ -91,6 +104,7 @@ const styles = StyleSheet.create({
   block: { paddingHorizontal: space.xl, marginTop: space.xl, gap: space.sm },
   langs: { flexDirection: 'row', gap: space.sm, marginTop: space.sm, flexWrap: 'wrap' },
   list: { gap: space.sm, marginTop: space.sm },
+  failed: { gap: space.md, marginTop: space.sm },
   choice: {
     minHeight: touch.large,
     borderRadius: radius.md,
@@ -103,5 +117,13 @@ const styles = StyleSheet.create({
   langChoice: { flexGrow: 1, alignItems: 'center' },
   patient: { paddingVertical: space.md },
   chosen: { borderColor: color.ink, borderWidth: 2.5 },
-  start: { marginHorizontal: space.xl, marginTop: space.xxl },
+  screen: { flex: 1, backgroundColor: color.bg },
+  footer: {
+    paddingHorizontal: space.xl,
+    paddingTop: space.md,
+    paddingBottom: space.xl,
+    borderTopWidth: 1,
+    borderTopColor: color.line,
+    backgroundColor: color.bg,
+  },
 })
