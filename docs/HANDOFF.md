@@ -1,8 +1,9 @@
 # Handoff: state of the build and what comes next
 
-Last updated 27 October 2026, after Track B built the patient, regimen,
-visit and SMS endpoints and wired both apps to them (PRs #4 to #8, all
-merged). Written for Abbas and for any agent working on Track A.
+Last updated 27 October 2026, after Track B added four pages for the
+demonstration (the clinic's day, how a document was read, the audit log and
+the patient's earlier days) on top of PRs #4 to #8. Written for Abbas and
+for any agent working on Track A.
 Read `AGENTS.md` first; everything here sits under its rules.
 
 ## In one paragraph
@@ -24,8 +25,11 @@ Track A's. The patient app runs on its endpoints (`/api/app/...`) when
 | Timeline | `apps/clinic/src/timeline` | Real |
 | Visit page and compliance score | `apps/clinic/src/visit` | Real (score computed on read, see below) |
 | Paper form | `apps/clinic/src/paperform` | Real |
+| Today (the clinic's day, start page) | `apps/clinic/src/today` | Real |
+| How a document was read | `apps/clinic/src/reading` | Real (checks come from the seed until the pipeline writes them) |
+| Audit log | `apps/clinic/src/audit` | Real |
 | Upload | `apps/clinic/src/upload` | Mock (stands in for the reading pipeline) |
-| Patient app | `apps/patient` | Real when `EXPO_PUBLIC_API_URL` is set (`src/data/httpApi.ts`) |
+| Patient app, including earlier days | `apps/patient` | Real when `EXPO_PUBLIC_API_URL` is set (`src/data/httpApi.ts`) |
 
 The browser mock layer now serves upload only. The other handlers in
 `apps/clinic/src/mocks/handlers` are fixtures for the Vitest screen tests,
@@ -34,14 +38,16 @@ the behaviour.
 
 The real seed is a stand-in too: `api/dev_seed` writes four fictional
 patients, a lab report each, prescriptions with a box per line (two
-activated, two awaiting review), test orders, the question bank, a past and
-a booked visit, and four weeks of patient entries up to yesterday. Track A's
+activated, two awaiting review), test orders, the question bank, a past
+visit and one booked for today (10:00 to 11:30, half an hour apart), the
+five check results for every value read, and four weeks of patient entries
+up to yesterday. Track A's
 seed script should replace it, keeping the same four registration numbers
 (DEV-0001 to DEV-0004).
 
 ## Endpoints
 
-### Built by Track B (PRs #4, #5, #8)
+### Built by Track B
 
 | Endpoint | Tests |
 | --- | --- |
@@ -51,6 +57,20 @@ seed script should replace it, keeping the same four registration numbers
 | `GET /api/patients/{id}/checklist`, `GET /api/regimens/{id}/review`, `POST /api/regimen-items/{id}/confirm`, `DELETE /api/regimen-items/{id}`, `POST /api/regimens/{id}/activate`, `GET /api/regimen-items/{id}/crop` | `test_regimens.py` |
 | `GET /api/patients/{id}/visit` | `test_visit.py` |
 | `POST /api/sms/inbound` (gateway stand-in, `X-Gateway-Key`) | `test_sms.py`, `test_sms_parser.py` |
+| `GET /api/clinic-day?date` | `test_clinic_day.py` |
+| `GET /api/documents/{id}/reading` | `test_reading.py` |
+| `GET /api/audit-log?kind&before&limit` | `test_audit_log.py` |
+| `GET /api/app/patients/{id}/days?before&count` | `test_past_days.py` |
+| `GET /api/storage/{key}?width` (a smaller copy of a photo, metadata removed) | `test_thumbnails.py` |
+
+The last five were added after the OpenAPI spec was frozen, for the
+demonstration. Each only adds a path or an optional parameter; nothing
+existing changed. They need agreeing like any other contract change.
+
+How a document was read lists, for each value, the five checks from
+`core.check_result`. Only the seed writes those rows today: the reading
+pipeline should write one per check per value, so the page shows what the
+deterministic layer actually decided.
 
 ### Still to build (Track A)
 
@@ -107,6 +127,12 @@ These came up while building and need a decision from the schema owner.
 8. **Patient writes have no clinic user.** `audit.event.actor_id` is
    nullable, and patient app writes are recorded with no actor; the entity
    id leads to the entry and the patient.
+9. **Nothing enforces append-only on `audit.event`.** The table comment says
+   grants are INSERT and SELECT only, but the schema has no GRANT, REVOKE or
+   trigger, so the app's own role can update a row. The audit log page
+   rechecks the whole hash chain on every load and names the first row that
+   does not follow (tested by editing a row), but the chain only detects a
+   change; a grant or a trigger would prevent one.
 
 ## Not finished
 
@@ -118,7 +144,10 @@ These came up while building and need a decision from the schema owner.
   as its own entry, so the clinician sees both, with their times. There is
   no supersede link between them.
 - **Meal photos** are stored under `storage/meals/`, never committed. The
-  patient app endpoints have no authentication, as the scope allows.
+  patient app endpoints have no authentication, as the scope allows. A
+  photo from a phone keeps its camera metadata, which can include where it
+  was taken. The small copies the screens show have none; whether to strip
+  it from the original too is a decision for both of us.
 - **SMS** is built as an inbound endpoint with no reply (notifications are
   out of scope). The message format is in the README. The patient card that
   explains it has not been written or translated.
