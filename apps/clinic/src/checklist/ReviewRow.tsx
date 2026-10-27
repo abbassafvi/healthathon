@@ -1,4 +1,4 @@
-import type { RegimenItem } from '../api/pending'
+import type { RegimenItem } from '../api/client'
 import { ActionButton } from '../confirm-queue/ActionButton'
 import { CropImage } from '../confirm-queue/CropImage'
 import { formatDateTime } from '../lib/dates'

@@ -234,4 +234,5 @@ def _check_form(form: PaperFormSubmission) -> None:
 def _in_force(item: dict[str, Any], day: date) -> bool:
     start = clinic_time.local(item["activated_at"]).date()
     end = clinic_time.local(item["superseded_at"]).date() if item["superseded_at"] else None
-    return start <= day and (end is None or day <= end)
+    # The day a checklist is superseded belongs to the one that replaced it.
+    return start <= day and (end is None or day < end)

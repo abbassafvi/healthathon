@@ -11,7 +11,7 @@ import { cropUrl, mockState, type MockRegimen } from '../state'
  * then "reading", then done with a fixed, fictional outcome. A prescription
  * creates a regimen waiting for review, so it appears on the Checklist tab.
  */
-type Job = { status: UploadStatus; readyAt: number; readingAt: number; req: UploadRequest }
+export type Job = { status: UploadStatus; readyAt: number; readingAt: number; req: UploadRequest }
 const jobs = new Map<string, Job>()
 const byCapture = new Map<string, string>()
 const seenFiles = new Set<string>() // `${patient}|${sha256}`, as UNIQUE (patient_id, sha256)
@@ -19,7 +19,20 @@ const seenFiles = new Set<string>() // `${patient}|${sha256}`, as UNIQUE (patien
 const UPLOAD_MS = 600
 const READ_MS = 2400
 
-function finish(job: Job, registration_no: string, full_name: string) {
+/*
+ * Where an uploaded prescription's regimen comes from. In the browser the
+ * checklist is real, so the stand-in points at the patient's real
+ * prescription awaiting review (see ../browser.ts). Under test it makes
+ * one in the mock state, as below.
+ */
+type RegimenForUpload = (patientId: string, job: Job, registration_no: string, full_name: string) => Promise<string | null>
+let regimenForUpload: RegimenForUpload = async (_pid, job, reg, name) => mockRegimen(job, reg, name)
+
+export function setRegimenForUpload(fn: RegimenForUpload): void {
+  regimenForUpload = fn
+}
+
+async function finish(job: Job, registration_no: string, full_name: string) {
   const id = job.status.id
   const docId = `doc-up-${id}`
   if (job.req.doc_type === 'lab_report') {
@@ -31,6 +44,13 @@ function finish(job: Job, registration_no: string, full_name: string) {
     }
     return
   }
+  const regimen_id = await regimenForUpload(job.req.patient_id, job, registration_no, full_name)
+  job.status.outcome = { document_id: docId, values_in_record: 0, sent_to_queue: [], regimen_id }
+}
+
+function mockRegimen(job: Job, registration_no: string, full_name: string): string {
+  const id = job.status.id
+  const docId = `doc-up-${id}`
   const date = localIsoDate(new Date())
   const page: RxPage = {
     doctor: 'Dr. Kavita Rao, MD (fictional)', clinic: 'Diabetes Clinic, Lucknow (fictional)',
@@ -49,7 +69,7 @@ function finish(job: Job, registration_no: string, full_name: string) {
     activated_at: null, activated_by_name: null, superseded_at: null,
   }
   mockState().regimens.push(regimen)
-  job.status.outcome = { document_id: docId, values_in_record: 0, sent_to_queue: [], regimen_id: regimen.id }
+  return regimen.id
 }
 
 export const uploadHandlers = [
@@ -90,7 +110,7 @@ export const uploadHandlers = [
           job.status.stage = 'failed'
           job.status.failure = 'The page could not be found in this photograph.'
         } else {
-          finish(job, patient.registration_no, patient.full_name)
+          await finish(job, patient.registration_no, patient.full_name)
           job.status.stage = 'done'
           seenFiles.add(`${job.req.patient_id}|${job.req.sha256}`)
         }

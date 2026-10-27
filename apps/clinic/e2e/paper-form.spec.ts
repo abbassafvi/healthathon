@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
 
-import { reseed } from './db'
+import { query, reseed } from './db'
 
 test.beforeEach(() => reseed())
 
@@ -42,6 +42,17 @@ test('a paper form is copied from the keyboard and reaches the timeline', async 
   const day = page.locator(`[data-day="${date}"]`)
   await expect(day.locator('[data-tick-state="not_ticked"]').first()).toBeVisible()
   await expect(day).toContainText('Paper form, entered by clinic staff')
+
+  // What landed, marked by route and by who entered it.
+  const rows = query<{ kind: string; value_text: string | null }>(`
+    SELECT e.kind::text AS kind, g.value_text FROM pat.entry e
+    LEFT JOIN pat.glucose_reading g ON g.entry_id = e.id
+    WHERE e.channel = 'paper_form' AND e.entered_by = 'clinic_staff'
+      AND e.recorded_at > now() - interval '5 minutes' ORDER BY e.kind`)
+  expect(rows).toEqual([
+    { kind: 'glucose_reading', value_text: '151' },
+    { kind: 'medication_tick', value_text: null },
+  ])
 })
 
 test('the form will not continue with a reading that has no context', async ({ page }) => {
@@ -50,5 +61,14 @@ test('the form will not continue with a reading that has no context', async ({ p
   await page.getByLabel('Reading (mg/dL)').fill('151')
   await page.getByRole('button', { name: 'Check before saving' }).click()
   await expect(page.getByRole('alert')).toContainText('Reading 1 needs its context.')
+  await expectNoViolations(page)
+})
+
+test("answers start in the patient's language, and days answered in the app are shown, not retyped", async ({ page }) => {
+  await openForm(page)
+  await expect(page.getByLabel('Answers written in')).toHaveValue('hi')
+  const locked = page.locator('[data-answer-locked]')
+  await expect(locked.first()).toContainText('Already recorded in the app')
+  expect((await locked.count()) + (await page.locator('input[id^="answer-"]').count())).toBe(7)
   await expectNoViolations(page)
 })

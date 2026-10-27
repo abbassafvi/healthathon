@@ -1,4 +1,4 @@
-import type { TickEntry } from '../api/pending'
+import type { TickEntry } from '../api/client'
 import { en } from '../strings/en'
 import { Source } from './EntryRows'
 import { itemsOn, tickState, type RegimenItemSpan, type TickState } from './ticks'

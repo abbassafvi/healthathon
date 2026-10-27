@@ -1,7 +1,7 @@
 import { Link } from 'react-router'
 
 import type { RecordDocument } from '../api/client'
-import type { Checklist, TestOrder } from '../api/pending'
+import type { Checklist, TestOrder } from '../api/client'
 import { formatDate } from '../lib/dates'
 import { en, fmt } from '../strings/en'
 

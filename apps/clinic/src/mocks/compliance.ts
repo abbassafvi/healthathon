@@ -3,7 +3,7 @@
  * one). Ticks only: a cell is ticked, not ticked, or a gap. Nothing from
  * glucose readings or answers goes in.
  */
-import type { ComplianceScore, PatientEntry, TickEntry } from '../api/pending'
+import type { ComplianceScore, PatientEntry, TickEntry } from '../api/client'
 import { localIsoDate } from '../lib/localDate'
 import type { MockRegimen } from './state'
 

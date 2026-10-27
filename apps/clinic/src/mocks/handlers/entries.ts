@@ -1,6 +1,6 @@
 import { http, HttpResponse } from 'msw'
 
-import type { EntriesPage } from '../../api/pending'
+import type { EntriesPage } from '../../api/client'
 import { localIsoDate } from '../../lib/localDate'
 import { DAYS, mealSvg } from '../entries'
 import { patientById } from '../patients'

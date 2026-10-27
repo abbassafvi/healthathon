@@ -1,6 +1,6 @@
 import { delay, http, HttpResponse } from 'msw'
 
-import type { Checklist, ItemDecision, RegimenReview } from '../../api/pending'
+import type { Checklist, ItemDecision, RegimenReview } from '../../api/client'
 import { PAGE_H, PAGE_W, prescriptionSvg } from '../pages'
 import { patientById, patientByRegistration } from '../patients'
 import { DEMO_CLINICIAN, mockState, pageUrl, type MockRegimen } from '../state'
@@ -75,10 +75,10 @@ export const checklistHandlers = [
       return HttpResponse.json({ detail: 'decision_latency_ms is required' }, { status: 422 })
     }
     const item = r.items.find((i) => i.id === params.itemId)!
-    if (body.drug_text !== undefined && !body.drug_text.trim()) {
+    if (body.drug_text != null && !body.drug_text.trim()) {
       return HttpResponse.json({ detail: 'drug_text cannot be empty' }, { status: 422 })
     }
-    if (body.dose_text !== undefined && !body.dose_text.trim()) {
+    if (body.dose_text != null && !body.dose_text.trim()) {
       return HttpResponse.json({ detail: 'dose_text cannot be empty' }, { status: 422 })
     }
     Object.assign(item, {

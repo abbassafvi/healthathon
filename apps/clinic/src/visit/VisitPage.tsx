@@ -2,11 +2,11 @@ import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router'
 
 import { api } from '../api/client'
-import { pendingApi } from '../api/pendingClient'
 import { formatDate } from '../lib/dates'
 import { en, fmt } from '../strings/en'
 import { DocumentsHalf } from './DocumentsHalf'
 import { PatientHalf } from './PatientHalf'
+import { useFitsViewport } from './useFitsViewport'
 
 /*
  * One page for the visit, in a fixed layout: what documents say on the
@@ -16,13 +16,14 @@ import { PatientHalf } from './PatientHalf'
  */
 export function VisitPage() {
   const { patientId } = useParams() as { patientId: string }
-  const visit = useQuery({ queryKey: ['visit', patientId], queryFn: () => pendingApi.visit(patientId) })
+  const { attach: pinDocs, fits: docsPinned } = useFitsViewport<HTMLElement>()
+  const visit = useQuery({ queryKey: ['visit', patientId], queryFn: () => api.visit(patientId) })
   const period = visit.data?.period
   const record = useQuery({ queryKey: ['record', patientId], queryFn: () => api.record(patientId) })
-  const checklist = useQuery({ queryKey: ['checklist', patientId], queryFn: () => pendingApi.checklist(patientId) })
+  const checklist = useQuery({ queryKey: ['checklist', patientId], queryFn: () => api.checklist(patientId) })
   const entries = useQuery({
     queryKey: ['entries', patientId, period?.from, period?.to],
-    queryFn: () => pendingApi.entries(patientId, { from: period!.from, to: period!.to }),
+    queryFn: () => api.entries(patientId, { from: period!.from, to: period!.to }),
     enabled: !!period,
   })
 
@@ -40,7 +41,7 @@ export function VisitPage() {
     <Shell>
       <header className="mb-6">
         <h2 className="text-xl font-semibold tracking-tight">
-          {fmt(en.visit.title, { date: formatDate(visit.data.visit.scheduled_for) })}
+          {fmt(en.visit.title, { date: formatDate(visit.data.visit.scheduled_for ?? period.to) })}
         </h2>
         <p className="mt-1 flex flex-wrap gap-x-4 text-sm text-ink-2">
           <span>
@@ -48,11 +49,11 @@ export function VisitPage() {
               ? fmt(en.visit.covers, { from: formatDate(period.from), to: formatDate(period.to), previous: formatDate(period.previous_visit) })
               : fmt(en.visit.coversFirst, { from: formatDate(period.from), to: formatDate(period.to) })}
           </span>
-          <span>{fmt(en.visit.with, { name: visit.data.visit.clinician_name })}</span>
+          {visit.data.visit.clinician_name && <span>{fmt(en.visit.with, { name: visit.data.visit.clinician_name })}</span>}
         </p>
       </header>
       <div className="grid gap-10 lg:grid-cols-2 lg:gap-12">
-        <section aria-labelledby="half-docs" className="min-w-0">
+        <section ref={pinDocs} aria-labelledby="half-docs" data-pinned={docsPinned || undefined} className={`min-w-0 lg:self-start ${docsPinned ? 'lg:sticky lg:top-6' : ''}`}>
           <h2 id="half-docs" className="mb-4 border-b border-line pb-2 text-base font-semibold">{en.visit.documentsHalf}</h2>
           <DocumentsHalf patientId={patientId} documents={documents} orders={visit.data.orders} checklist={checklist.data} />
         </section>

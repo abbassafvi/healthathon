@@ -1,4 +1,4 @@
-import type { GlucoseContext } from '../api/pending'
+import type { GlucoseContext } from '../api/client'
 import { formatDate } from '../lib/dates'
 import { en, fmt } from '../strings/en'
 import type { GlucoseDraft, Problem } from './formModel'

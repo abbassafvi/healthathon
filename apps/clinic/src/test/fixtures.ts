@@ -30,7 +30,7 @@ export function trace(overrides: Partial<Trace> = {}): Trace {
       unit_text: '%',
       observed_at: '2026-10-12',
     },
-    patient: { id: 'p-1', registration_no: 'DEV-0001', full_name: 'Asha Verma', year_of_birth: 1968, sex: 'F' },
+    patient: { id: 'p-1', registration_no: 'DEV-0001', full_name: 'Asha Verma', year_of_birth: 1968, sex: 'F', preferred_language: 'hi' },
     document: { id: 'd-1', doc_type: 'lab_report', document_date: '2026-10-12', issuing_source: 'Sunrise Diagnostics (fictional)' },
     provenance_kind: 'source_document',
     page: { url: '/api/storage/dev/pages/DEV-0001-lab.png', page_no: 1, page_count: 1, width_px: 1240, height_px: 1754 },
