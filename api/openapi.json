@@ -1169,6 +1169,49 @@
         }
       }
     },
+    "/api/documents/{document_id}/reading": {
+      "get": {
+        "tags": [
+          "reading"
+        ],
+        "summary": "Get Reading",
+        "operationId": "get_reading_api_documents__document_id__reading_get",
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentReading"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/health": {
       "get": {
         "tags": [
@@ -1694,6 +1737,36 @@
         ],
         "title": "CandidateReading"
       },
+      "Check": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "grounding",
+              "reread_agreement",
+              "cross_document",
+              "well_formed",
+              "legibility"
+            ],
+            "title": "Code"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "pass",
+              "fail",
+              "not_applicable"
+            ],
+            "title": "Outcome"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "outcome"
+        ],
+        "title": "Check"
+      },
       "Checklist": {
         "properties": {
           "active": {
@@ -2168,6 +2241,57 @@
           "issuing_source"
         ],
         "title": "DocumentInfo"
+      },
+      "DocumentReading": {
+        "properties": {
+          "document": {
+            "$ref": "#/components/schemas/ReadingDocument"
+          },
+          "patient": {
+            "$ref": "#/components/schemas/ReadingPatient"
+          },
+          "pages": {
+            "items": {
+              "$ref": "#/components/schemas/ReadingPage"
+            },
+            "type": "array",
+            "title": "Pages"
+          },
+          "run": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReaderRun"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "values": {
+            "items": {
+              "$ref": "#/components/schemas/ReadValue"
+            },
+            "type": "array",
+            "title": "Values"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/ReadLine"
+            },
+            "type": "array",
+            "title": "Lines"
+          }
+        },
+        "type": "object",
+        "required": [
+          "document",
+          "patient",
+          "pages",
+          "run",
+          "values",
+          "lines"
+        ],
+        "title": "DocumentReading"
       },
       "DocumentRef": {
         "properties": {
@@ -3102,6 +3226,386 @@
         ],
         "title": "QueuePatient"
       },
+      "ReadLine": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "page_no": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page No"
+          },
+          "box": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Box"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "waiting",
+              "confirmed",
+              "corrected"
+            ],
+            "title": "State"
+          },
+          "drug_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Drug Text"
+          },
+          "dose_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dose Text"
+          },
+          "schedule_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Schedule Text"
+          },
+          "by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "By Name"
+          },
+          "at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "At"
+          },
+          "original_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Text"
+          },
+          "regimen_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Regimen Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "page_no",
+          "box",
+          "state",
+          "drug_text",
+          "dose_text",
+          "schedule_text",
+          "by_name",
+          "at",
+          "original_text",
+          "regimen_id"
+        ],
+        "title": "ReadLine",
+        "description": "One line of a handwritten prescription. Every line goes to a person."
+      },
+      "ReadValue": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "analyte_name": {
+            "type": "string",
+            "title": "Analyte Name"
+          },
+          "page_no": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page No"
+          },
+          "box": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Box"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "went_to": {
+            "type": "string",
+            "enum": [
+              "record",
+              "person",
+              "checking"
+            ],
+            "title": "Went To"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/Check"
+            },
+            "type": "array",
+            "title": "Checks"
+          },
+          "waiting": {
+            "type": "boolean",
+            "title": "Waiting"
+          },
+          "shown": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ShownValue"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "settled": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Settled"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "analyte_name",
+          "page_no",
+          "box",
+          "went_to",
+          "reason",
+          "checks",
+          "waiting",
+          "shown",
+          "settled"
+        ],
+        "title": "ReadValue"
+      },
+      "ReaderRun": {
+        "properties": {
+          "reader_name": {
+            "type": "string",
+            "title": "Reader Name"
+          },
+          "reader_version": {
+            "type": "string",
+            "title": "Reader Version"
+          },
+          "profile_version": {
+            "type": "string",
+            "title": "Profile Version"
+          },
+          "code_commit": {
+            "type": "string",
+            "title": "Code Commit"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reader_name",
+          "reader_version",
+          "profile_version",
+          "code_commit",
+          "started_at",
+          "finished_at"
+        ],
+        "title": "ReaderRun"
+      },
+      "ReadingDocument": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "doc_type": {
+            "type": "string",
+            "title": "Doc Type"
+          },
+          "document_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Date"
+          },
+          "issuing_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issuing Source"
+          },
+          "received_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Received At"
+          },
+          "page_count": {
+            "type": "integer",
+            "title": "Page Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "doc_type",
+          "document_date",
+          "issuing_source",
+          "received_at",
+          "page_count"
+        ],
+        "title": "ReadingDocument"
+      },
+      "ReadingPage": {
+        "properties": {
+          "page_no": {
+            "type": "integer",
+            "title": "Page No"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "width_px": {
+            "type": "integer",
+            "title": "Width Px"
+          },
+          "height_px": {
+            "type": "integer",
+            "title": "Height Px"
+          }
+        },
+        "type": "object",
+        "required": [
+          "page_no",
+          "url",
+          "width_px",
+          "height_px"
+        ],
+        "title": "ReadingPage"
+      },
+      "ReadingPatient": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "registration_no": {
+            "type": "string",
+            "title": "Registration No"
+          },
+          "full_name": {
+            "type": "string",
+            "title": "Full Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "registration_no",
+          "full_name"
+        ],
+        "title": "ReadingPatient"
+      },
       "ReadingRequest": {
         "properties": {
           "value_text": {
@@ -3519,6 +4023,103 @@
           "full_name"
         ],
         "title": "ReviewPatient"
+      },
+      "Settled": {
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "confirmed",
+              "corrected",
+              "discarded"
+            ],
+            "title": "Action"
+          },
+          "by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "By Name"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "At"
+          },
+          "decision_latency_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decision Latency Ms"
+          },
+          "original_value_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Value Text"
+          },
+          "original_unit_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Unit Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "action",
+          "by_name",
+          "at",
+          "decision_latency_ms",
+          "original_value_text",
+          "original_unit_text"
+        ],
+        "title": "Settled"
+      },
+      "ShownValue": {
+        "properties": {
+          "value_text": {
+            "type": "string",
+            "title": "Value Text"
+          },
+          "unit_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "value_text",
+          "unit_text"
+        ],
+        "title": "ShownValue"
       },
       "SmsProblem": {
         "properties": {

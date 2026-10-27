@@ -14,6 +14,7 @@ from healthathon.confirm_queue.routes import router as confirm_queue_router
 from healthathon.db import close_pool, open_pool
 from healthathon.entries.routes import router as entries_router
 from healthathon.patient_app.routes import router as patient_app_router
+from healthathon.reading.routes import router as reading_router
 from healthathon.record.routes import router as record_router
 from healthathon.regimens.routes import router as regimens_router
 from healthathon.sms.routes import router as sms_router
@@ -42,6 +43,7 @@ app.include_router(regimens_router)
 app.include_router(visit_router)
 app.include_router(sms_router)
 app.include_router(clinic_day_router)
+app.include_router(reading_router)
 
 
 @app.get("/api/health", tags=["meta"])

@@ -21,6 +21,7 @@ import psycopg
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
+from dev_seed.checks import seed_checks
 from dev_seed.entries import seed_entries
 from dev_seed.pages import Row, cut_crop, draw_lab_report
 from dev_seed.patient_data import (
@@ -213,6 +214,7 @@ def seed(conn: psycopg.Connection[Any], storage: Path, user_email: str) -> None:
                     "needs_confirm" if reason else "accepted",
                 ),
             ).fetchone()["id"]
+            seed_checks(conn, value_id, reason)
             if reason:
                 conn.execute(
                     "INSERT INTO core.confirm_queue_item (extracted_value_id, reason,"
