@@ -23,6 +23,11 @@ class Settings(BaseSettings):
     # proxy and the Android app is not a browser, so neither needs this.
     # Set as JSON, e.g. HEALTHATHON_CORS_ORIGINS='["http://127.0.0.1:8091"]'.
     cors_origins: list[str] = ["http://localhost:8081", "http://127.0.0.1:8081"]
+    # Phone numbers are stored only as an HMAC with this key (core.patient_phone).
+    # The defaults are for development; set real values outside it, never in git.
+    phone_hmac_key: str = "dev-only-phone-key"
+    # The SMS gateway stand-in sends this in X-Gateway-Key.
+    sms_gateway_key: str = "dev-only-gateway-key"
 
 
 @lru_cache

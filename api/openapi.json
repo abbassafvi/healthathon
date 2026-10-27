@@ -1057,6 +1057,66 @@
         }
       }
     },
+    "/api/sms/inbound": {
+      "post": {
+        "tags": [
+          "sms"
+        ],
+        "summary": "Post Inbound",
+        "description": "The endpoint an SMS gateway calls for each message it receives.",
+        "operationId": "post_inbound_api_sms_inbound_post",
+        "parameters": [
+          {
+            "name": "x-gateway-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Gateway-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InboundSms"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SmsResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/health": {
       "get": {
         "tags": [
@@ -2065,6 +2125,45 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "InboundSms": {
+        "properties": {
+          "message_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9-]{1,64}$",
+            "title": "Message Id"
+          },
+          "from": {
+            "type": "string",
+            "maxLength": 32,
+            "title": "From"
+          },
+          "body": {
+            "type": "string",
+            "maxLength": 1600,
+            "title": "Body"
+          },
+          "received_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Received At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message_id",
+          "from",
+          "body"
+        ],
+        "title": "InboundSms",
+        "description": "One message as the gateway received it. The body is never stored, only its hash."
       },
       "ItemDecision": {
         "properties": {
@@ -3109,6 +3208,91 @@
           "full_name"
         ],
         "title": "ReviewPatient"
+      },
+      "SmsProblem": {
+        "properties": {
+          "line": {
+            "type": "string",
+            "title": "Line"
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "no_context",
+              "not_a_number",
+              "unknown",
+              "bad_tick",
+              "empty_answer",
+              "no_such_medicine",
+              "already_recorded",
+              "no_question"
+            ],
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "line",
+          "reason"
+        ],
+        "title": "SmsProblem"
+      },
+      "SmsResult": {
+        "properties": {
+          "accepted": {
+            "type": "boolean",
+            "title": "Accepted"
+          },
+          "duplicate": {
+            "type": "boolean",
+            "title": "Duplicate"
+          },
+          "stored": {
+            "items": {
+              "$ref": "#/components/schemas/StoredItem"
+            },
+            "type": "array",
+            "title": "Stored"
+          },
+          "problems": {
+            "items": {
+              "$ref": "#/components/schemas/SmsProblem"
+            },
+            "type": "array",
+            "title": "Problems"
+          }
+        },
+        "type": "object",
+        "required": [
+          "accepted",
+          "duplicate",
+          "stored",
+          "problems"
+        ],
+        "title": "SmsResult"
+      },
+      "StoredItem": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "glucose_reading",
+              "medication_tick",
+              "survey_answer"
+            ],
+            "title": "Kind"
+          },
+          "entry_id": {
+            "type": "string",
+            "title": "Entry Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "entry_id"
+        ],
+        "title": "StoredItem"
       },
       "SurveyRequest": {
         "properties": {
