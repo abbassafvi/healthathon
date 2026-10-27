@@ -9,6 +9,7 @@ import { PatientLayout } from './patient/PatientLayout'
 import { PatientsPage } from './record/PatientsPage'
 import { RecordPage } from './record/RecordPage'
 import { TimelinePage } from './timeline/TimelinePage'
+import { TodayPage } from './today/TodayPage'
 import { VisitPage } from './visit/VisitPage'
 import { TracePanel } from './trace/TracePanel'
 import { UploadPage } from './upload/UploadPage'
@@ -17,7 +18,8 @@ export function App() {
   return (
     <Routes>
       <Route element={<AppShell />}>
-        <Route index element={<Navigate to="/queue" replace />} />
+        <Route index element={<Navigate to="/today" replace />} />
+        <Route path="today" element={<TodayPage />} />
         <Route path="queue" element={<ConfirmQueuePage />} />
         <Route path="patients" element={<PatientsPage />} />
         <Route path="upload" element={<UploadPage />} />
@@ -32,7 +34,7 @@ export function App() {
             <Route path="values/:valueId" element={<TracePanel />} />
           </Route>
         </Route>
-        <Route path="*" element={<Navigate to="/queue" replace />} />
+        <Route path="*" element={<Navigate to="/today" replace />} />
       </Route>
     </Routes>
   )

@@ -1,6 +1,6 @@
-import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
 
+import { expectNoViolations } from './axe'
 import { query, reseed } from './db'
 import { withoutMocks } from './mocks'
 
@@ -8,15 +8,6 @@ test.beforeEach(async ({ page }) => {
   reseed()
   await withoutMocks(page)
 })
-
-const WCAG = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
-
-async function expectNoViolations(page: Page) {
-  // Contrast is measured on settled colours, not mid-transition.
-  await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running'))
-  const { violations } = await new AxeBuilder({ page }).withTags(WCAG).analyze()
-  expect(violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target).join(', ')}`)).toEqual([])
-}
 
 const unlocked = (page: Page) => expect(page.getByRole('button', { name: /confirm as read/i })).toBeEnabled()
 
@@ -79,7 +70,8 @@ test('every control is reachable by Tab with a visible focus ring', async ({ pag
     expect(info.outline, `focus ring on ${info.name}`).toBe(true)
     reached.push(info.name)
   }
-  expect(reached[0]).toMatch(/^Confirm queue/)
+  expect(reached[0]).toBe('Today')
+  expect(reached[1]).toMatch(/^Confirm queue/)
   for (const label of ['Confirm as read', 'Type the value', 'Not a value']) {
     expect(reached.some((r) => r.startsWith(label))).toBe(true)
   }
@@ -104,7 +96,7 @@ async function unringed(page: Page, limit = 80) {
 
 test('every control on every screen shows a focus ring when reached by Tab', async ({ page }) => {
   const [{ id: patient }] = query<{ id: string }>("SELECT id FROM core.patient WHERE registration_no = 'DEV-0001'")
-  for (const path of ['/patients', `/patients/${patient}/visit`, `/patients/${patient}/timeline`,
+  for (const path of ['/today', '/patients', `/patients/${patient}/visit`, `/patients/${patient}/timeline`,
     `/patients/${patient}/checklist`, `/patients/${patient}/documents`, `/patients/${patient}/paper-form`, '/upload']) {
     await page.goto(path)
     await expect(page.locator('main h1, main h2').first()).toBeVisible()

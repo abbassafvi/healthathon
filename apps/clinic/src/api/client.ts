@@ -46,6 +46,10 @@ export type PaperFormSubmission = S['PaperFormSubmission']
 export type PaperFormResult = S['PaperFormResult']
 export type PaperFormQuestion = S['PaperFormQuestion']
 
+/* The clinic's day: booked visits and each record's facts. */
+export type ClinicDay = S['ClinicDay']
+export type DayVisit = S['DayVisit']
+
 export class ApiError extends Error {
   readonly status: number
 
@@ -94,6 +98,7 @@ export const api = {
   paperFormQuestions: () => request<PaperFormQuestion[]>('/api/paper-form/questions'),
   submitPaperForm: (patientId: string, form: PaperFormSubmission) =>
     request<PaperFormResult>(`/api/patients/${patientId}/paper-form`, { method: 'POST', body: JSON.stringify(form) }),
+  clinicDay: (date: string) => request<ClinicDay>(`/api/clinic-day?date=${date}`),
   // keepalive lets a held decision still reach the server as the page closes.
   decide: (itemId: string, decision: Decision, keepalive = false) =>
     request<DecisionResult>(`/api/confirm-queue/${itemId}/decision`, {

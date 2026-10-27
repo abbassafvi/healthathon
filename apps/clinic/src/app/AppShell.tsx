@@ -14,7 +14,8 @@ export function AppShell() {
       <header className="sticky top-0 z-(--z-sticky) border-b border-line bg-bg/95 backdrop-blur-sm">
         <div className={`${PAGE} flex h-14 items-center gap-6 sm:gap-8`}>
           <span className="hidden text-sm font-semibold tracking-tight whitespace-nowrap sm:inline">{en.app.name}</span>
-          <nav className="flex h-full items-stretch gap-6 text-sm">
+          <nav className="-mx-1 flex h-full min-w-0 items-stretch gap-6 overflow-x-auto px-1 text-sm">
+            <NavItem to="/today">{en.app.navToday}</NavItem>
             <NavItem to="/queue">
               {en.app.navQueue}
               {queue.data && (

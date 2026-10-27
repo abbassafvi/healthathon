@@ -15,7 +15,7 @@ test('the header and every page share one left edge', async ({ page }) => {
       " WHERE p.registration_no = 'DEV-0002' AND r.activated_at IS NULL LIMIT 1",
   )
   const [{ id: imran }] = query<{ id: string }>("SELECT id FROM core.patient WHERE registration_no = 'DEV-0002'")
-  for (const path of ['/queue', '/patients', '/upload', `/patients/${id}/visit`, `/patients/${id}/timeline`,
+  for (const path of ['/today', '/queue', '/patients', '/upload', `/patients/${id}/visit`, `/patients/${id}/timeline`,
     `/patients/${id}/checklist`, `/patients/${id}/documents`, `/patients/${id}/paper-form`,
     `/patients/${imran}/checklist/review/${regimen}`]) {
     await page.goto(path)
