@@ -1,64 +1,67 @@
 # Handoff: state of the build and what comes next
 
-Last updated 26 October 2026, at the end of Track B's UI pass (branch
-`dev/saadat`). Written for Abbas and for any agent working on Track A. Read
-`AGENTS.md` first; everything here sits under its rules.
+Last updated 27 October 2026, after Track B built the patient, regimen and
+visit endpoints and wired the clinician screens to them (PRs #4 to #6,
+stacked on #3). Written for Abbas and for any agent working on Track A.
+Read `AGENTS.md` first; everything here sits under its rules.
 
 ## In one paragraph
 
-Every interface surface in the scope now exists: the clinician web app
-(`apps/clinic`) and the patient Android app (`apps/patient`, Expo). Three
-clinician screens run on real endpoints (`api/`). Everything else runs
-against **typed mocks**, which act as the spec for the endpoints Track A still
-has to build. Building an endpoint means implementing the contract the mock
-already obeys, then deleting the mock. Nothing in the UI should need to change.
+Every interface surface in the scope exists: the clinician web app
+(`apps/clinic`) and the patient Android app (`apps/patient`, Expo). Every
+clinician screen except upload now runs on real endpoints (`api/`). Upload
+still runs against a typed mock, because the reading pipeline behind it is
+Track A's. The patient app's endpoints exist (`/api/app/...`); wiring the
+app to them is the next Track B step.
 
 ## What is real and what is mocked
 
 | Surface | Path | Data |
 | --- | --- | --- |
-| Confirm queue | `apps/clinic/src/confirm-queue` | Real: `GET /api/confirm-queue`, `POST /api/confirm-queue/{id}/decision` |
-| Patient list, Documents tab, trace view | `apps/clinic/src/record`, `src/trace` | Real: `GET /api/patients`, `/api/patients/{id}/record`, `/api/values/{id}/trace` |
-| Checklist and prescription review | `apps/clinic/src/checklist` | Mock |
-| Timeline | `apps/clinic/src/timeline` | Document values real, patient entries mock |
-| Visit page and compliance score | `apps/clinic/src/visit` | Document values real, the rest mock |
-| Paper form | `apps/clinic/src/paperform` | Mock |
+| Confirm queue | `apps/clinic/src/confirm-queue` | Real |
+| Patient list, Documents tab, trace view | `apps/clinic/src/record`, `src/trace` | Real |
+| Checklist and prescription review | `apps/clinic/src/checklist` | Real |
+| Timeline | `apps/clinic/src/timeline` | Real |
+| Visit page and compliance score | `apps/clinic/src/visit` | Real (score computed on read, see below) |
+| Paper form | `apps/clinic/src/paperform` | Real |
 | Upload | `apps/clinic/src/upload` | Mock (stands in for the reading pipeline) |
-| Patient app | `apps/patient` | Mock (in-app, `src/data/mockApi.ts`) |
+| Patient app | `apps/patient` | Endpoints real; the app still uses its in-app mock |
+
+The browser mock layer now serves upload only. The other handlers in
+`apps/clinic/src/mocks/handlers` are fixtures for the Vitest screen tests,
+typed against the generated schema; the API tests in `api/tests` define
+the behaviour.
 
 The real seed is a stand-in too: `api/dev_seed` writes four fictional
-patients with generated lab report pages. Track A's seed script should
-replace it, keeping the same four registration numbers (DEV-0001 to
-DEV-0004), because the mocks key their data to them.
+patients, a lab report each, prescriptions with a box per line (two
+activated, two awaiting review), test orders, the question bank, a past and
+a booked visit, and four weeks of patient entries up to yesterday. Track A's
+seed script should replace it, keeping the same four registration numbers
+(DEV-0001 to DEV-0004).
 
-## Endpoints to build
+## Endpoints
 
-Each line gives the contract type and the mock that defines its behaviour.
-The mock's tests are the acceptance tests: port them to `api/tests` when the
-endpoint lands.
+### Built by Track B (PRs #4, #5)
 
-### Clinician app (contracts in `apps/clinic/src/api/pending.ts`)
+| Endpoint | Tests |
+| --- | --- |
+| `GET /api/patients/{id}/entries?from&to` | `api/tests/test_entries.py` |
+| `GET /api/paper-form/questions`, `POST /api/patients/{id}/paper-form` | `test_paper_form.py` |
+| `/api/app/...`: patients, today, ticks, readings, answers, meals, survey | `test_patient_app.py` |
+| `GET /api/patients/{id}/checklist`, `GET /api/regimens/{id}/review`, `POST /api/regimen-items/{id}/confirm`, `DELETE /api/regimen-items/{id}`, `POST /api/regimens/{id}/activate`, `GET /api/regimen-items/{id}/crop` | `test_regimens.py` |
+| `GET /api/patients/{id}/visit` | `test_visit.py` |
+
+### Still to build (Track A)
 
 | Endpoint | Contract | Mock and its tests | Rules the mock enforces |
 | --- | --- | --- | --- |
-| `GET /api/patients/{id}/checklist` | `Checklist` | `src/mocks/handlers/checklist.ts` | Active regimen plus regimens awaiting review |
-| `GET /api/regimens/{id}/review` | `RegimenReview` | same | Says what activation would replace |
-| `POST /api/regimen-items/{id}/confirm` | `ItemDecision` -> `RegimenItem` | same | `decision_latency_ms` required; optional corrected text, trimmed, never empty; 409 once active |
-| `DELETE /api/regimen-items/{id}` | | same | Line is not a medicine; 409 once active |
-| `POST /api/regimens/{id}/activate` | `{ activated_at }` | same | 409 unless every item confirmed and at least one item; supersedes the previous active regimen |
-| `GET /api/patients/{id}/entries?from&to` | `EntriesPage` | `entries.ts` | Patient entries in range, plus every regimen item active in it, so gaps show |
-| `GET /api/patients/{id}/visit` | `VisitSummary` | `visit.ts` | Period since last visit, test orders with or without a matched report, the compliance score with its day array |
-| `GET /api/paper-form/questions`, `POST /api/patients/{id}/paper-form` | `PaperFormSubmission` -> `PaperFormResult` | `paperForm.ts` | Idempotent by `client_capture_id`; 409 for a tick already recorded; every reading needs a numeric value and a context; no range applied |
-| `POST /api/uploads`, `GET /api/uploads/{id}` | `UploadRequest` -> `UploadStatus` | `upload.ts` | Idempotent by capture id; duplicate by `(patient, sha256)` only after a successful read; a prescription produces a regimen awaiting review |
+| `POST /api/uploads`, `GET /api/uploads/{id}` | `UploadRequest` -> `UploadStatus` in `apps/clinic/src/api/pending.ts` | `src/mocks/handlers/upload.ts` | Idempotent by capture id; duplicate by `(patient, sha256)` only after a successful read; a prescription produces a regimen awaiting review |
 
-### Patient app (contract in `apps/patient/src/data/types.ts`)
-
-`PatientApi`: `patients`, `today`, `setTick`, `addReading`, `answer`,
-`addMeal`, `surveyQuestions`, `submitSurvey`. The mock and its tests are
-`src/data/mockApi.ts` and `mockApi.test.ts`. Every write carries a capture id
-and is idempotent. A reading is stored only with its context. An HTTP client
-implementing `PatientApi` replaces the mock in `src/AppState.tsx` (the
-`api` prop). No screen changes.
+The reading pipeline behind upload writes what the built endpoints read:
+`core.document` and pages, `extracted_value` with provenance, queue items,
+and for a prescription a `core.regimen` with one `regimen_item` per line,
+each with a `source_document` provenance box. Test orders it reads go to
+`core.test_order` with their own box.
 
 ### How to wire one endpoint
 
@@ -84,15 +87,25 @@ These came up while building and need a decision from the schema owner.
 3. **`candidate_readings` shape.** The UI uses
    `[{ "value_text": ..., "unit_text": ... }]`. The pipeline must write the same.
 4. **`pat.compliance_score`** needs its migration and the narrowed guardrail
-   exception (week 3 in the work split). The UI expects the stored counts plus
-   the full day array, and refuses to show a score that disagrees with a
-   recount of its days (`apps/clinic/src/visit/score.ts`).
-5. **Regimen item corrections.** The mock overwrites the item's text when a
-   reviewer corrects it. The audit log should keep the original reading.
-   Decide whether `regimen_item` needs a supersede chain like
-   `extracted_value`.
-6. **Test orders.** `core.test_order` exists; nothing writes it yet. The visit
-   page shows "No matching report in this record" for unmatched orders.
+   exception (week 3 in the work split). Until it exists, `GET .../visit`
+   computes the score on read (`api/src/healthathon/visit/compliance.py`):
+   ticked cells over all cells, one cell per item per day from activation,
+   rounded half up. Store exactly that result. The UI refuses a score that
+   disagrees with a recount of its days (`apps/clinic/src/visit/score.ts`).
+5. **Regimen item corrections.** A correction updates the item's text in
+   place; the original reading and the decision latency are in the audit
+   event (`regimen_item.correct`). Decide whether `regimen_item` needs a
+   supersede chain like `extracted_value`.
+6. **Test orders.** Only the seed writes `core.test_order`. The visit page
+   counts an order as matched only when its value is in
+   `proj.renderable_value`, so a value still in the queue is not a match.
+7. **Daily question or survey question?** `pat.question_bank_item` has no
+   column that says which. The daily key is named in
+   `api/src/healthathon/entries/repository.py`; survey answers carry
+   `set_id`, daily ones do not.
+8. **Patient writes have no clinic user.** `audit.event.actor_id` is
+   nullable, and patient app writes are recorded with no actor; the entity
+   id leads to the entry and the patient.
 
 ## Not finished
 
@@ -100,12 +113,12 @@ These came up while building and need a decision from the schema owner.
   `ur.ts` are marked `REVIEWED = false`, and a test keeps them that way until
   a speaker reviews every string. Do not use them at the demonstration
   before then. The clinician app is English only.
-- **A tick cannot yet be recorded as "not taken" in the patient app.** Tapping
-  toggles between ticked and no entry. The schema allows `ticked = false`, and
-  the paper form uses it.
-- **Meal photos** are stored as a local URI in the mock. Real storage needs
-  the same rules as document images: never committed, never leaving the
-  clinic boundary.
+- **The patient app still uses its in-app mock.** The endpoints exist;
+  the HTTP client that implements `PatientApi` is next.
+- **A tick cannot yet be recorded as "not taken" in the patient app.** The
+  endpoint takes `ticked: false`; the app's toggle does not send it yet.
+- **Meal photos** are stored under `storage/meals/`, never committed. The
+  patient app endpoints have no authentication, as the scope allows.
 - **The SMS endpoint** (scope: Other routes) has no UI and is not built.
 - **Native Android** has not been run on a device or emulator; the patient
   app is tested on Expo's web target. Run it on a phone before rehearsal.
@@ -147,16 +160,15 @@ Things that will trip you up:
 **Track A (Abbas)**
 
 1. Seed script, replacing `api/dev_seed`, with the same four registration numbers.
-2. Answer the schema questions above, then the regimen endpoints (review,
-   confirm, activate), since the patient checklist depends on them.
-3. Patient entries and the patient app's write endpoints.
-4. `pat.compliance_score` migration and the guardrail change.
-5. The reading pipeline behind `POST /api/uploads`.
+2. Answer schema questions 1, 5 and 7, then the reading pipeline behind
+   `POST /api/uploads`, writing regimens and test orders as above.
+3. `pat.compliance_score` migration and the guardrail change, then store the
+   score the visit endpoint computes.
 
 **Track B (Saadat)**
 
-1. Wire each screen as its endpoint lands (steps above).
+1. Wire the patient app to `/api/app/...`; add the "not taken" tick.
 2. Get the Hindi and Urdu strings reviewed by speakers.
-3. Run the patient app on an Android phone; add a "not taken" tick if wanted.
+3. Run the patient app on an Android phone.
 4. SMS endpoint, if the cut list allows.
 5. `/impeccable critique` and `/impeccable audit` again after wiring.
