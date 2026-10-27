@@ -209,3 +209,27 @@ def test_a_first_checklist_activates_with_nothing_to_replace(
     assert _activate(client, review["regimen_id"]).status_code == 200
     pid = patient_id(db, reg)
     assert len(client.get(f"/api/app/patients/{pid}/today").json()["items"]) == 2
+
+
+def test_a_superseded_item_takes_no_paper_tick_from_its_last_day(
+    client: Any, db: psycopg.Connection[Any]
+) -> None:
+    pid = patient_id(db, "DEV-0001")
+    old = _checklist(client, pid)["active"]["items"][0]["id"]
+    review = _pending(client, db, "DEV-0001")
+    for item in review["items"]:
+        _confirm(client, item["id"])
+    _activate(client, review["regimen_id"])
+    day = clinic_time.today().isoformat()
+    form = {
+        "client_capture_id": "cap-superseded", "week_from": day, "week_to": day,
+        "language": "en", "glucose": [], "answers": [],
+    }  # fmt: skip
+    tick = {"date": day, "ticked": True}
+    res = client.post(f"/api/patients/{pid}/paper-form",
+                      json=form | {"ticks": [tick | {"regimen_item_id": old}]})  # fmt: skip
+    assert res.status_code == 422
+    new = review["items"][0]["id"]
+    res = client.post(f"/api/patients/{pid}/paper-form",
+                      json=form | {"ticks": [tick | {"regimen_item_id": new}]})  # fmt: skip
+    assert res.status_code == 200, res.text
