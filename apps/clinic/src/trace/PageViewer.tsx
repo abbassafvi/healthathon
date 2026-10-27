@@ -123,7 +123,7 @@ export function PageViewer({ url, width, height, marks, focus = 0, alt }: Props)
             className="absolute inset-0 h-full w-full"
           >
             <image href={url} x={0} y={0} width={width} height={height} />
-            {dim && <path d={dim} fill="oklch(0.21 0 0 / 0.12)" fillRule="evenodd" />}
+            {dim && <path d={dim} className="fill-ink" fillOpacity={0.12} fillRule="evenodd" />}
             {marks.map((m, i) => {
               const r = boxInPixels(m.box, width, height)
               const focused = i === focus
