@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Annotated
 from uuid import UUID
 
@@ -5,7 +6,7 @@ from fastapi import APIRouter, Body, Query, Response
 
 from healthathon.auth import Conn
 from healthathon.entries.models import CAPTURE_ID
-from healthathon.patient_app import service, writes
+from healthathon.patient_app import days, service, writes
 from healthathon.patient_app.models import (
     AnswerRequest,
     AppMeal,
@@ -81,3 +82,15 @@ def get_survey(patient_id: UUID, conn: Conn) -> list[AppQuestion]:
 def post_survey(patient_id: UUID, req: SurveyRequest, conn: Conn) -> Response:
     writes.submit_survey(conn, patient_id, req)
     return Response(status_code=204)
+
+
+@router.get("/patients/{patient_id}/days", response_model=days.PastDays)
+def get_past_days(
+    patient_id: UUID,
+    conn: Conn,
+    before: Annotated[
+        date | None, Query(description="Days before this one; today by default")
+    ] = None,
+    count: Annotated[int, Query(ge=1, le=31)] = 7,
+) -> days.PastDays:
+    return days.past_days(conn, patient_id, before, count)

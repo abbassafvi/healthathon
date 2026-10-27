@@ -760,6 +760,80 @@
         }
       }
     },
+    "/api/app/patients/{patient_id}/days": {
+      "get": {
+        "tags": [
+          "patient-app"
+        ],
+        "summary": "Get Past Days",
+        "operationId": "get_past_days_api_app_patients__patient_id__days_get",
+        "parameters": [
+          {
+            "name": "patient_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Patient Id"
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Days before this one; today by default",
+              "title": "Before"
+            },
+            "description": "Days before this one; today by default"
+          },
+          {
+            "name": "count",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 31,
+              "minimum": 1,
+              "default": 7,
+              "title": "Count"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PastDays"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/patients/{patient_id}/checklist": {
       "get": {
         "tags": [
@@ -1626,6 +1700,52 @@
         "title": "AppChecklistItem",
         "description": "Exactly as printed on the activated prescription."
       },
+      "AppDay": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "ticks": {
+            "items": {
+              "$ref": "#/components/schemas/AppPastTick"
+            },
+            "type": "array",
+            "title": "Ticks"
+          },
+          "readings": {
+            "items": {
+              "$ref": "#/components/schemas/AppReading"
+            },
+            "type": "array",
+            "title": "Readings"
+          },
+          "answers": {
+            "items": {
+              "$ref": "#/components/schemas/AppPastAnswer"
+            },
+            "type": "array",
+            "title": "Answers"
+          },
+          "meals": {
+            "items": {
+              "$ref": "#/components/schemas/AppMeal"
+            },
+            "type": "array",
+            "title": "Meals"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "ticks",
+          "readings",
+          "answers",
+          "meals"
+        ],
+        "title": "AppDay"
+      },
       "AppMeal": {
         "properties": {
           "id": {
@@ -1650,6 +1770,46 @@
           "occurred_at"
         ],
         "title": "AppMeal"
+      },
+      "AppPastAnswer": {
+        "properties": {
+          "question": {
+            "$ref": "#/components/schemas/AppQuestion"
+          },
+          "answer_text": {
+            "type": "string",
+            "title": "Answer Text"
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Occurred At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "question",
+          "answer_text",
+          "occurred_at"
+        ],
+        "title": "AppPastAnswer"
+      },
+      "AppPastTick": {
+        "properties": {
+          "item": {
+            "$ref": "#/components/schemas/AppChecklistItem"
+          },
+          "ticked": {
+            "type": "boolean",
+            "title": "Ticked"
+          }
+        },
+        "type": "object",
+        "required": [
+          "item",
+          "ticked"
+        ],
+        "title": "AppPastTick"
       },
       "AppPatient": {
         "properties": {
@@ -3220,6 +3380,35 @@
           "ticked"
         ],
         "title": "PaperTick"
+      },
+      "PastDays": {
+        "properties": {
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/AppDay"
+            },
+            "type": "array",
+            "title": "Days"
+          },
+          "next_before": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Before"
+          }
+        },
+        "type": "object",
+        "required": [
+          "days",
+          "next_before"
+        ],
+        "title": "PastDays"
       },
       "PatientRecord": {
         "properties": {
