@@ -1,9 +1,9 @@
+import { api } from '../api/client'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useState, useLayoutEffect } from 'react'
 import { Link, useParams } from 'react-router'
 
-import type { RegimenReview } from '../api/pending'
-import { pendingApi } from '../api/pendingClient'
+import type { RegimenReview } from '../api/client'
 import { formatDate } from '../lib/dates'
 import { hasModifier, isButtonTarget, isTypingTarget } from '../lib/keys'
 import { KeysHelp } from '../app/KeysHelp'
@@ -21,7 +21,7 @@ export function ReviewPage() {
   const { patientId, regimenId } = useParams() as { patientId: string; regimenId: string }
   const qc = useQueryClient()
   const key = ['review', regimenId]
-  const query = useQuery({ queryKey: key, queryFn: () => pendingApi.review(regimenId) })
+  const query = useQuery({ queryKey: key, queryFn: () => api.review(regimenId) })
   const [focus, setFocus] = useState(0)
   const [renderedAt, setRenderedAt] = useState<Record<string, number>>({})
   const [correcting, setCorrecting] = useState<string | null>(null)
@@ -35,7 +35,7 @@ export function ReviewPage() {
   const onError = () => setFailed(true)
   const confirm = useMutation({
     mutationFn: (v: { id: string; fix?: { drug_text: string; dose_text: string; schedule_text: string | null } }) =>
-      pendingApi.confirmItem(v.id, {
+      api.confirmItem(v.id, {
         decision_latency_ms: Math.round(performance.now() - (renderedAt[v.id] ?? performance.now())),
         ...v.fix,
       }),
@@ -47,8 +47,8 @@ export function ReviewPage() {
     },
     onError,
   })
-  const remove = useMutation({ mutationFn: pendingApi.removeItem, onSuccess: refresh, onError })
-  const activate = useMutation({ mutationFn: () => pendingApi.activate(regimenId), onSuccess: refresh, onError })
+  const remove = useMutation({ mutationFn: api.removeItem, onSuccess: refresh, onError })
+  const activate = useMutation({ mutationFn: () => api.activate(regimenId), onSuccess: refresh, onError })
   const busy = confirm.isPending || remove.isPending
 
   const data = query.data

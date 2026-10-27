@@ -1,15 +1,15 @@
+import { api } from '../api/client'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router'
 
-import type { ActiveRegimen } from '../api/pending'
-import { pendingApi } from '../api/pendingClient'
+import type { ActiveRegimen } from '../api/client'
 import { formatDate, formatDateTime } from '../lib/dates'
 import { en, fmt } from '../strings/en'
 import { ItemText } from './ItemText'
 
 export function ChecklistPage() {
   const { patientId } = useParams() as { patientId: string }
-  const query = useQuery({ queryKey: ['checklist', patientId], queryFn: () => pendingApi.checklist(patientId) })
+  const query = useQuery({ queryKey: ['checklist', patientId], queryFn: () => api.checklist(patientId) })
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 pt-6 pb-16 sm:px-6">

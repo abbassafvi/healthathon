@@ -3,7 +3,7 @@
  * number, so it lines up with the real seeded patients (DEV-0001..4), and
  * it lasts until reload. resetMockState() puts it back for tests.
  */
-import type { PatientEntry, RegimenItem } from '../api/pending'
+import type { PatientEntry, RegimenItem } from '../api/client'
 import { localIsoDate } from '../lib/localDate'
 import { generateEntries } from './entries'
 import { lineBox, type RxLine, type RxPage } from './pages'

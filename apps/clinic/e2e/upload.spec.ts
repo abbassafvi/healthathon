@@ -30,13 +30,23 @@ test('a lab report photograph is read and says where its values went', async ({ 
 })
 
 test('an uploaded prescription goes straight to review', async ({ page }) => {
-  await start(page, 'Rakesh Yadav (DEV-0004)', 'Prescription')
+  // The reading pipeline is still a stand-in: it leads to the patient's real
+  // prescription waiting for review, so the review below is real.
+  await start(page, 'Imran Qureshi (DEV-0002)', 'Prescription')
   await page.getByTestId('file-input').setInputFiles([photo('rx.png')])
   await page.getByRole('button', { name: 'Upload and read' }).click()
   await page.getByRole('link', { name: 'Review prescription' }).click({ timeout: 8000 })
   await expect(page.getByRole('heading', { name: 'Review prescription' })).toBeVisible()
   await expect(page.locator('li[data-item-id]')).toHaveCount(2)
-  await expect(page.getByText('This will be the first checklist for Rakesh Yadav.')).toBeVisible()
+  await expect(page.getByText('This will be the first checklist for Imran Qureshi.')).toBeVisible()
+})
+
+test('a prescription with nothing left to review leads to the checklist', async ({ page }) => {
+  await start(page, 'Rakesh Yadav (DEV-0004)', 'Prescription')
+  await page.getByTestId('file-input').setInputFiles([photo('rx.png')])
+  await page.getByRole('button', { name: 'Upload and read' }).click()
+  await page.getByRole('link', { name: 'Open the checklist' }).click({ timeout: 8000 })
+  await expect(page).toHaveURL(/\/checklist$/)
 })
 
 test('several photographs upload together, and a repeat is recognised', async ({ page }) => {

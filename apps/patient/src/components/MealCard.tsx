@@ -33,7 +33,7 @@ export function MealCard({ meals, onAdd }: { meals: Meal[]; onAdd: (uri: string)
               <Image key={m.id} source={{ uri: m.uri }} style={styles.thumb} accessibilityIgnoresInvertColors />
             ))}
           </View>
-          <Txt size={16} tone="ink2">{fmt(t.today.mealsToday, { n: meals.length })}</Txt>
+          <Txt size={16} tone="ink2">{meals.length === 1 ? t.today.mealsTodayOne : fmt(t.today.mealsToday, { n: meals.length })}</Txt>
         </>
       )}
       <Button label={t.today.addMeal} onPress={() => void pick()} testID="add-meal" />

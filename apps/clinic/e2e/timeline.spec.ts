@@ -3,7 +3,7 @@ import { expect, test, type Page } from '@playwright/test'
 
 import { reseed } from './db'
 
-/* Document values come from the real API; patient entries from the mock layer. */
+/* Real API and the stand-in seed: document values and patient entries alike. */
 test.beforeEach(() => reseed())
 
 async function openTimeline(page: Page, name = 'Asha Verma') {
@@ -52,4 +52,16 @@ test('timeline has no accessibility violations', async ({ page }) => {
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
     .analyze()
   expect(violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target).join(', ')}`)).toEqual([])
+})
+
+test('a reading sent by SMS reaches the timeline, marked SMS', async ({ page, request }) => {
+  const res = await request.post('/api/sms/inbound', {
+    headers: { 'X-Gateway-Key': 'dev-only-gateway-key' },
+    data: { message_id: 'e2e-sms-0001', from: '+91 55500 00003', body: 'G 128 F' },
+  })
+  expect((await res.json()).stored).toHaveLength(1)
+  await openTimeline(page, 'Meera Pillai')
+  const today = page.locator('[data-day]').first()
+  await expect(today).toContainText('128')
+  await expect(today).toContainText('SMS')
 })

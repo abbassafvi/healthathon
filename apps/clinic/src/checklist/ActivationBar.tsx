@@ -1,6 +1,6 @@
 import { Link } from 'react-router'
 
-import type { RegimenReview } from '../api/pending'
+import type { RegimenReview } from '../api/client'
 import { formatDate, formatDateTime } from '../lib/dates'
 import { en, fmt } from '../strings/en'
 

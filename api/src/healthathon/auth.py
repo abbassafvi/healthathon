@@ -16,7 +16,14 @@ class CurrentUser(BaseModel):
     role: str
 
 
-def current_user(conn: Annotated[Connection[DictRow], Depends(get_conn)]) -> CurrentUser:
+# The transaction must commit before the response is sent. A dependency with
+# yield defaults to scope="request", which commits after: a client could then
+# read straight after a write and miss it, and a failed commit would follow a
+# 200. scope="function" ends the dependency, and commits, first.
+DbConn = Annotated[Connection[DictRow], Depends(get_conn, scope="function")]
+
+
+def current_user(conn: DbConn) -> CurrentUser:
     """
     Authentication stub. Registration and login are out of scope for the
     prototype, so every request acts as the one seeded clinician. Replacing
@@ -33,4 +40,4 @@ def current_user(conn: Annotated[Connection[DictRow], Depends(get_conn)]) -> Cur
 
 
 User = Annotated[CurrentUser, Depends(current_user)]
-Conn = Annotated[Connection[DictRow], Depends(get_conn)]
+Conn = DbConn

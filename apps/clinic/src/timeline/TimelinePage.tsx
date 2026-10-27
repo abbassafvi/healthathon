@@ -3,8 +3,7 @@ import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 
 import { api, type RecordDocument } from '../api/client'
-import type { PatientEntry, TickEntry } from '../api/pending'
-import { pendingApi } from '../api/pendingClient'
+import type { PatientEntry, TickEntry } from '../api/client'
 import { AnswerRow, GlucoseRow, MealRow } from '../entries/EntryRows'
 import { TicksForDay } from '../entries/TicksForDay'
 import { itemsOn } from '../entries/ticks'
@@ -48,7 +47,7 @@ export function TimelinePage() {
   const record = useQuery({ queryKey: ['record', patientId], queryFn: () => api.record(patientId) })
   const entries = useQuery({
     queryKey: ['entries', patientId, range.from, range.to],
-    queryFn: () => pendingApi.entries(patientId, range),
+    queryFn: () => api.entries(patientId, range),
     placeholderData: (prev) => prev,
   })
 

@@ -11,7 +11,12 @@ import { PaperFormPage } from './PaperFormPage'
 const server = installMockServer()
 
 function setup() {
-  server.use(http.get('*/api/patients', () => HttpResponse.json(TEST_PATIENTS)))
+  const languages: Record<string, string> = { 'DEV-0001': 'hi', 'DEV-0002': 'ur' }
+  server.use(
+    http.get('*/api/patients', () =>
+      HttpResponse.json(TEST_PATIENTS.map((p) => ({ ...p, preferred_language: languages[p.registration_no] ?? 'en' }))),
+    ),
+  )
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   render(
     <QueryClientProvider client={client}>
@@ -46,6 +51,29 @@ describe('PaperFormPage', () => {
     fireEvent.click(l)
     fireEvent.keyDown(l, { key: 't' })
     expect(l.dataset.value).toBe(before)
+  })
+
+  it("starts the answers in the patient's language", async () => {
+    const user = setup()
+    await screen.findByRole('grid')
+    const select = screen.getByLabelText('Answers written in')
+    await waitFor(() => expect(select).toHaveValue('hi'))
+    // A choice the staff make is kept.
+    await user.selectOptions(select, 'en')
+    expect(select).toHaveValue('en')
+  })
+
+  it('shows days already answered in the app instead of a box to retype them', async () => {
+    setup()
+    await screen.findByRole('grid')
+    const lockedRows = [...document.querySelectorAll<HTMLElement>('[data-answer-locked]')]
+    expect(lockedRows.length).toBeGreaterThan(0)
+    for (const row of lockedRows) {
+      expect(row).toHaveTextContent('Already recorded in the app')
+      expect(row.querySelector('input')).toBeNull()
+    }
+    const inputs = document.querySelectorAll('input[id^="answer-"]').length
+    expect(inputs + lockedRows.length).toBe(7)
   })
 
   it('fills a free box with T, N, Space and Delete, and moves with arrows', async () => {

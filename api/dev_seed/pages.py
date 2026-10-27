@@ -143,12 +143,14 @@ def draw_prescription(
     date_text: str,
     lines: list[RxLine],
     seed: int,
+    advice: tuple[str, ...] = (),
 ) -> list[Box]:
     """
-    Draw one prescription page and return the box of each medicine line.
-    Printed letterhead, with the lines set slightly askew as a hand would.
+    Draw one prescription page and return the box of each medicine line,
+    then of each test advised under "Adv:". Printed letterhead, with the
+    lines set slightly askew as a hand would.
     """
-    key = (path, doctor, clinic, patient_name, date_text, tuple(map(repr, lines)), seed)
+    key = (path, doctor, clinic, patient_name, date_text, tuple(map(repr, lines)), seed, advice)
     if key in _drawn and path.is_file():
         return _drawn[key]
     rng = random.Random(seed)
@@ -173,6 +175,18 @@ def draw_prescription(
         boxes.append(
             Box(left / PAGE_W, top / PAGE_H, (right - left) / PAGE_W, (bottom - top) / PAGE_H)
         )
+
+    if advice:
+        top_y = 470 + len(lines) * 110 + 60
+        d.text((110, top_y), "Adv:", fill=25, font=hand)
+        for i, test in enumerate(advice):
+            x, y = 260 + rng.randint(-8, 8), top_y + i * 90 + rng.randint(-6, 6)
+            d.text((x, y), test, fill=rng.randint(15, 45), font=hand)
+            left, top, right, bottom = d.textbbox((x, y), test, font=hand)
+            left, top, right, bottom = left - 14, top - 12, right + 14, bottom + 12
+            boxes.append(
+                Box(left / PAGE_W, top / PAGE_H, (right - left) / PAGE_W, (bottom - top) / PAGE_H)
+            )
 
     d.text(
         (110, PAGE_H - 160),

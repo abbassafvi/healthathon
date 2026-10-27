@@ -1,10 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router'
 
 import { api, ApiError } from '../api/client'
-import type { PaperFormResult, TickEntry } from '../api/pending'
-import { pendingApi } from '../api/pendingClient'
+import type { AnswerEntry, PaperFormResult, TickEntry } from '../api/client'
 import { formatDate } from '../lib/dates'
 import { localIsoDate } from '../lib/localDate'
 import { en, fmt } from '../strings/en'
@@ -35,14 +34,23 @@ export function PaperFormPage() {
   const dates = weekDates(draft.weekFrom)
 
   const patients = useQuery({ queryKey: ['patients'], queryFn: api.patients })
-  const name = patients.data?.find((p) => p.id === patientId)?.full_name ?? ''
-  const questions = useQuery({ queryKey: ['paper-questions'], queryFn: pendingApi.paperFormQuestions })
+  const patient = patients.data?.find((p) => p.id === patientId)
+  const name = patient?.full_name ?? ''
+  // Answers are usually written in the patient's own language: start there.
+  const languageTouched = useRef(false)
+  const preferred = patient?.preferred_language
+  useEffect(() => {
+    if (!languageTouched.current && (preferred === 'hi' || preferred === 'ur' || preferred === 'en')) {
+      setDraft((d) => ({ ...d, language: preferred }))
+    }
+  }, [preferred])
+  const questions = useQuery({ queryKey: ['paper-questions'], queryFn: api.paperFormQuestions })
   const week = useQuery({
     queryKey: ['entries', patientId, dates[0], dates[6]],
-    queryFn: () => pendingApi.entries(patientId, { from: dates[0], to: dates[6] }),
+    queryFn: () => api.entries(patientId, { from: dates[0], to: dates[6] }),
   })
   const save = useMutation<PaperFormResult, Error>({
-    mutationFn: () => pendingApi.submitPaperForm(patientId, toSubmission(draft, captureId)),
+    mutationFn: () => api.submitPaperForm(patientId, toSubmission(draft, captureId)),
     onSuccess: () => {
       setStep('saved')
       void qc.invalidateQueries({ queryKey: ['entries', patientId] })
@@ -53,6 +61,11 @@ export function PaperFormPage() {
   const locked: Record<string, 'ticked' | 'not_ticked'> = {}
   for (const t of (week.data?.entries ?? []).filter((e): e is TickEntry => e.kind === 'medication_tick')) {
     locked[cellKey(t.regimen_item.id, t.tick_date)] = t.ticked ? 'ticked' : 'not_ticked'
+  }
+  // Days the patient already answered in the app: shown, never retyped.
+  const answered: Record<string, { text: string; language: string }> = {}
+  for (const a of (week.data?.entries ?? []).filter((e): e is AnswerEntry => e.kind === 'survey_answer' && e.set === 'daily')) {
+    answered[`${a.question_key}|${a.occurred_at.slice(0, 10)}`] = { text: a.answer_text, language: a.language }
   }
   const items = (week.data?.regimen_items ?? []).filter((i) => i.active_from <= dates[6] && (!i.active_until || i.active_until > dates[0]))
   const problems = attempted ? validate(draft) : []
@@ -143,7 +156,10 @@ export function PaperFormPage() {
             <p className="pb-2 text-sm text-ink-2">{fmt(en.paperForm.weekRange, { from: formatDate(dates[0]), to: formatDate(dates[6]) })}</p>
             <div className="flex flex-col gap-1.5">
               <label htmlFor="form-language" className="label">{en.paperForm.language}</label>
-              <select id="form-language" value={draft.language} onChange={(e) => setDraft({ ...draft, language: e.target.value })}
+              <select id="form-language" value={draft.language} onChange={(e) => {
+                  languageTouched.current = true
+                  setDraft({ ...draft, language: e.target.value as Draft['language'] })
+                }}
                 className="h-10 rounded-lg border border-line-strong bg-surface px-3">
                 {Object.entries(en.entries.languages).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
@@ -166,7 +182,7 @@ export function PaperFormPage() {
             <p className="text-sm text-ink-2">{en.paperForm.noChecklist}</p>
           ) : (
             <>
-              <p className="mb-3 max-w-[70ch] text-sm text-ink-2">{en.paperForm.medicinesHelp}</p>
+              <p className="mb-3 max-w-[60ch] text-sm text-ink-2">{en.paperForm.medicinesHelp}</p>
               <div className="overflow-x-auto">
                 <TickGrid items={items} dates={dates} locked={locked} cells={draft.cells}
                   onChange={(k, v) => setDraft((d) => ({ ...d, cells: { ...d.cells, [k]: v } }))} />
@@ -192,6 +208,18 @@ export function PaperFormPage() {
               {dates.map((d) => {
                 const k = `${q.key}|${d}`
                 const id = `answer-${k}`
+                const fromApp = answered[k]
+                if (fromApp !== undefined) {
+                  return (
+                    <div key={k} className="contents" data-answer-locked>
+                      <span className="self-center text-sm text-ink-2">{formatDate(d)}</span>
+                      <p className="flex min-h-10 flex-wrap items-center gap-x-3 rounded-lg border border-dashed border-line bg-sunken px-3 py-2">
+                        <span lang={fromApp.language} dir={fromApp.language === 'ur' ? 'rtl' : 'ltr'}>{fromApp.text}</span>
+                        <span className="text-xs text-ink-2">{en.paperForm.lockedFromApp}</span>
+                      </p>
+                    </div>
+                  )
+                }
                 return (
                   <div key={k} className="contents">
                     <label htmlFor={id} className="self-center text-sm text-ink-2">{formatDate(d)}<span className="sr-only">, {fmt(en.paperForm.answerFor, { date: formatDate(d) })}</span></label>

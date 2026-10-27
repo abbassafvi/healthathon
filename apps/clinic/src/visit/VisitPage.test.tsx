@@ -5,7 +5,7 @@ import { http, HttpResponse } from 'msw'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { VisitSummary } from '../api/pending'
+import type { VisitSummary } from '../api/client'
 import { installMockServer } from '../test/msw'
 import { recount } from './score'
 import { VisitPage } from './VisitPage'

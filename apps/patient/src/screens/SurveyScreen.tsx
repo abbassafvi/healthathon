@@ -14,6 +14,7 @@ export function SurveyScreen({ onDone }: { onDone: () => void }) {
   const [questions, setQuestions] = useState<SurveyQuestion[]>([])
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [id] = useState(captureId)
+  const [failed, setFailed] = useState(false)
 
   useEffect(() => {
     if (patientId) void api.surveyQuestions(patientId).then(setQuestions)
@@ -41,8 +42,18 @@ export function SurveyScreen({ onDone }: { onDone: () => void }) {
         kind="primary"
         label={t.survey.done}
         disabled={!complete}
-        onPress={() => patientId && void api.submitSurvey(patientId, answers, id).then(onDone)}
+        onPress={() => {
+          if (!patientId) return
+          setFailed(false)
+          // The same capture id on a retry, so the answers are stored once.
+          api.submitSurvey(patientId, answers, id).then(onDone, () => setFailed(true))
+        }}
       />
+      {failed && (
+        <View style={styles.failed} role="alert" testID="survey-failed">
+          <Txt size={17}>{t.today.saveFailed}</Txt>
+        </View>
+      )}
       <Button kind="quiet" label={t.survey.back} onPress={onDone} />
     </ScrollView>
   )
@@ -51,6 +62,7 @@ export function SurveyScreen({ onDone }: { onDone: () => void }) {
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: color.bg },
   content: { padding: space.xl, paddingTop: 56, gap: space.lg, maxWidth: 640, width: '100%', alignSelf: 'center' },
+  failed: { padding: space.lg, borderRadius: radius.md, borderWidth: 1.5, borderColor: color.ink, backgroundColor: color.surface },
   q: { backgroundColor: color.surface, borderRadius: radius.lg, padding: space.xl, gap: space.md },
   input: {
     minHeight: 56,

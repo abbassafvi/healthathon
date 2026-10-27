@@ -21,12 +21,14 @@ import psycopg
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
+from dev_seed.entries import seed_entries
 from dev_seed.pages import Row, cut_crop, draw_lab_report
 from dev_seed.patient_data import (
-    seed_entries,
+    seed_contacts,
     seed_question_set,
     seed_questions,
     seed_regimens,
+    seed_visits,
 )
 from healthathon.config import get_settings
 
@@ -228,6 +230,8 @@ def seed(conn: psycopg.Connection[Any], storage: Path, user_email: str) -> None:
     full_names = {reg: name for reg, name, *_ in PATIENTS}
     active = seed_regimens(conn, storage, clinician, patients, full_names)
     seed_entries(conn, storage, patients, active, questions, question_sets)
+    seed_visits(conn, clinician, patients)
+    seed_contacts(conn, clinician, patients)
 
 
 if __name__ == "__main__":

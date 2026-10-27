@@ -11,14 +11,16 @@ from psycopg.rows import DictRow
 
 def list_patients(conn: Connection[DictRow]) -> list[dict[str, Any]]:
     return conn.execute(
-        "SELECT id, registration_no, full_name, year_of_birth, sex FROM core.patient"
+        "SELECT id, registration_no, full_name, year_of_birth, sex, preferred_language"
+        " FROM core.patient"
         " WHERE exited_at IS NULL ORDER BY registration_no"
     ).fetchall()
 
 
 def get_patient(conn: Connection[DictRow], patient_id: UUID) -> dict[str, Any] | None:
     return conn.execute(
-        "SELECT id, registration_no, full_name, year_of_birth, sex FROM core.patient WHERE id = %s",
+        "SELECT id, registration_no, full_name, year_of_birth, sex, preferred_language"
+        " FROM core.patient WHERE id = %s",
         (patient_id,),
     ).fetchone()
 

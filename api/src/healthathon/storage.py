@@ -1,5 +1,7 @@
 import hashlib
+import io
 from pathlib import Path
+from typing import Any
 
 from healthathon.config import get_settings
 
@@ -33,3 +35,10 @@ def save(key: str, data: bytes) -> None:
         raise ValueError(f"storage key escapes the root: {key!r}")
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(data)
+
+
+def save_image(key: str, image: Any) -> None:
+    """Save a Pillow image as PNG under the storage root."""
+    buf = io.BytesIO()
+    image.save(buf, format="PNG")
+    save(key, buf.getvalue())

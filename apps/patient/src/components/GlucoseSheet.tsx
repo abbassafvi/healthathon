@@ -74,7 +74,7 @@ export function GlucoseSheet({ visible, onSave, onClose }: {
           {tried && !context && <Txt tone="ink" size={16} accessibilityLiveRegion="polite">{t.glucose.needContext}</Txt>}
 
           <View style={styles.actions}>
-            <Button kind="primary" label={t.glucose.save} onPress={save} />
+            <Button kind="primary" label={t.glucose.save} onPress={save} testID="save-reading" />
             <Button kind="quiet" label={t.glucose.cancel} onPress={close} />
           </View>
         </ScrollView>

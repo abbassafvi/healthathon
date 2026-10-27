@@ -1,4 +1,4 @@
-import type { AnswerEntry, GlucoseEntry, MealPhotoEntry, PatientEntry } from '../api/pending'
+import type { AnswerEntry, GlucoseEntry, MealPhotoEntry, PatientEntry } from '../api/client'
 import { en, fmt } from '../strings/en'
 import { time } from './ticks'
 
@@ -16,7 +16,7 @@ export function Source({ e }: { e: PatientEntry }) {
         ? en.entries.enteredByStaff
         : null
   return (
-    <span className="font-mono text-xs text-ink-3">
+    <span className="text-xs text-ink-2">
       {en.entries.channels[e.channel] ?? e.channel}
       {who && `, ${who}`}
     </span>
