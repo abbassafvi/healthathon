@@ -8,6 +8,7 @@ from fastapi.responses import FileResponse
 
 from healthathon import storage, thumbnails
 from healthathon.auth import CurrentUser, User
+from healthathon.clinic_day.routes import router as clinic_day_router
 from healthathon.config import get_settings
 from healthathon.confirm_queue.routes import router as confirm_queue_router
 from healthathon.db import close_pool, open_pool
@@ -40,6 +41,7 @@ app.include_router(patient_app_router)
 app.include_router(regimens_router)
 app.include_router(visit_router)
 app.include_router(sms_router)
+app.include_router(clinic_day_router)
 
 
 @app.get("/api/health", tags=["meta"])

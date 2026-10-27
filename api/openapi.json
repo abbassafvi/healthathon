@@ -1117,6 +1117,58 @@
         }
       }
     },
+    "/api/clinic-day": {
+      "get": {
+        "tags": [
+          "clinic-day"
+        ],
+        "summary": "Get Clinic Day",
+        "operationId": "get_clinic_day_api_clinic_day_get",
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Defaults to today",
+              "title": "Date"
+            },
+            "description": "Defaults to today"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClinicDay"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/health": {
       "get": {
         "tags": [
@@ -1669,6 +1721,54 @@
         ],
         "title": "Checklist"
       },
+      "ChecklistState": {
+        "properties": {
+          "active_since": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Since"
+          },
+          "medicines": {
+            "type": "integer",
+            "title": "Medicines"
+          }
+        },
+        "type": "object",
+        "required": [
+          "active_since",
+          "medicines"
+        ],
+        "title": "ChecklistState"
+      },
+      "ClinicDay": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "visits": {
+            "items": {
+              "$ref": "#/components/schemas/DayVisit"
+            },
+            "type": "array",
+            "title": "Visits"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "visits"
+        ],
+        "title": "ClinicDay"
+      },
       "ComplianceRow": {
         "properties": {
           "item": {
@@ -1804,6 +1904,138 @@
           "entry_id"
         ],
         "title": "DayCell"
+      },
+      "DayPatient": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "registration_no": {
+            "type": "string",
+            "title": "Registration No"
+          },
+          "full_name": {
+            "type": "string",
+            "title": "Full Name"
+          },
+          "year_of_birth": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Year Of Birth"
+          },
+          "sex": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sex"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "registration_no",
+          "full_name",
+          "year_of_birth",
+          "sex"
+        ],
+        "title": "DayPatient"
+      },
+      "DayVisit": {
+        "properties": {
+          "visit_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Visit Id"
+          },
+          "scheduled_for": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Scheduled For"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "clinician_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clinician Name"
+          },
+          "patient": {
+            "$ref": "#/components/schemas/DayPatient"
+          },
+          "period_from": {
+            "type": "string",
+            "format": "date",
+            "title": "Period From"
+          },
+          "previous_visit": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous Visit"
+          },
+          "documents": {
+            "$ref": "#/components/schemas/DocumentsSince"
+          },
+          "waiting": {
+            "$ref": "#/components/schemas/Waiting"
+          },
+          "checklist": {
+            "$ref": "#/components/schemas/ChecklistState"
+          },
+          "entries": {
+            "$ref": "#/components/schemas/EntriesSince"
+          }
+        },
+        "type": "object",
+        "required": [
+          "visit_id",
+          "scheduled_for",
+          "started_at",
+          "clinician_name",
+          "patient",
+          "period_from",
+          "previous_visit",
+          "documents",
+          "waiting",
+          "checklist",
+          "entries"
+        ],
+        "title": "DayVisit"
       },
       "Decision": {
         "properties": {
@@ -1976,6 +2208,24 @@
         ],
         "title": "DocumentRef"
       },
+      "DocumentsSince": {
+        "properties": {
+          "lab_reports": {
+            "type": "integer",
+            "title": "Lab Reports"
+          },
+          "prescriptions": {
+            "type": "integer",
+            "title": "Prescriptions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "lab_reports",
+          "prescriptions"
+        ],
+        "title": "DocumentsSince"
+      },
       "EntriesPage": {
         "properties": {
           "entries": {
@@ -2033,6 +2283,47 @@
           "to"
         ],
         "title": "EntriesPage"
+      },
+      "EntriesSince": {
+        "properties": {
+          "medicine_ticks": {
+            "type": "integer",
+            "title": "Medicine Ticks"
+          },
+          "glucose_readings": {
+            "type": "integer",
+            "title": "Glucose Readings"
+          },
+          "answers": {
+            "type": "integer",
+            "title": "Answers"
+          },
+          "meal_photos": {
+            "type": "integer",
+            "title": "Meal Photos"
+          },
+          "last_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "medicine_ticks",
+          "glucose_readings",
+          "answers",
+          "meal_photos",
+          "last_at"
+        ],
+        "title": "EntriesSince"
       },
       "GlucoseEntry": {
         "properties": {
@@ -3902,6 +4193,38 @@
           "compliance"
         ],
         "title": "VisitSummary"
+      },
+      "Waiting": {
+        "properties": {
+          "values": {
+            "type": "integer",
+            "title": "Values"
+          },
+          "prescription_lines": {
+            "type": "integer",
+            "title": "Prescription Lines"
+          },
+          "review_regimen_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Regimen Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "values",
+          "prescription_lines",
+          "review_regimen_id"
+        ],
+        "title": "Waiting",
+        "description": "What still needs a person before it can be shown or ticked."
       }
     }
   }

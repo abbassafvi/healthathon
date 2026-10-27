@@ -32,7 +32,7 @@ def test_the_period_runs_from_the_day_after_the_last_visit_to_today(
         "to": TODAY.isoformat(),
         "previous_visit": last.isoformat(),
     }
-    assert body["visit"]["scheduled_for"].startswith(f"{TODAY.isoformat()}T11:30:00")
+    assert body["visit"]["scheduled_for"].startswith(f"{TODAY.isoformat()}T10:00:00")
     assert body["visit"]["clinician_name"] == "Dr. Demo Clinician"
 
 

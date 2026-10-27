@@ -169,17 +169,20 @@ def seed_regimens(
 
 
 def seed_visits(conn: psycopg.Connection[Any], clinician: UUID, patients: dict[str, UUID]) -> None:
-    """A visit that took place four weeks ago, and one booked for today, for every patient."""
+    """
+    A visit that took place four weeks ago, and one booked for today, for
+    every patient: half an hour apart from 10:00, in registration order.
+    """
     today = clinic_time.today()
-    for pid in patients.values():
+    for n, pid in enumerate(patients.values()):
         before = clinic_time.at(today - timedelta(days=29), time(11, 0))
         _insert(conn, "proj.visit", {
             "patient_id": pid, "scheduled_for": before, "started_at": before,
             "clinician_id": clinician,
         })  # fmt: skip
+        booked = clinic_time.at(today, time(10 + n // 2, 30 * (n % 2)))
         _insert(conn, "proj.visit", {
-            "patient_id": pid, "scheduled_for": clinic_time.at(today, time(11, 30)),
-            "clinician_id": clinician,
+            "patient_id": pid, "scheduled_for": booked, "clinician_id": clinician,
         })  # fmt: skip
 
 
