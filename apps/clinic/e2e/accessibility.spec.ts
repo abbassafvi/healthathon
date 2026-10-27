@@ -112,6 +112,17 @@ test('every control on every screen shows a focus ring when reached by Tab', asy
   }
 })
 
+test('the visit page fits a phone, and its readings table scrolls on its own', async ({ page }) => {
+  const [{ id }] = query<{ id: string }>("SELECT id FROM core.patient WHERE registration_no = 'DEV-0001'")
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto(`/patients/${id}/visit`)
+  const readings = page.getByRole('region', { name: 'Glucose readings table' })
+  await expect(readings).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(0)
+  expect(await readings.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(true)
+  await expectNoViolations(page)
+})
+
 test('patient list', async ({ page }) => {
   await page.goto('/patients')
   await expect(page.getByRole('link', { name: 'Asha Verma' })).toBeVisible()

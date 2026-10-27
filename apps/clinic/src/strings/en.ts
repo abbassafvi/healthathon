@@ -198,6 +198,7 @@ export const en = {
     cellDetailGap: 'No entry. Nothing was recorded for this medicine on this day.',
     legend: 'Key',
     glucose: 'Glucose readings',
+    glucoseTable: 'Glucose readings table',
     glucoseCount: '{n} readings',
     showAll: 'Show all {n}',
     showFewer: 'Show fewer',

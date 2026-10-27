@@ -30,6 +30,8 @@ export function PatientHalf({ entries, score }: { entries: PatientEntry[]; score
           <p className="text-sm text-ink-2">{en.visit.noGlucose}</p>
         ) : (
           <div className="rounded-lg border border-line bg-surface">
+            {/* On a narrow screen the table scrolls on its own, not the page. */}
+            <div className="overflow-x-auto rounded-lg" tabIndex={0} role="region" aria-label={en.visit.glucoseTable}>
             <table className="w-full border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-line">
@@ -55,6 +57,7 @@ export function PatientHalf({ entries, score }: { entries: PatientEntry[]; score
                 ))}
               </tbody>
             </table>
+            </div>
             {glucose.length > GLUCOSE_SHOWN && (
               <ShowAll
                 open={showAllGlucose}
