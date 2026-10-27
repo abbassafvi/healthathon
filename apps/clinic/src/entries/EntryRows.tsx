@@ -1,4 +1,5 @@
 import type { AnswerEntry, GlucoseEntry, MealPhotoEntry, PatientEntry } from '../api/client'
+import { thumbnail } from '../lib/photos'
 import { en, fmt } from '../strings/en'
 import { time } from './ticks'
 
@@ -72,7 +73,7 @@ export function MealRow({ e }: { e: MealPhotoEntry }) {
       <div className="flex items-start gap-3">
         <a href={e.photo_url} target="_blank" rel="noreferrer" className="shrink-0 rounded-md" aria-label={en.entries.openPhoto}>
           <img
-            src={e.photo_url}
+            src={thumbnail(e.photo_url)}
             alt={fmt(en.entries.mealAlt, { time: time(e.occurred_at) })}
             loading="lazy"
             className="h-16 w-20 rounded-md border border-line object-cover"

@@ -4,6 +4,7 @@ import type { AnswerEntry, ComplianceScore, GlucoseEntry, MealPhotoEntry, Patien
 import { Source } from '../entries/EntryRows'
 import { time } from '../entries/ticks'
 import { formatDate } from '../lib/dates'
+import { thumbnail } from '../lib/photos'
 import { en, fmt } from '../strings/en'
 import { Block } from './DocumentsHalf'
 import { ScoreBlock } from './ScoreBlock'
@@ -74,7 +75,7 @@ export function PatientHalf({ entries, score }: { entries: PatientEntry[]; score
             {meals.map((m) => (
               <li key={m.id}>
                 <a href={m.photo_url} target="_blank" rel="noreferrer" className="block rounded-md" aria-label={`${en.entries.openPhoto}, ${formatDate(m.occurred_at)} ${time(m.occurred_at)}`}>
-                  <img src={m.photo_url} alt="" loading="lazy" className="aspect-[4/3] w-full rounded-md border border-line object-cover" />
+                  <img src={thumbnail(m.photo_url)} alt="" loading="lazy" className="aspect-[4/3] w-full rounded-md border border-line object-cover" />
                 </a>
                 <p className="numerals mt-1 text-xs text-ink-2">{formatDate(m.occurred_at)}, {time(m.occurred_at)}</p>
               </li>

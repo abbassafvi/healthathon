@@ -120,6 +120,15 @@ describe('VisitPage', () => {
     expect(document.querySelector('[class*="overflow-y-auto"]')).toBeNull()
   })
 
+  it('shows meal photos small, and opens each as it was sent', async () => {
+    setup()
+    const links = await screen.findAllByRole('link', { name: /^Open the photograph, / })
+    for (const link of links) {
+      const photo = link.getAttribute('href')!
+      expect(link.querySelector('img')).toHaveAttribute('src', `${photo}?width=320`)
+    }
+  })
+
   it('states an order with no report as a fact about the record', async () => {
     setup()
     const orders = await screen.findByRole('region', { name: 'Tests ordered' })
