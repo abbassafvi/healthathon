@@ -12,7 +12,7 @@ from uuid import UUID
 import psycopg
 
 from dev_seed.pages import RxLine, draw_prescription
-from healthathon import clinic_time
+from healthathon import clinic_time, phones
 
 DOCTOR = "Dr. Kavita Rao, MD (fictional)"
 CLINIC = "Diabetes Clinic, Lucknow (fictional)"
@@ -193,3 +193,30 @@ def _insert(
         conn.execute(sql, row)  # type: ignore[call-overload]
         return None
     return conn.execute(f"{sql} RETURNING {returning}", row).fetchone()[returning]  # type: ignore[call-overload]
+
+
+# Fictional numbers: Indian mobile numbers start 6 to 9, so none of these
+# can belong to anyone. Rakesh Yadav has not agreed to SMS.
+PHONES = {f"DEV-000{n}": f"+91 55500 0000{n}" for n in range(1, 5)}
+SMS_CONSENT = ("DEV-0001", "DEV-0002", "DEV-0003")
+
+
+def seed_contacts(
+    conn: psycopg.Connection[Any], clinician: UUID, patients: dict[str, UUID]
+) -> None:
+    """A phone per patient, stored only as its HMAC, and who has agreed to SMS."""
+    for reg, number in PHONES.items():
+        normalised = phones.normalise(number)
+        assert normalised is not None
+        _insert(conn, "core.patient_phone", {
+            "patient_id": patients[reg], "phone_hmac": phones.phone_hmac(normalised),
+            "phone_last4": normalised[-4:], "is_primary": True,
+        })  # fmt: skip
+        if reg in SMS_CONSENT:
+            lang = conn.execute(
+                "SELECT preferred_language FROM core.patient WHERE id = %s", (patients[reg],)
+            ).fetchone()["preferred_language"]
+            _insert(conn, "core.consent", {
+                "patient_id": patients[reg], "item": "sms", "granted": True,
+                "language": lang, "captured_by": clinician,
+            })  # fmt: skip

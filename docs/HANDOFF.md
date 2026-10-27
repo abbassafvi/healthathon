@@ -49,6 +49,7 @@ seed script should replace it, keeping the same four registration numbers
 | `/api/app/...`: patients, today, ticks, readings, answers, meals, survey | `test_patient_app.py` |
 | `GET /api/patients/{id}/checklist`, `GET /api/regimens/{id}/review`, `POST /api/regimen-items/{id}/confirm`, `DELETE /api/regimen-items/{id}`, `POST /api/regimens/{id}/activate`, `GET /api/regimen-items/{id}/crop` | `test_regimens.py` |
 | `GET /api/patients/{id}/visit` | `test_visit.py` |
+| `POST /api/sms/inbound` (gateway stand-in, `X-Gateway-Key`) | `test_sms.py`, `test_sms_parser.py` |
 
 ### Still to build (Track A)
 
@@ -117,7 +118,9 @@ These came up while building and need a decision from the schema owner.
   no supersede link between them.
 - **Meal photos** are stored under `storage/meals/`, never committed. The
   patient app endpoints have no authentication, as the scope allows.
-- **The SMS endpoint** (scope: Other routes) has no UI and is not built.
+- **SMS** is built as an inbound endpoint with no reply (notifications are
+  out of scope). The message format is in the README. The patient card that
+  explains it has not been written or translated.
 - **Native Android** has not been run on a device or emulator; the patient
   app is tested on Expo's web target. Run it on a phone before rehearsal.
 
@@ -172,5 +175,5 @@ Things that will trip you up:
 
 1. Get the Hindi and Urdu strings reviewed by speakers.
 2. Run the patient app on an Android phone.
-3. SMS endpoint, if the cut list allows.
+3. Write and translate the SMS card for patients.
 4. Wire upload once the pipeline lands, then `/impeccable audit`.

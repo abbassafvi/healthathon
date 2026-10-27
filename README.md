@@ -74,6 +74,28 @@ target. Without it the app runs on its in-memory mock.
 
 Page images and crops go to `storage/`, which is never committed.
 
+### SMS
+
+`POST /api/sms/inbound` stands in for an SMS gateway. The patient writes one
+instruction per line, from the card the clinic gives them:
+
+| Message | Means |
+| --- | --- |
+| `G 142 F` | Glucose 142, before breakfast. Contexts: F fasting, B before a meal, A after a meal, N bedtime, O overnight, R another time. A number without a context is refused. |
+| `T 2 Y` | Medicine 2 on the checklist taken (`N`: not taken) |
+| `Q <words>` | The answer to the day's question, as written |
+
+```
+curl -X POST http://127.0.0.1:8000/api/sms/inbound \
+  -H 'Content-Type: application/json' -H 'X-Gateway-Key: dev-only-gateway-key' \
+  -d '{"message_id": "demo-1", "from": "+91 55500 00001", "body": "G 142 F\nT 1 Y"}'
+```
+
+The seed gives each patient a fictional number, `+91 55500 0000N`; Rakesh
+Yadav (DEV-0004) has not agreed to SMS, so his messages are refused. Set
+`HEALTHATHON_PHONE_HMAC_KEY` and `HEALTHATHON_SMS_GATEWAY_KEY` outside
+development.
+
 ### Tests
 
 Every layer is tested, and every one of these must pass before a commit.
