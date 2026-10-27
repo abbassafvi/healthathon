@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     # The scope has one hardcoded user and no login. This is that user.
     stub_user_email: str = "demo.clinician@example.org"
     app_version: str = "0.1.0"
+    # Dates the patient sees ("today", a tick's day, a paper form's week) are
+    # days in the clinic's time zone, whatever the server's clock says.
+    clinic_timezone: str = "Asia/Kolkata"
 
 
 @lru_cache

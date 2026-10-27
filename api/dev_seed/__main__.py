@@ -2,8 +2,9 @@
 Stand-in seed for frontend work, until the seed script from Track A lands.
 
 Writes four fictional patients, one generated lab report each, extracted
-values with provenance pointing at real boxes on those pages, and a few
-confirm queue items with their crops. Usage:
+values with provenance pointing at real boxes on those pages, a few
+confirm queue items with their crops, prescriptions and their regimens,
+the question bank, and four weeks of patient-reported entries. Usage:
 
     uv run python -m dev_seed            # refuses if already seeded
     uv run python -m dev_seed --reset    # truncates every table first (dev only)
@@ -21,6 +22,12 @@ from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
 from dev_seed.pages import Row, cut_crop, draw_lab_report
+from dev_seed.patient_data import (
+    seed_entries,
+    seed_question_set,
+    seed_questions,
+    seed_regimens,
+)
 from healthathon.config import get_settings
 
 ANALYTES = [
@@ -110,6 +117,9 @@ def seed(conn: psycopg.Connection[Any], storage: Path, user_email: str) -> None:
     )
     names = {code: (name, unit) for code, name, unit, _ in ANALYTES}
     now = datetime.now(UTC)
+    questions = seed_questions(conn, clinician)
+    patients: dict[str, Any] = {}
+    question_sets: dict[str, Any] = {}
 
     for i, ((reg, name, yob, sex, lang), report) in enumerate(zip(PATIENTS, REPORTS, strict=True)):
         patient = conn.execute(
@@ -117,6 +127,8 @@ def seed(conn: psycopg.Connection[Any], storage: Path, user_email: str) -> None:
             " preferred_language) VALUES (%s, %s, %s, %s, %s) RETURNING id",
             (reg, name, yob, sex, lang),
         ).fetchone()["id"]
+        patients[reg] = patient
+        question_sets[reg] = seed_question_set(conn, patient, clinician, questions)
         report_date = date.today() - timedelta(days=9 + 4 * i)
         page_key = f"dev/pages/{reg}-lab.png"
         page_path = storage / page_key
@@ -212,6 +224,10 @@ def seed(conn: psycopg.Connection[Any], storage: Path, user_email: str) -> None:
                         now - timedelta(minutes=50 - 7 * i, seconds=-j),
                     ),
                 )
+
+    full_names = {reg: name for reg, name, *_ in PATIENTS}
+    active = seed_regimens(conn, storage, clinician, patients, full_names)
+    seed_entries(conn, storage, patients, active, questions, question_sets)
 
 
 if __name__ == "__main__":

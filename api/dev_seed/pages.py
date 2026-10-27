@@ -121,3 +121,86 @@ def cut_crop(page_path: Path, box: Box, out: Path, pad: float = 0.35) -> None:
         )
         out.parent.mkdir(parents=True, exist_ok=True)
         page.crop(tuple(int(v) for v in region)).save(out)
+
+
+@dataclass
+class RxLine:
+    drug: str
+    dose: str
+    schedule: str | None
+
+
+# Drawn pages by everything that shapes them. The tests reseed before every
+# test, and drawing is most of a seed's time.
+_drawn: dict[tuple[object, ...], list[Box]] = {}
+
+
+def draw_prescription(
+    path: Path,
+    doctor: str,
+    clinic: str,
+    patient_name: str,
+    date_text: str,
+    lines: list[RxLine],
+    seed: int,
+) -> list[Box]:
+    """
+    Draw one prescription page and return the box of each medicine line.
+    Printed letterhead, with the lines set slightly askew as a hand would.
+    """
+    key = (path, doctor, clinic, patient_name, date_text, tuple(map(repr, lines)), seed)
+    if key in _drawn and path.is_file():
+        return _drawn[key]
+    rng = random.Random(seed)
+    img = Image.new("L", (PAGE_W, PAGE_H), 250)
+    d = ImageDraw.Draw(img)
+    d.text((110, 100), doctor, fill=20, font=_font(42))
+    d.text((110, 165), clinic, fill=60, font=_font(26))
+    d.line((110, 225, PAGE_W - 110, 225), fill=90, width=3)
+    d.text((110, 270), f"Name: {patient_name}", fill=30, font=_font(30))
+    d.text((PAGE_W - 420, 270), f"Date: {date_text}", fill=30, font=_font(30))
+    d.text((110, 360), "Rx", fill=20, font=_font(56))
+
+    boxes: list[Box] = []
+    hand = _font(36)
+    for i, line in enumerate(lines):
+        x = 170 + rng.randint(-10, 10)
+        y = 470 + i * 110 + rng.randint(-8, 8)
+        text = f"{line.drug}  {line.dose}" + (f"   {line.schedule}" if line.schedule else "")
+        d.text((x, y), text, fill=rng.randint(15, 45), font=hand)
+        left, top, right, bottom = d.textbbox((x, y), text, font=hand)
+        left, top, right, bottom = left - 14, top - 12, right + 14, bottom + 12
+        boxes.append(
+            Box(left / PAGE_W, top / PAGE_H, (right - left) / PAGE_W, (bottom - top) / PAGE_H)
+        )
+
+    d.text(
+        (110, PAGE_H - 160),
+        "This is a fictional prescription generated for testing.",
+        fill=110,
+        font=_font(22),
+    )
+    img = img.filter(ImageFilter.GaussianBlur(0.8)).rotate(rng.uniform(-0.6, 0.6), fillcolor=250)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    img.save(path)
+    _drawn[key] = boxes
+    return boxes
+
+
+def draw_meal(path: Path, seed: str) -> None:
+    """A drawn plate standing in for a meal photograph. Nothing is estimated from it."""
+    if path.is_file():
+        return  # the same seed always draws the same plate
+    rng = random.Random(seed)
+    img = Image.new("RGB", (640, 480), (196, 182, 166))
+    d = ImageDraw.Draw(img)
+    d.ellipse((120, 40, 520, 440), fill=(244, 242, 238), outline=(214, 210, 202), width=6)
+    for i in range(4):
+        cx = 320 + int(95 * [1, 0, -1, 0][i] + rng.randint(-20, 20))
+        cy = 240 + int(85 * [0, 1, 0, -1][i] + rng.randint(-20, 20))
+        rx, ry = rng.randint(55, 80), rng.randint(40, 60)
+        colour = [(196, 140, 60), (210, 180, 80), (110, 160, 70), (190, 90, 60)][i]
+        d.ellipse((cx - rx, cy - ry, cx + rx, cy + ry), fill=colour)
+    d.text((20, 445), "Fictional meal photograph", fill=(58, 58, 58), font=_font(18))
+    path.parent.mkdir(parents=True, exist_ok=True)
+    img.save(path)
