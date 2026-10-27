@@ -2,10 +2,12 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
 from healthathon import storage
 from healthathon.auth import CurrentUser, User
+from healthathon.config import get_settings
 from healthathon.confirm_queue.routes import router as confirm_queue_router
 from healthathon.db import close_pool, open_pool
 from healthathon.entries.routes import router as entries_router
@@ -23,6 +25,12 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(title="Healthathon API", version="0.1.0", lifespan=lifespan)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=get_settings().cors_origins,
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["Content-Type"],
+)
 app.include_router(confirm_queue_router)
 app.include_router(record_router)
 app.include_router(entries_router)
