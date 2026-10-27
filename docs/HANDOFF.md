@@ -1,7 +1,8 @@
 # Handoff: state of the build and what comes next
 
-Last updated 27 October 2026, after Track B built the patient, regimen and
-visit endpoints and wired both apps to them (PRs #4 to #7, stacked on #3). Written for Abbas and for any agent working on Track A.
+Last updated 27 October 2026, after Track B built the patient, regimen,
+visit and SMS endpoints and wired both apps to them (PRs #4 to #8, all
+merged). Written for Abbas and for any agent working on Track A.
 Read `AGENTS.md` first; everything here sits under its rules.
 
 ## In one paragraph
@@ -40,7 +41,7 @@ seed script should replace it, keeping the same four registration numbers
 
 ## Endpoints
 
-### Built by Track B (PRs #4, #5)
+### Built by Track B (PRs #4, #5, #8)
 
 | Endpoint | Tests |
 | --- | --- |
