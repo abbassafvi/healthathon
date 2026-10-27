@@ -6,6 +6,7 @@ import { ReviewPage } from './checklist/ReviewPage'
 import { ConfirmQueuePage } from './confirm-queue/ConfirmQueuePage'
 import { PaperFormPage } from './paperform/PaperFormPage'
 import { PatientLayout } from './patient/PatientLayout'
+import { ReadingPage } from './reading/ReadingPage'
 import { PatientsPage } from './record/PatientsPage'
 import { RecordPage } from './record/RecordPage'
 import { TimelinePage } from './timeline/TimelinePage'
@@ -33,6 +34,7 @@ export function App() {
           <Route path="documents" element={<RecordPage />}>
             <Route path="values/:valueId" element={<TracePanel />} />
           </Route>
+          <Route path="documents/:documentId/reading" element={<ReadingPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/today" replace />} />
       </Route>

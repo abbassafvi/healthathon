@@ -69,6 +69,9 @@ function DocumentValues({ doc, patientId, selected }: { doc: RecordDocument; pat
           {doc.document_date ? formatDate(doc.document_date) : en.queue.noDate}
         </span>
         {doc.issuing_source && <span className="text-sm text-ink-3">{doc.issuing_source}</span>}
+        <Link to={`/patients/${patientId}/documents/${doc.id}/reading`} className="ml-auto text-sm font-normal text-accent underline-offset-4 hover:underline">
+          {en.reading.open}
+        </Link>
       </h2>
       {doc.values.length === 0 ? (
         <p className="py-3 text-sm text-ink-2">{en.record.noValues}</p>

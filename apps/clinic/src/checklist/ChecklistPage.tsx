@@ -63,7 +63,10 @@ function Active({ regimen }: { regimen: ActiveRegimen }) {
     <>
       <p className="mb-4 text-sm text-ink-2">
         {fmt(en.checklist.activeSince, { when: formatDateTime(regimen.activated_at), name: regimen.activated_by_name, date })}{' '}
-        {en.checklist.patientSees}
+        {en.checklist.patientSees}{' '}
+        <Link to={`../documents/${regimen.source_document.id}/reading`} relative="path" className="text-accent underline underline-offset-4">
+          {en.reading.openPrescription}
+        </Link>
       </p>
       <ol className="border-t border-line">
         {regimen.items.map((item) => (
