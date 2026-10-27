@@ -56,6 +56,11 @@ export type ReadValue = S['ReadValue']
 export type ReadLine = S['ReadLine']
 export type ReadCheck = S['Check']
 
+/* The audit chain. */
+export type AuditLog = S['AuditLog']
+export type AuditEntry = S['AuditEntry']
+export type AuditKind = AuditEntry['kind']
+
 export class ApiError extends Error {
   readonly status: number
 
@@ -106,6 +111,12 @@ export const api = {
     request<PaperFormResult>(`/api/patients/${patientId}/paper-form`, { method: 'POST', body: JSON.stringify(form) }),
   clinicDay: (date: string) => request<ClinicDay>(`/api/clinic-day?date=${date}`),
   reading: (documentId: string) => request<DocumentReading>(`/api/documents/${documentId}/reading`),
+  auditLog: (query: { kind?: AuditKind; before?: number } = {}) => {
+    const params = new URLSearchParams()
+    if (query.kind) params.set('kind', query.kind)
+    if (query.before) params.set('before', String(query.before))
+    return request<AuditLog>(`/api/audit-log${params.size ? `?${params}` : ''}`)
+  },
   // keepalive lets a held decision still reach the server as the page closes.
   decide: (itemId: string, decision: Decision, keepalive = false) =>
     request<DecisionResult>(`/api/confirm-queue/${itemId}/decision`, {

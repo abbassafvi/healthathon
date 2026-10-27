@@ -97,7 +97,7 @@ async function unringed(page: Page, limit = 80) {
 test('every control on every screen shows a focus ring when reached by Tab', async ({ page }) => {
   const [{ id: patient }] = query<{ id: string }>("SELECT id FROM core.patient WHERE registration_no = 'DEV-0001'")
   for (const path of ['/today', '/patients', `/patients/${patient}/visit`, `/patients/${patient}/timeline`,
-    `/patients/${patient}/checklist`, `/patients/${patient}/documents`, `/patients/${patient}/paper-form`, '/upload']) {
+    `/patients/${patient}/checklist`, `/patients/${patient}/documents`, `/patients/${patient}/paper-form`, '/upload', '/audit']) {
     await page.goto(path)
     await expect(page.locator('main h1, main h2').first()).toBeVisible()
     expect(await unringed(page), path).toEqual([])

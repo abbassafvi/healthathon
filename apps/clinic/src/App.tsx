@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router'
 
 import { AppShell } from './app/AppShell'
+import { AuditLogPage } from './audit/AuditLogPage'
 import { ChecklistPage } from './checklist/ChecklistPage'
 import { ReviewPage } from './checklist/ReviewPage'
 import { ConfirmQueuePage } from './confirm-queue/ConfirmQueuePage'
@@ -24,6 +25,7 @@ export function App() {
         <Route path="queue" element={<ConfirmQueuePage />} />
         <Route path="patients" element={<PatientsPage />} />
         <Route path="upload" element={<UploadPage />} />
+        <Route path="audit" element={<AuditLogPage />} />
         <Route path="patients/:patientId/checklist/review/:regimenId" element={<ReviewPage />} />
         <Route path="patients/:patientId" element={<PatientLayout />}>
           <Route index element={<Navigate to="visit" replace />} />
