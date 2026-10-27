@@ -11,6 +11,8 @@ class PatientSummary(BaseModel):
     full_name: str
     year_of_birth: int | None
     sex: str | None
+    # The language the patient reads and writes in (BCP-47).
+    preferred_language: str
 
 
 class RecordValue(BaseModel):

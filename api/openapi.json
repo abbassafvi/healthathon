@@ -2480,6 +2480,10 @@
               }
             ],
             "title": "Sex"
+          },
+          "preferred_language": {
+            "type": "string",
+            "title": "Preferred Language"
           }
         },
         "type": "object",
@@ -2488,7 +2492,8 @@
           "registration_no",
           "full_name",
           "year_of_birth",
-          "sex"
+          "sex",
+          "preferred_language"
         ],
         "title": "PatientSummary"
       },
