@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 
-import type { ComplianceScore, DayCell, PatientEntry } from '../api/pending'
+import type { ComplianceScore, DayCell, PatientEntry } from '../api/client'
 import { Source } from '../entries/EntryRows'
 import { TickMark } from '../entries/TicksForDay'
 import { time } from '../entries/ticks'

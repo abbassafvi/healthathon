@@ -1,4 +1,4 @@
-import type { AnswerEntry, GlucoseEntry, MealPhotoEntry, PatientEntry } from '../api/pending'
+import type { AnswerEntry, GlucoseEntry, MealPhotoEntry, PatientEntry } from '../api/client'
 import { en, fmt } from '../strings/en'
 import { time } from './ticks'
 

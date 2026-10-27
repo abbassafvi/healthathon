@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { Checklist, UploadRequest, UploadStatus } from '../../api/pending'
+import type { Checklist } from '../../api/client'
+import type { UploadRequest, UploadStatus } from '../../api/pending'
 import { api, installMockServer } from '../../test/msw'
 
 installMockServer()

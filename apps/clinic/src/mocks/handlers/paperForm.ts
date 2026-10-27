@@ -1,6 +1,6 @@
 import { http, HttpResponse } from 'msw'
 
-import type { GlucoseContext, PaperFormQuestion, PaperFormResult, PaperFormSubmission, PatientEntry } from '../../api/pending'
+import type { GlucoseContext, PaperFormQuestion, PaperFormResult, PaperFormSubmission, PatientEntry } from '../../api/client'
 import { patientById } from '../patients'
 import { mockState } from '../state'
 

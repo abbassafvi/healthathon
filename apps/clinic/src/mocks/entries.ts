@@ -3,7 +3,7 @@
  * ticks, glucose readings, answers and meal photos, generated from a
  * fixed seed per patient so tests see the same data every time.
  */
-import type { AnswerEntry, Channel, EnteredBy, GlucoseContext, PatientEntry } from '../api/pending'
+import type { AnswerEntry, Channel, EnteredBy, GlucoseContext, PatientEntry } from '../api/client'
 import { localIsoDate } from '../lib/localDate'
 import type { MockRegimen } from './state'
 

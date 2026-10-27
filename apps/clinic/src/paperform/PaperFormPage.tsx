@@ -3,8 +3,7 @@ import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 
 import { api, ApiError } from '../api/client'
-import type { PaperFormResult, TickEntry } from '../api/pending'
-import { pendingApi } from '../api/pendingClient'
+import type { PaperFormResult, TickEntry } from '../api/client'
 import { formatDate } from '../lib/dates'
 import { localIsoDate } from '../lib/localDate'
 import { en, fmt } from '../strings/en'
@@ -36,13 +35,13 @@ export function PaperFormPage() {
 
   const patients = useQuery({ queryKey: ['patients'], queryFn: api.patients })
   const name = patients.data?.find((p) => p.id === patientId)?.full_name ?? ''
-  const questions = useQuery({ queryKey: ['paper-questions'], queryFn: pendingApi.paperFormQuestions })
+  const questions = useQuery({ queryKey: ['paper-questions'], queryFn: api.paperFormQuestions })
   const week = useQuery({
     queryKey: ['entries', patientId, dates[0], dates[6]],
-    queryFn: () => pendingApi.entries(patientId, { from: dates[0], to: dates[6] }),
+    queryFn: () => api.entries(patientId, { from: dates[0], to: dates[6] }),
   })
   const save = useMutation<PaperFormResult, Error>({
-    mutationFn: () => pendingApi.submitPaperForm(patientId, toSubmission(draft, captureId)),
+    mutationFn: () => api.submitPaperForm(patientId, toSubmission(draft, captureId)),
     onSuccess: () => {
       setStep('saved')
       void qc.invalidateQueries({ queryKey: ['entries', patientId] })
@@ -143,7 +142,7 @@ export function PaperFormPage() {
             <p className="pb-2 text-sm text-ink-2">{fmt(en.paperForm.weekRange, { from: formatDate(dates[0]), to: formatDate(dates[6]) })}</p>
             <div className="flex flex-col gap-1.5">
               <label htmlFor="form-language" className="label">{en.paperForm.language}</label>
-              <select id="form-language" value={draft.language} onChange={(e) => setDraft({ ...draft, language: e.target.value })}
+              <select id="form-language" value={draft.language} onChange={(e) => setDraft({ ...draft, language: e.target.value as Draft['language'] })}
                 className="h-10 rounded-lg border border-line-strong bg-surface px-3">
                 {Object.entries(en.entries.languages).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>

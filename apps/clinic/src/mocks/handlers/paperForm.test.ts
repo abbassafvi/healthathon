@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { EntriesPage, PaperFormSubmission } from '../../api/pending'
+import type { EntriesPage, PaperFormSubmission } from '../../api/client'
 import { api, installMockServer } from '../../test/msw'
 
 installMockServer()

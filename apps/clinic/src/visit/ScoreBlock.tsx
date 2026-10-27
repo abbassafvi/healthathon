@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-import type { ComplianceScore, PatientEntry } from '../api/pending'
+import type { ComplianceScore, PatientEntry } from '../api/client'
 import { formatDate } from '../lib/dates'
 import { en, fmt } from '../strings/en'
 import { DayArray } from './DayArray'

@@ -3,7 +3,7 @@ import { expect, test, type Page } from '@playwright/test'
 
 import { reseed } from './db'
 
-/* Document values come from the real API; patient entries from the mock layer. */
+/* Real API and the stand-in seed: document values and patient entries alike. */
 test.beforeEach(() => reseed())
 
 async function openTimeline(page: Page, name = 'Asha Verma') {

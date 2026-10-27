@@ -1,13 +1,10 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
 
-import { reseed } from './db'
+import { query, reseed } from './db'
+import { withoutMocks } from './mocks'
 
-/*
- * The checklist endpoints are served by the in-browser mock layer
- * (src/mocks) until they are built in api/. Mock state lives in the page,
- * so every test starts from the same fixtures.
- */
+/* Real API, real database: every test starts from the stand-in seed. */
 test.beforeEach(() => reseed())
 
 async function openChecklist(page: Page) {
@@ -43,15 +40,19 @@ test('the checklist shows the active list as printed and the prescription waitin
 })
 
 test('each line unlocks only after its crop renders', async ({ page }) => {
-  // Mock images are served in the page by MSW, which page.route cannot
-  // intercept, so the mock layer holds them back on request.
-  await page.addInitScript(() => {
-    ;(globalThis as { __MOCK_IMAGE_DELAY_MS?: number }).__MOCK_IMAGE_DELAY_MS = 2500
+  await withoutMocks(page)
+  let release = () => {}
+  const held = new Promise<void>((r) => (release = r))
+  await page.route('**/api/regimen-items/*/crop', async (route) => {
+    await held
+    await route.continue()
   })
   await openReview(page)
   await expect(rows(page)).toHaveCount(4)
   for (const b of await page.getByRole('button', { name: /^Confirm$/ }).all()) await expect(b).toBeDisabled()
   await page.keyboard.press('Enter')
+  await expect(page.getByText('0 of 4 confirmed')).toBeVisible()
+  release()
   await expect(focusedConfirm(page)).toBeEnabled({ timeout: 10_000 })
   await expect(page.getByText('0 of 4 confirmed')).toBeVisible()
 })
@@ -76,6 +77,14 @@ test('a prescription is confirmed from the keyboard, activated, and replaces the
   await expect(active).toContainText('Tab. Metformin1000 mg')
   await expect(active).toContainText('Tab. Telmisartan')
   await expect(page.getByRole('region', { name: 'Waiting for review' })).toHaveCount(0)
+
+  // What landed: one checklist in force, every line confirmed by a person.
+  const regimens = query<{ items: number; confirmed: number }>(`
+    SELECT count(ri.id)::int AS items, count(ri.confirmed_by)::int AS confirmed
+    FROM core.regimen r JOIN core.regimen_item ri ON ri.regimen_id = r.id
+    JOIN core.patient p ON p.id = r.patient_id
+    WHERE p.registration_no = 'DEV-0001' AND r.activated_at IS NOT NULL AND r.superseded_at IS NULL`)
+  expect(regimens).toEqual([{ items: 4, confirmed: 4 }])
 })
 
 test('a line can be corrected or removed before activation', async ({ page }) => {

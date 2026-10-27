@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-import type { AnswerEntry, ComplianceScore, GlucoseEntry, MealPhotoEntry, PatientEntry } from '../api/pending'
+import type { AnswerEntry, ComplianceScore, GlucoseEntry, MealPhotoEntry, PatientEntry } from '../api/client'
 import { Source } from '../entries/EntryRows'
 import { time } from '../entries/ticks'
 import { formatDate } from '../lib/dates'

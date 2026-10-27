@@ -1,6 +1,6 @@
 import { http, HttpResponse } from 'msw'
 
-import type { TestOrder, VisitSummary } from '../../api/pending'
+import type { TestOrder, VisitSummary } from '../../api/client'
 import { localIsoDate } from '../../lib/localDate'
 import { computeScore } from '../compliance'
 import { patientById } from '../patients'

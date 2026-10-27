@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
 
-import { reseed } from './db'
+import { query, reseed } from './db'
 
 test.beforeEach(() => reseed())
 
@@ -42,6 +42,17 @@ test('a paper form is copied from the keyboard and reaches the timeline', async 
   const day = page.locator(`[data-day="${date}"]`)
   await expect(day.locator('[data-tick-state="not_ticked"]').first()).toBeVisible()
   await expect(day).toContainText('Paper form, entered by clinic staff')
+
+  // What landed, marked by route and by who entered it.
+  const rows = query<{ kind: string; value_text: string | null }>(`
+    SELECT e.kind::text AS kind, g.value_text FROM pat.entry e
+    LEFT JOIN pat.glucose_reading g ON g.entry_id = e.id
+    WHERE e.channel = 'paper_form' AND e.entered_by = 'clinic_staff'
+      AND e.recorded_at > now() - interval '5 minutes' ORDER BY e.kind`)
+  expect(rows).toEqual([
+    { kind: 'glucose_reading', value_text: '151' },
+    { kind: 'medication_tick', value_text: null },
+  ])
 })
 
 test('the form will not continue with a reading that has no context', async ({ page }) => {

@@ -1,4 +1,4 @@
-import type { EntriesPage, TickEntry } from '../api/pending'
+import type { EntriesPage, TickEntry } from '../api/client'
 
 export type RegimenItemSpan = EntriesPage['regimen_items'][number]
 export type TickState = 'ticked' | 'not_ticked' | 'no_entry'
