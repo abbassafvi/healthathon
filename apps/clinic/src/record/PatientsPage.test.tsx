@@ -66,6 +66,12 @@ describe('PatientsPage', () => {
     for (const none of ['None named', 'None booked', 'None yet', 'Nothing', 'Nothing yet']) expect(i).toHaveTextContent(none)
   })
 
+  it('says a booked visit has not started once its time has passed', async () => {
+    setup([{ ...asha, next_visit: '2026-10-01T10:00:00+05:30' }])
+    await screen.findByRole('link', { name: 'Asha Verma' })
+    expect(row('Asha Verma')).toHaveTextContent(/1 Oct 2026,? 10:00, not started/)
+  })
+
   it('finds a patient by name or registration number, and keeps the search in the address', async () => {
     const user = setup()
     await screen.findByRole('link', { name: 'Asha Verma' })

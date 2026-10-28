@@ -5,7 +5,7 @@ import { Link, NavLink, Outlet, useLocation, useParams } from 'react-router'
 import { api, type PatientListItem } from '../api/client'
 import { BUTTON, PAGE } from '../app/page'
 import { useTitle } from '../app/useTitle'
-import { formatDate, formatWhen } from '../lib/dates'
+import { formatBooked, formatDate } from '../lib/dates'
 import { en, fmt } from '../strings/en'
 
 const PATIENT_TABS = [
@@ -93,8 +93,8 @@ function Facts({ p }: { p: PatientListItem }) {
       : fmt(en.patient.caregiver, { name: p.caregiver.full_name })),
     fmt(en.patient.enrolled, { date: formatDate(p.enrolled_at) }),
   ].filter(Boolean)
-  const facts: [string, string][] = [
-    [en.patients.nextVisit, p.next_visit ? formatWhen(p.next_visit) : en.patients.noVisit],
+  const facts: [string, React.ReactNode][] = [
+    [en.patients.nextVisit, p.next_visit ? formatBooked(p.next_visit) : en.patients.noVisit],
     [en.patients.lastVisit, p.last_visit ? formatDate(p.last_visit) : en.patients.noVisit],
     [en.patients.checklist, p.checklist_since
       ? `${p.checklist_medicines === 1 ? en.patients.medicinesOne : fmt(en.patients.medicines, { n: p.checklist_medicines })}, ${fmt(en.patients.since, { date: formatDate(p.checklist_since) })}`

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { formatDate, formatDateTime, formatWhen } from './dates'
+import { formatBooked, formatDate, formatDateTime, formatWhen } from './dates'
 
 describe('formatDate', () => {
   it('formats a calendar date without shifting it across time zones', () => {
@@ -30,5 +30,17 @@ describe('formatWhen', () => {
 
   it('gives a date for anything further away', () => {
     expect(formatWhen('2026-10-20T08:15:00', now)).toMatch(/^20 Oct 2026,? 08:15$/)
+  })
+})
+
+describe('formatBooked', () => {
+  const now = new Date(2026, 9, 28, 12, 30)
+  it('says a booked visit has not started once its time has passed', () => {
+    expect(formatBooked('2026-10-28T10:00:00', now)).toBe('Today, 10:00, not started')
+  })
+
+  it('leaves a visit still to come as its time', () => {
+    expect(formatBooked('2026-10-28T15:00:00', now)).toBe('Today, 15:00')
+    expect(formatBooked('2026-11-04T10:00:00', now)).toMatch(/^4 Nov 2026,? 10:00$/)
   })
 })

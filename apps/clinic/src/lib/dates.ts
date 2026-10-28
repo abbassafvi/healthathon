@@ -29,3 +29,9 @@ export function formatWhen(iso: string, now: Date = new Date()): string {
   if (day === offset(-1)) return fmt(en.dates.yesterday, { time })
   return formatDateTime(iso)
 }
+
+/* A booked visit, and "not started" once its time has passed without it starting. */
+export function formatBooked(iso: string, now: Date = new Date()): string {
+  const when = formatWhen(iso, now)
+  return new Date(iso) < now ? fmt(en.dates.notStarted, { when }) : when
+}

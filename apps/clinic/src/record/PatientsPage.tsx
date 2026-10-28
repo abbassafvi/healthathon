@@ -6,7 +6,7 @@ import { api, type PatientListItem } from '../api/client'
 import { LoadError } from '../app/LoadError'
 import { BUTTON, PAGE } from '../app/page'
 import { useTitle } from '../app/useTitle'
-import { formatDate, formatWhen } from '../lib/dates'
+import { formatBooked, formatDate, formatWhen } from '../lib/dates'
 import { isTypingTarget } from '../lib/keys'
 import { en, fmt } from '../strings/en'
 
@@ -150,7 +150,7 @@ function Row({ p }: { p: PatientListItem }) {
           </>
         ) : none(en.patients.noCaregiver)}
       </td>
-      <td data-label={en.patients.nextVisit} className={`numerals py-3 pr-5 whitespace-nowrap ${STACKED}`}>{p.next_visit ? formatWhen(p.next_visit) : none(en.patients.noVisit)}</td>
+      <td data-label={en.patients.nextVisit} className={`numerals py-3 pr-5 whitespace-nowrap ${STACKED}`}>{p.next_visit ? formatBooked(p.next_visit) : none(en.patients.noVisit)}</td>
       <td data-label={en.patients.lastVisit} className={`numerals py-3 pr-5 whitespace-nowrap ${STACKED}`}>{p.last_visit ? formatDate(p.last_visit) : none(en.patients.noVisit)}</td>
       <td data-label={en.patients.checklist} className={`numerals py-3 pr-5 ${STACKED}`}>
         {p.checklist_since ? (

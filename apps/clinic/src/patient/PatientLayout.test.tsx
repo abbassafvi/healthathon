@@ -53,6 +53,11 @@ describe('PatientLayout', () => {
     expect(facts).toHaveTextContent('Checklist3 medicines, since 9 Oct 2026')
   })
 
+  it('says a booked visit has not started once its time has passed', async () => {
+    setup('/patients/p-1/visit', { ...asha, next_visit: '2026-10-01T10:00:00+05:30' })
+    expect(await screen.findByLabelText('About this patient')).toHaveTextContent(/Next visit1 Oct 2026,? 10:00, not started/)
+  })
+
   it('offers an upload with the patient already chosen', async () => {
     setup('/patients/p-1/visit')
     const upload = await screen.findByRole('link', { name: 'Upload a document' })

@@ -81,6 +81,7 @@ export const en = {
     today: 'Today, {time}',
     tomorrow: 'Tomorrow, {time}',
     yesterday: 'Yesterday, {time}',
+    notStarted: '{when}, not started',
   },
   patients: {
     title: 'Patients',
