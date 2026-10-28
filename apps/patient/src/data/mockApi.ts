@@ -163,7 +163,7 @@ export function createMockApi(clock: () => Date = () => new Date()): PatientApi 
         .sort((a, b) => b.date.localeCompare(a.date))
         .map(({ date, s }) => ({
           date,
-          ticks: items.filter((i) => i.id in s.ticks).map((item) => ({ item, ticked: s.ticks[item.id] })),
+          ticks: items.map((item) => ({ item, ticked: item.id in s.ticks ? s.ticks[item.id] : null })),
           readings: [...s.readings],
           answers: s.answer ? [{ question: DAILY_QUESTION, answer_text: s.answer, occurred_at: `${date}T20:00:00` }] : [],
           meals: [...s.meals],

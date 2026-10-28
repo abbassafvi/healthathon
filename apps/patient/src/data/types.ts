@@ -33,10 +33,14 @@ export type Today = {
 
 export type SurveyQuestion = Question
 
-/* An earlier day, exactly as it was recorded. Nothing is added up. */
+/*
+ * An earlier day, exactly as it was recorded. Nothing is added up. Every
+ * medicine on that day's checklist is listed in checklist order; ticked is
+ * null when nothing was marked for it.
+ */
 export type PastDay = {
   date: string
-  ticks: { item: ChecklistItem; ticked: boolean }[]
+  ticks: { item: ChecklistItem; ticked: boolean | null }[]
   readings: Reading[]
   answers: { question: Question; answer_text: string; occurred_at: string }[]
   meals: Meal[]

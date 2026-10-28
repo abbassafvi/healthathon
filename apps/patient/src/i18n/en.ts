@@ -74,6 +74,7 @@ export const en = {
     intro: 'What you recorded on earlier days, as you recorded it.',
     back: 'Back to today',
     nothing: 'Nothing recorded on this day.',
+    notMarked: 'Not marked',
     none: 'Nothing has been recorded yet.',
     more: 'Show earlier days',
     loadFailed: 'Earlier days could not be loaded. Check the internet connection.',

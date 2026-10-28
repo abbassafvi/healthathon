@@ -89,7 +89,11 @@ function Day({ day }: { day: PastDay }) {
                   {[tick.item.dose_text, tick.item.schedule_text].filter(Boolean).join('  ')}
                 </Txt>
               </View>
-              <Txt size={18} weight="medium">{tick.ticked ? t.today.ticked : t.today.notTaken}</Txt>
+              {tick.ticked === null ? (
+                <Txt size={18} tone="ink2">{t.past.notMarked}</Txt>
+              ) : (
+                <Txt size={18} weight="medium">{tick.ticked ? t.today.ticked : t.today.notTaken}</Txt>
+              )}
             </View>
           ))}
         </Group>

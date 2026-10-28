@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
 
-import { reseed } from './db'
+import { query, reseed } from './db'
 import { API_URL } from './env'
 
 /* The real API and a real database: every test starts from the stand-in seed. */
@@ -198,4 +198,16 @@ test('earlier days read right to left in Urdu, with medicines as printed', async
   const dir = await page.locator('[data-testid^="day-"]').first().evaluate((el) => getComputedStyle(el).direction)
   expect(dir).toBe('rtl')
   await expect(page.getByText('Tab. Metformin').first()).toBeVisible()
+})
+
+test('an earlier day lists a medicine nothing was marked for as not marked', async ({ page }) => {
+  query(`DELETE FROM pat.entry e USING pat.medication_tick t, core.patient p
+         WHERE t.entry_id = e.id AND p.id = e.patient_id AND p.registration_no = 'DEV-0001'
+           AND t.tick_date = (now() AT TIME ZONE 'Asia/Kolkata')::date - 1`)
+  await start(page, 'English', 'Asha Verma')
+  await page.getByRole('button', { name: 'Earlier days' }).click()
+  const yesterday = page.locator('[data-testid^="day-"]').first()
+  await expect(yesterday.getByText('Not marked')).toHaveCount(3)
+  await expect(yesterday.getByText('Taken', { exact: true })).toHaveCount(0)
+  await expectNoViolations(page)
 })

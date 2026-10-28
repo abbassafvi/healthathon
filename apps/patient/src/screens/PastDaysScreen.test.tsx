@@ -105,6 +105,13 @@ describe('PastDaysScreen', () => {
     expect(within(y).getByText('500 mg  1-0-1')).toBeTruthy()
   })
 
+  it('lists a medicine nothing was marked for as not marked, in plain ink', async () => {
+    setup(async () => ({ days: [day('2026-10-25', { ticks: [{ item, ticked: null }] })], next_before: null }))
+    const row = await screen.findByTestId('past-tick-i-1')
+    expect(within(row).getByText(en.past.notMarked)).toBeTruthy()
+    expect(within(row).queryByText('Taken')).toBeNull()
+  })
+
   it('shows nothing interpretive', async () => {
     setup(async () => ({ days: [yesterday, day('2026-10-24')], next_before: null }))
     await screen.findByTestId('day-2026-10-25')
