@@ -137,6 +137,9 @@ export const en = {
     caregiverAs: 'Caregiver {name}, {relationship}',
     enrolled: 'Patient since {date}',
     upload: 'Upload a document',
+    sms: 'SMS',
+    smsFrom: 'Phone ending {last4}',
+    smsNone: 'Not set up',
   },
   checklist: {
     awaitingTitle: 'Waiting for review',

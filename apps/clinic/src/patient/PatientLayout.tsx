@@ -99,6 +99,11 @@ function Facts({ p }: { p: PatientListItem }) {
     [en.patients.checklist, p.checklist_since
       ? `${p.checklist_medicines === 1 ? en.patients.medicinesOne : fmt(en.patients.medicines, { n: p.checklist_medicines })}, ${fmt(en.patients.since, { date: formatDate(p.checklist_since) })}`
       : en.patients.noChecklist],
+    [en.patient.sms, p.sms_phone_last4 ? (
+      <Link key="sms" to={`/patients/${p.id}/sms-card`} className="inline-flex min-h-6 items-center text-accent underline-offset-4 hover:underline">
+        {fmt(en.patient.smsFrom, { last4: p.sms_phone_last4 })}
+      </Link>
+    ) : en.patient.smsNone],
   ]
   return (
     <>

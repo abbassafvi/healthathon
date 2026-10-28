@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { describe, expect, it } from 'vitest'
@@ -18,6 +18,7 @@ const asha = patientListItem(
     next_visit: '2026-11-04T10:00:00+05:30',
     checklist_since: '2026-10-09T10:05:00+05:30',
     checklist_medicines: 3,
+    sms_phone_last4: '0001',
   },
 )
 
@@ -53,6 +54,12 @@ describe('PatientLayout', () => {
     expect(facts).toHaveTextContent('Checklist3 medicines, since 9 Oct 2026')
   })
 
+  it('names the phone SMS is read from, and links to the SMS card', async () => {
+    setup('/patients/p-1/visit')
+    const facts = await screen.findByLabelText('About this patient')
+    expect(within(facts).getByRole('link', { name: 'Phone ending 0001' })).toHaveAttribute('href', '/patients/p-1/sms-card')
+  })
+
   it('says a booked visit has not started once its time has passed', async () => {
     setup('/patients/p-1/visit', { ...asha, next_visit: '2026-10-01T10:00:00+05:30' })
     expect(await screen.findByLabelText('About this patient')).toHaveTextContent(/Next visit1 Oct 2026,? 10:00, not started/)
@@ -75,5 +82,7 @@ describe('PatientLayout', () => {
     const facts = await screen.findByLabelText('About this patient')
     expect(facts).toHaveTextContent('Next visitNone booked')
     expect(facts).toHaveTextContent('ChecklistNone yet')
+    expect(facts).toHaveTextContent('SMSNot set up')
+    expect(within(facts).queryByRole('link')).not.toBeInTheDocument()
   })
 })
