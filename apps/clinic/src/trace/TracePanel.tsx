@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router'
 
 import { api, ApiError, type Trace } from '../api/client'
+import { LoadError } from '../app/LoadError'
 import { formatDate } from '../lib/dates'
 import { hasModifier, isTypingTarget } from '../lib/keys'
 import { KeysHelp } from '../app/KeysHelp'
@@ -64,11 +65,11 @@ export function TracePanel() {
       </header>
       <div className="flex flex-col gap-6 px-6 py-6">
         {query.status === 'pending' && <div className="h-[min(58vh,34rem)] rounded-xl bg-sunken" aria-busy="true" />}
-        {query.status === 'error' && (
-          <p className="max-w-[60ch] text-ink-2">
-            {query.error instanceof ApiError && query.error.status === 404 ? en.trace.notShown : en.trace.loadFailed}
-          </p>
-        )}
+        {query.status === 'error' && (query.error instanceof ApiError && query.error.status === 404 ? (
+          <p className="max-w-[60ch] text-ink-2">{en.trace.notShown}</p>
+        ) : (
+          <LoadError message={en.trace.loadFailed} onRetry={() => void query.refetch()} retrying={query.isFetching} />
+        ))}
         {query.status === 'success' && <TraceBody t={query.data} />}
       </div>
     </aside>

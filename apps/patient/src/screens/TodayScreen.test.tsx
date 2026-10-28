@@ -13,7 +13,7 @@ function As({ patient, lang = 'en' }: { patient: string; lang?: Lang }) {
   useEffect(() => {
     if (ready) choose({ lang, patientId: patient })
   }, [ready, choose, lang, patient])
-  return patientId ? <TodayScreen onOpenSurvey={() => {}} /> : null
+  return patientId ? <TodayScreen onOpenSurvey={() => {}} onOpenPast={() => {}} onOpenSettings={() => {}} /> : null
 }
 
 describe('TodayScreen', () => {
@@ -25,15 +25,65 @@ describe('TodayScreen', () => {
     expect(screen.getByText('Hello, Asha')).toBeTruthy()
   })
 
-  it('ticks a medicine and untick it again', async () => {
+  it('records taken, not taken, and clears a choice with a second tap', async () => {
     const { api } = renderApp(<As patient="DEV-0001" />)
-    const row = await screen.findByTestId('tick-rx-0001-a-item-1')
-    expect(row.props.accessibilityState).toMatchObject({ checked: false })
-    fireEvent.press(row)
-    await waitFor(() => expect(screen.getByTestId('tick-rx-0001-a-item-1').props.accessibilityState).toMatchObject({ checked: true }))
+    const taken = () => screen.getByTestId('tick-rx-0001-a-item-1-taken')
+    const notTaken = () => screen.getByTestId('tick-rx-0001-a-item-1-not-taken')
+    await screen.findByTestId('tick-rx-0001-a-item-1')
+    expect(taken().props['aria-pressed']).toBe(false)
+    expect(notTaken().props['aria-pressed']).toBe(false)
+
+    fireEvent.press(taken())
+    await waitFor(() => expect(taken().props['aria-pressed']).toBe(true))
     expect((await api.today('DEV-0001')).ticks).toEqual({ 'rx-0001-a-item-1': true })
-    fireEvent.press(screen.getByTestId('tick-rx-0001-a-item-1'))
+
+    fireEvent.press(notTaken())
+    await waitFor(() => expect(notTaken().props['aria-pressed']).toBe(true))
+    expect(taken().props['aria-pressed']).toBe(false)
+    expect((await api.today('DEV-0001')).ticks).toEqual({ 'rx-0001-a-item-1': false })
+
+    fireEvent.press(notTaken())
     await waitFor(async () => expect((await api.today('DEV-0001')).ticks).toEqual({}))
+    await waitFor(() => expect(notTaken().props['aria-pressed']).toBe(false))
+  })
+
+  it('names the medicine on each answer, for a screen reader', async () => {
+    renderApp(<As patient="DEV-0001" />)
+    await screen.findByTestId('tick-rx-0001-a-item-1')
+    expect(screen.getByLabelText('Taken, Tab. Metformin 500 mg 1-0-1')).toBeTruthy()
+    expect(screen.getByLabelText('Not taken, Tab. Metformin 500 mg 1-0-1')).toBeTruthy()
+  })
+
+  it('says a write failed instead of pretending it was saved', async () => {
+    const { api } = renderApp(<As patient="DEV-0001" />)
+    await screen.findByTestId('tick-rx-0001-a-item-1')
+    api.setTick = async () => {
+      throw new Error('offline')
+    }
+    fireEvent.press(screen.getByTestId('tick-rx-0001-a-item-1-taken'))
+    expect(await screen.findByText('That was not saved. Check the internet connection and try again.')).toBeTruthy()
+    expect(screen.getByTestId('tick-rx-0001-a-item-1-taken').props['aria-pressed']).toBe(false)
+  })
+
+  it('offers to try again when today cannot be loaded', async () => {
+    const { api } = renderApp(<As patient="DEV-0001" />)
+    const real = api.today
+    let fail = true
+    api.today = (pid) => (fail ? Promise.reject(new Error('offline')) : real(pid))
+    expect(await screen.findByText('Today could not be loaded. Check the internet connection.')).toBeTruthy()
+    fail = false
+    fireEvent.press(screen.getByTestId('retry'))
+    expect(await screen.findByText('Hello, Asha')).toBeTruthy()
+  })
+
+  it('lets the day’s answer be changed after a mistaken tap', async () => {
+    const { api } = renderApp(<As patient="DEV-0001" />)
+    fireEvent.press(await screen.findByTestId('answer-yes'))
+    expect(await screen.findByText('Your answer: Yes')).toBeTruthy()
+    fireEvent.press(screen.getByTestId('change-answer'))
+    fireEvent.press(screen.getByTestId('answer-no'))
+    expect(await screen.findByText('Your answer: No')).toBeTruthy()
+    expect((await api.today('DEV-0001')).answer).toBe('No')
   })
 
   it('says so when there is no medicine list yet', async () => {
@@ -69,7 +119,7 @@ describe('TodayScreen', () => {
   it('adds a meal photo and shows only a count, never an estimate', async () => {
     renderApp(<As patient="DEV-0001" />)
     fireEvent.press(await screen.findByTestId('add-meal'))
-    expect(await screen.findByText('1 photos today')).toBeTruthy()
+    expect(await screen.findByText('1 photo today')).toBeTruthy()
   })
 
   it('lays out right to left for Urdu', async () => {

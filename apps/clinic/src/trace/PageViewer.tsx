@@ -26,14 +26,22 @@ const ZOOM_MS = 320
  * outlines, so they stay exactly on their regions at every zoom level. The
  * focused mark is zoomed to and drawn in the accent; moving focus pans to
  * it. Zooming animates the viewBox; with reduced motion it jumps. W
- * toggles between the focused region and the whole page.
+ * toggles between the focused region and the whole page. A viewer that
+ * opens on the whole page zooms the first time a mark is focused.
+ * Region numbers keep one size on screen at every zoom level.
  */
 export function PageViewer({ url, width, height, marks, focus = 0, alt }: Props) {
   const box = marks[focus]?.box ?? null
   const [status, setStatus] = useState<'loading' | 'ready' | 'failed'>('loading')
   const [attempt, setAttempt] = useState(0)
   const [mode, setMode] = useState<Mode>(box ? 'zoom' : 'page')
-  const [aspect, setAspect] = useState(0.75)
+  const [hadBox, setHadBox] = useState(box !== null)
+  if (box && !hadBox) {
+    setHadBox(true)
+    setMode('zoom')
+  }
+  const [frame, setFrame] = useState({ w: 0, h: 0 })
+  const aspect = frame.w > 0 ? frame.h / frame.w : 0.75
   const frameRef = useRef<HTMLDivElement>(null)
   const whole: Rect = { x: 0, y: 0, w: width, h: height }
   const target = mode === 'zoom' && box ? zoomViewBox(box, width, height, aspect) : whole
@@ -60,7 +68,7 @@ export function PageViewer({ url, width, height, marks, focus = 0, alt }: Props)
   useLayoutEffect(() => {
     const el = frameRef.current
     if (!el) return
-    const measure = () => el.clientWidth > 0 && setAspect(el.clientHeight / el.clientWidth)
+    const measure = () => el.clientWidth > 0 && setFrame({ w: el.clientWidth, h: el.clientHeight })
     measure()
     const ro = new ResizeObserver(measure)
     ro.observe(el)
@@ -107,6 +115,8 @@ export function PageViewer({ url, width, height, marks, focus = 0, alt }: Props)
   }, [box])
 
   const b = box ? boxInPixels(box, width, height) : null
+  // Page pixels per screen pixel, so a label can be sized in screen pixels.
+  const k = frame.w > 0 ? Math.max(view.w / frame.w, view.h / frame.h) : 1
   // The page, with a hole cut where the focused region is: the rest is dimmed.
   const dim = b ? `M0 0H${width}V${height}H0Z M${b.x} ${b.y}h${b.w}v${b.h}h${-b.w}Z` : null
 
@@ -123,7 +133,7 @@ export function PageViewer({ url, width, height, marks, focus = 0, alt }: Props)
             className="absolute inset-0 h-full w-full"
           >
             <image href={url} x={0} y={0} width={width} height={height} />
-            {dim && <path d={dim} fill="oklch(0.21 0 0 / 0.12)" fillRule="evenodd" />}
+            {dim && <path d={dim} className="fill-ink" fillOpacity={0.12} fillRule="evenodd" />}
             {marks.map((m, i) => {
               const r = boxInPixels(m.box, width, height)
               const focused = i === focus
@@ -139,10 +149,10 @@ export function PageViewer({ url, width, height, marks, focus = 0, alt }: Props)
                     stroke={focused ? 'var(--color-accent)' : 'var(--color-line-strong)'}
                     strokeWidth={focused ? 2.5 : 1.5} vectorEffect="non-scaling-stroke" />
                   {m.label && (
-                    <g transform={`translate(${r.x - 46} ${r.y + r.h / 2})`}>
-                      <circle r={18} fill={focused ? 'var(--color-accent)' : 'white'}
+                    <g transform={`translate(${r.x - 22 * k} ${r.y + r.h / 2}) scale(${k})`}>
+                      <circle r={11} fill={focused ? 'var(--color-accent)' : 'white'}
                         stroke={focused ? 'none' : 'var(--color-line-strong)'} />
-                      <text textAnchor="middle" dy="0.35em" fontSize={20} fontFamily="var(--font-mono)"
+                      <text textAnchor="middle" dy="0.35em" fontSize={12} fontFamily="var(--font-mono)"
                         fill={focused ? 'white' : 'var(--color-ink-2)'}>{m.label}</text>
                     </g>
                   )}

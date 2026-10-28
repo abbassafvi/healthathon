@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { Checklist, RegimenReview } from '../../api/pending'
+import type { Checklist, RegimenReview } from '../../api/client'
 import { api, installMockServer } from '../../test/msw'
 
 installMockServer()

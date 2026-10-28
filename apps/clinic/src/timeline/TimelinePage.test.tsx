@@ -98,6 +98,15 @@ describe('TimelinePage', () => {
     expect(screen.queryByText(/^App$/)).not.toBeInTheDocument()
   })
 
+  it('shows meal photos small, and opens each as it was sent', async () => {
+    setup()
+    const links = await screen.findAllByRole('link', { name: 'Open the photograph' })
+    for (const link of links) {
+      const photo = link.getAttribute('href')!
+      expect(link.querySelector('img')).toHaveAttribute('src', `${photo}?width=320`)
+    }
+  })
+
   it('every glucose reading carries its context, and nothing interpretive appears', async () => {
     setup()
     await screen.findAllByText('Medicines')

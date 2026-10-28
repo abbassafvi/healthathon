@@ -1,4 +1,4 @@
-import type { RegimenItem } from '../api/pending'
+import type { RegimenItem } from '../api/client'
 
 /* A medicine exactly as printed: name, dose and schedule, nothing mapped. */
 export function ItemText({ item, size = 'md' }: { item: Pick<RegimenItem, 'drug_text' | 'dose_text' | 'schedule_text'>; size?: 'md' | 'lg' }) {

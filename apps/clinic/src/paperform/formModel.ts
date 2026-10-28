@@ -1,10 +1,10 @@
-import type { GlucoseContext, PaperFormSubmission } from '../api/pending'
+import type { GlucoseContext, PaperFormSubmission } from '../api/client'
 
 export type CellValue = 'ticked' | 'not_ticked' | 'blank'
 export type GlucoseDraft = { key: string; date: string; time: string; value: string; context: GlucoseContext | ''; insulin: string }
 export type Draft = {
   weekFrom: string
-  language: string
+  language: PaperFormSubmission['language']
   cells: Record<string, CellValue> // `${itemId}|${date}`
   glucose: GlucoseDraft[]
   answers: Record<string, string> // `${questionKey}|${date}`

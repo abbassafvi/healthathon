@@ -4,21 +4,71 @@ from uuid import UUID
 from psycopg import Connection
 from psycopg.rows import DictRow
 
+from healthathon import clinic_time
+
 # Every clinical value read here comes from proj.renderable_value, the only
 # view the clinician API may read values from. A value in the confirm queue,
 # discarded or superseded cannot reach these queries.
 
 
 def list_patients(conn: Connection[DictRow]) -> list[dict[str, Any]]:
+    """
+    Every enrolled patient, with what their record holds now: visits, the
+    checklist, what waits for a person, documents and the latest entry.
+    Counts of the record only; nothing here ranks or judges a patient. The
+    phone SMS is read from is named only while the patient agrees to SMS.
+    """
     return conn.execute(
-        "SELECT id, registration_no, full_name, year_of_birth, sex FROM core.patient"
-        " WHERE exited_at IS NULL ORDER BY registration_no"
+        """
+        SELECT p.id, p.registration_no, p.full_name, p.year_of_birth, p.sex,
+               p.preferred_language, p.enrolled_at,
+               cg.full_name AS caregiver_name, cg.relationship AS caregiver_relationship,
+               (SELECT max(v.started_at) FROM proj.visit v
+                 WHERE v.patient_id = p.id AND v.started_at IS NOT NULL) AS last_visit,
+               (SELECT min(v.scheduled_for) FROM proj.visit v
+                 WHERE v.patient_id = p.id AND v.started_at IS NULL
+                   AND v.scheduled_for >= %(today)s) AS next_visit,
+               r.activated_at AS checklist_since,
+               (SELECT count(*) FROM core.regimen_item ri
+                 WHERE ri.regimen_id = r.id) AS checklist_medicines,
+               (SELECT count(*) FROM core.confirm_queue_item q
+                 JOIN core.extracted_value ev ON ev.id = q.extracted_value_id
+                 WHERE ev.patient_id = p.id AND q.resolved_at IS NULL) AS waiting_values,
+               (SELECT count(*) FROM core.regimen pr
+                 JOIN core.regimen_item ri ON ri.regimen_id = pr.id
+                 WHERE pr.patient_id = p.id AND pr.activated_at IS NULL
+                   AND ri.confirmed_at IS NULL) AS waiting_lines,
+               (SELECT count(*) FROM core.document d WHERE d.patient_id = p.id) AS documents,
+               (SELECT max(e.occurred_at) FROM pat.entry e
+                 WHERE e.patient_id = p.id) AS last_entry_at,
+               CASE WHEN sms.agreed THEN
+                 (SELECT ph.phone_last4 FROM core.patient_phone ph WHERE ph.patient_id = p.id
+                   ORDER BY ph.is_primary DESC, ph.id LIMIT 1)
+               END AS sms_phone_last4
+        FROM core.patient p
+        LEFT JOIN LATERAL (
+            SELECT full_name, relationship FROM core.caregiver c
+            WHERE c.patient_id = p.id AND c.revoked_at IS NULL
+            ORDER BY c.nominated_at DESC LIMIT 1
+        ) cg ON true
+        LEFT JOIN LATERAL (
+            SELECT c.granted AND c.withdrawn_at IS NULL AS agreed FROM core.consent c
+            WHERE c.patient_id = p.id AND c.item = 'sms'
+            ORDER BY c.captured_at DESC LIMIT 1
+        ) sms ON true
+        LEFT JOIN core.regimen r
+               ON r.patient_id = p.id AND r.activated_at IS NOT NULL AND r.superseded_at IS NULL
+        WHERE p.exited_at IS NULL
+        ORDER BY p.registration_no
+        """,
+        {"today": clinic_time.midnight(clinic_time.today())},
     ).fetchall()
 
 
 def get_patient(conn: Connection[DictRow], patient_id: UUID) -> dict[str, Any] | None:
     return conn.execute(
-        "SELECT id, registration_no, full_name, year_of_birth, sex FROM core.patient WHERE id = %s",
+        "SELECT id, registration_no, full_name, year_of_birth, sex, preferred_language"
+        " FROM core.patient WHERE id = %s",
         (patient_id,),
     ).fetchone()
 

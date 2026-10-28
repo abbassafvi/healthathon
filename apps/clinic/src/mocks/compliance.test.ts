@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { PatientEntry } from '../api/pending'
+import type { PatientEntry } from '../api/client'
 import { recount } from '../visit/score'
 import { computeScore } from './compliance'
 import { mockState, resetMockState } from './state'

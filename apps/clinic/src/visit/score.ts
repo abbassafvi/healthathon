@@ -1,4 +1,4 @@
-import type { ComplianceScore } from '../api/pending'
+import type { ComplianceScore } from '../api/client'
 
 /*
  * Recount a score from its own day array. The stored figures are shown

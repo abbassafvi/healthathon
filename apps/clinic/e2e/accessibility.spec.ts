@@ -1,6 +1,6 @@
-import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
 
+import { expectNoViolations } from './axe'
 import { query, reseed } from './db'
 import { withoutMocks } from './mocks'
 
@@ -8,15 +8,6 @@ test.beforeEach(async ({ page }) => {
   reseed()
   await withoutMocks(page)
 })
-
-const WCAG = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
-
-async function expectNoViolations(page: Page) {
-  // Contrast is measured on settled colours, not mid-transition.
-  await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running'))
-  const { violations } = await new AxeBuilder({ page }).withTags(WCAG).analyze()
-  expect(violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target).join(', ')}`)).toEqual([])
-}
 
 const unlocked = (page: Page) => expect(page.getByRole('button', { name: /confirm as read/i })).toBeEnabled()
 
@@ -79,10 +70,59 @@ test('every control is reachable by Tab with a visible focus ring', async ({ pag
     expect(info.outline, `focus ring on ${info.name}`).toBe(true)
     reached.push(info.name)
   }
-  expect(reached[0]).toMatch(/^Confirm queue/)
+  expect(reached[0]).toBe('Consultation Readiness')
+  expect(reached[1]).toBe('Today')
+  expect(reached[2]).toMatch(/^Confirm queue/)
   for (const label of ['Confirm as read', 'Type the value', 'Not a value']) {
     expect(reached.some((r) => r.startsWith(label))).toBe(true)
   }
+})
+
+/* Tabs through every control on a page and returns those without a visible ring. */
+async function unringed(page: Page, limit = 80) {
+  const missing: string[] = []
+  for (let i = 0; i < limit; i++) {
+    await page.keyboard.press('Tab')
+    const info = await page.evaluate(() => {
+      const el = document.activeElement as HTMLElement
+      const style = getComputedStyle(el)
+      const name = el.getAttribute('aria-label') || el.id || el.textContent?.trim().slice(0, 40) || el.tagName
+      return { tag: el.tagName, name, ring: style.outlineStyle !== 'none' && parseFloat(style.outlineWidth) > 0 }
+    })
+    if (info.tag === 'BODY') break
+    if (!info.ring) missing.push(`${info.tag} ${info.name}`)
+  }
+  return missing
+}
+
+test('every control on every screen shows a focus ring when reached by Tab', async ({ page }) => {
+  const [{ id: patient }] = query<{ id: string }>("SELECT id FROM core.patient WHERE registration_no = 'DEV-0001'")
+  for (const path of ['/today', '/patients', `/patients/${patient}/visit`, `/patients/${patient}/timeline`,
+    `/patients/${patient}/checklist`, `/patients/${patient}/documents`, `/patients/${patient}/paper-form`, '/upload', '/audit']) {
+    await page.goto(path)
+    await expect(page.locator('main h1, main h2').first()).toBeVisible()
+    expect(await unringed(page), path).toEqual([])
+  }
+})
+
+test('the visit page fits a phone, and its readings table scrolls on its own', async ({ page }) => {
+  const [{ id }] = query<{ id: string }>("SELECT id FROM core.patient WHERE registration_no = 'DEV-0001'")
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto(`/patients/${id}/visit`)
+  const readings = page.getByRole('region', { name: 'Glucose readings table' })
+  await expect(readings).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(0)
+  expect(await readings.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(true)
+  await expectNoViolations(page)
+})
+
+test('a patient opens from anywhere on their row', async ({ page }) => {
+  const [{ id }] = query<{ id: string }>("SELECT id FROM core.patient WHERE registration_no = 'DEV-0001'")
+  await page.goto('/patients')
+  const born = page.getByRole('row', { name: /Asha Verma/ }).getByRole('cell').nth(2)
+  const box = (await born.boundingBox())!
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
+  await expect(page).toHaveURL(new RegExp(`/patients/${id}/visit$`))
 })
 
 test('patient list', async ({ page }) => {

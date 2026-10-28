@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { EntriesPage, GlucoseEntry, TickEntry, AnswerEntry } from '../../api/pending'
+import type { EntriesPage, GlucoseEntry, TickEntry, AnswerEntry } from '../../api/client'
 import { api, installMockServer } from '../../test/msw'
 import { mockState, resetMockState } from '../state'
 

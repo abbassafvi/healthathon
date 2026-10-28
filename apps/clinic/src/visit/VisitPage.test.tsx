@@ -5,7 +5,7 @@ import { http, HttpResponse } from 'msw'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { VisitSummary } from '../api/pending'
+import type { VisitSummary } from '../api/client'
 import { installMockServer } from '../test/msw'
 import { recount } from './score'
 import { VisitPage } from './VisitPage'
@@ -118,6 +118,15 @@ describe('VisitPage', () => {
     expect(screen.getAllByRole('button', { name: 'Show fewer' })[0]).toHaveAttribute('aria-expanded', 'true')
     // Nothing on the page scrolls inside the page.
     expect(document.querySelector('[class*="overflow-y-auto"]')).toBeNull()
+  })
+
+  it('shows meal photos small, and opens each as it was sent', async () => {
+    setup()
+    const links = await screen.findAllByRole('link', { name: /^Open the photograph, / })
+    for (const link of links) {
+      const photo = link.getAttribute('href')!
+      expect(link.querySelector('img')).toHaveAttribute('src', `${photo}?width=320`)
+    }
   })
 
   it('states an order with no report as a fact about the record', async () => {

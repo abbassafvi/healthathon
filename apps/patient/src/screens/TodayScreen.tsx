@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ScrollView, StyleSheet, View } from 'react-native'
 
 import { useApp } from '../AppState'
@@ -10,33 +10,92 @@ import { Section } from '../components/Section'
 import { TickRow } from '../components/TickRow'
 import { Txt } from '../components/Txt'
 import { captureId } from '../data/captureId'
+import { ApiError } from '../data/httpApi'
 import type { Today } from '../data/types'
 import { fmt } from '../i18n'
 import { color, radius, space } from '../theme'
 
 /*
- * The app is this one screen: today's date set large, the medicines to
- * tick, the sugar readings, the day's question and a meal photo. It shows
- * only what the patient recorded today, as they recorded it. There is no
- * history, chart, average, score or colour that says good or bad.
+ * The app's main screen: today's date set large, the medicines to tick,
+ * the sugar readings, the day's question and a meal photo. It shows only
+ * what the patient recorded today, as they recorded it; earlier days have
+ * their own screen, shown the same way. There is no chart, average, score
+ * or colour that says good or bad.
  */
-export function TodayScreen({ onOpenSurvey }: { onOpenSurvey: () => void }) {
+export function TodayScreen({ onOpenSurvey, onOpenPast, onOpenSettings }: {
+  onOpenSurvey: () => void
+  onOpenPast: () => void
+  onOpenSettings: () => void
+}) {
   const { api, patientId, t, rtl, signOut } = useApp()
   const [today, setToday] = useState<Today | null>(null)
   const [sheet, setSheet] = useState(false)
+  const [failed, setFailed] = useState<'load' | 'save' | null>(null)
 
+  // Loads can overlap (the first one, then one after each write). Only the
+  // newest may land, or a slow first load would undo a reading just saved.
+  const latest = useRef(0)
   const load = useCallback(() => {
-    if (patientId) void api.today(patientId).then(setToday)
-  }, [api, patientId])
+    if (!patientId) return
+    const n = ++latest.current
+    api
+      .today(patientId)
+      .then((t) => {
+        if (n !== latest.current) return
+        setToday(t)
+        setFailed((f) => (f === 'load' ? null : f))
+      })
+      .catch((e: unknown) => {
+        if (n !== latest.current) return
+        // The patient chosen on this phone is no longer in the record: choose again.
+        if (e instanceof ApiError && (e.status === 404 || e.status === 422)) signOut()
+        else setFailed('load')
+      })
+  }, [api, patientId, signOut])
   useEffect(load, [load])
 
-  if (!today || !patientId) return <View style={styles.page} />
+  if (!patientId) return <View style={styles.page} />
+  if (!today) {
+    return (
+      <View style={[styles.page, styles.center]}>
+        {failed === 'load' && (
+          <View style={styles.failedLoad} role="alert">
+            <Txt size={18}>{t.today.loadFailed}</Txt>
+            <Button kind="primary" label={t.today.retry} onPress={load} testID="retry" />
+          </View>
+        )}
+      </View>
+    )
+  }
   const d = new Date(`${today.date}T12:00:00`)
-  const write = (p: Promise<unknown>) => void p.then(load)
+  // A write that fails says so and leaves the screen as the server has it.
+  const write = (p: Promise<unknown>) =>
+    void p.then(
+      () => {
+        setFailed(null)
+        load()
+      },
+      () => {
+        setFailed('save')
+        load()
+      },
+    )
   const firstName = today.patient.full_name.split(' ')[0]
 
   return (
     <ScrollView style={[styles.page, { direction: rtl ? 'rtl' : 'ltr' }]} contentContainerStyle={styles.content}>
+      <View style={styles.appBar}>
+        <View style={styles.brand}>
+          {/* The app's icon in small: a calendar page with today's dot. */}
+          <View style={styles.mark} aria-hidden>
+            <View style={styles.markPage}>
+              <View style={styles.markDot} />
+            </View>
+          </View>
+          <Txt latin size={17} weight="bold">{t.appName}</Txt>
+        </View>
+        <Button kind="quiet" label={t.settings.open} onPress={onOpenSettings} testID="open-settings" />
+      </View>
       <View style={styles.header} accessible accessibilityRole="header" accessibilityLabel={`${t.days.short[d.getDay()]} ${d.getDate()} ${t.months[d.getMonth()]}`}>
         <View style={styles.dayRow}>
           <Txt latin size={92} weight="bold" style={styles.dayNumber}>{String(d.getDate())}</Txt>
@@ -49,6 +108,12 @@ export function TodayScreen({ onOpenSurvey }: { onOpenSurvey: () => void }) {
         <Txt size={18} tone="ink2">{fmt(t.today.greeting, { name: firstName })}</Txt>
       </View>
 
+      {failed === 'save' && (
+        <View style={styles.failedSave} role="alert" testID="save-failed">
+          <Txt size={17}>{t.today.saveFailed}</Txt>
+        </View>
+      )}
+
       <Section title={t.today.medicines} help={today.items.length ? t.today.medicinesHelp : undefined}>
         {today.items.length === 0 ? (
           <Txt size={17} tone="ink2">{t.today.noChecklist}</Txt>
@@ -57,8 +122,8 @@ export function TodayScreen({ onOpenSurvey }: { onOpenSurvey: () => void }) {
             <TickRow
               key={item.id}
               item={item}
-              ticked={today.ticks[item.id] === true}
-              onToggle={() => write(api.setTick(patientId, item.id, today.ticks[item.id] ? null : true, captureId()))}
+              value={today.ticks[item.id] ?? null}
+              onChange={(v) => write(api.setTick(patientId, item.id, v, captureId()))}
             />
           ))
         )}
@@ -101,7 +166,7 @@ export function TodayScreen({ onOpenSurvey }: { onOpenSurvey: () => void }) {
         </Section>
       )}
 
-      <Button kind="quiet" label={t.today.switchUser} onPress={signOut} />
+      <Button label={t.past.open} onPress={onOpenPast} testID="open-past" />
 
       <GlucoseSheet
         visible={sheet}
@@ -114,12 +179,26 @@ export function TodayScreen({ onOpenSurvey }: { onOpenSurvey: () => void }) {
 
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: color.bg },
-  content: { padding: space.lg, paddingTop: 56, gap: space.lg, paddingBottom: space.xxxl, maxWidth: 640, width: '100%', alignSelf: 'center' },
-  header: { paddingHorizontal: space.sm, marginBottom: space.sm },
+  center: { justifyContent: 'center', padding: space.xl },
+  failedLoad: { gap: space.lg, maxWidth: 480, alignSelf: 'center', width: '100%' },
+  failedSave: {
+    padding: space.lg,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: color.ink,
+    backgroundColor: color.surface,
+  },
+  content: { padding: space.lg, paddingTop: 32, gap: space.lg, paddingBottom: space.xxxl, maxWidth: 640, width: '100%', alignSelf: 'center' },
+  appBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md, paddingLeft: space.sm },
+  brand: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  mark: { width: 26, height: 26, borderRadius: 7, backgroundColor: color.accent, alignItems: 'center', justifyContent: 'center' },
+  markPage: { width: 13, height: 14, borderRadius: 3, backgroundColor: color.surface, alignItems: 'center', justifyContent: 'center', paddingTop: 2 },
+  markDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: color.accent },
+  header: { paddingHorizontal: space.sm, marginBottom: space.sm, gap: space.sm },
   dayRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space.sm },
   dayNumber: { letterSpacing: -3 },
   todayDot: { width: 16, height: 16, borderRadius: radius.pill, backgroundColor: color.accentMark, marginTop: 24 },
-  monthRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
+  monthRow: { flexDirection: 'row', alignItems: 'baseline', gap: space.md, flexWrap: 'wrap' },
   reading: { flexDirection: 'row', alignItems: 'baseline', gap: space.sm, flexWrap: 'wrap', paddingVertical: space.xs },
   readingWhen: { marginLeft: space.sm },
 })

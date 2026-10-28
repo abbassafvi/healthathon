@@ -1,9 +1,11 @@
+import { api } from '../api/client'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useState, useLayoutEffect } from 'react'
 import { Link, useParams } from 'react-router'
 
-import type { RegimenReview } from '../api/pending'
-import { pendingApi } from '../api/pendingClient'
+import type { RegimenReview } from '../api/client'
+import { LoadError } from '../app/LoadError'
+import { useTitle } from '../app/useTitle'
 import { formatDate } from '../lib/dates'
 import { hasModifier, isButtonTarget, isTypingTarget } from '../lib/keys'
 import { KeysHelp } from '../app/KeysHelp'
@@ -11,6 +13,7 @@ import { en, fmt } from '../strings/en'
 import { PageViewer } from '../trace/PageViewer'
 import { ActivationBar } from './ActivationBar'
 import { ReviewRow } from './ReviewRow'
+import { PAGE } from '../app/page'
 
 /*
  * Confirm a prescription line by line against the page, then activate it
@@ -21,7 +24,7 @@ export function ReviewPage() {
   const { patientId, regimenId } = useParams() as { patientId: string; regimenId: string }
   const qc = useQueryClient()
   const key = ['review', regimenId]
-  const query = useQuery({ queryKey: key, queryFn: () => pendingApi.review(regimenId) })
+  const query = useQuery({ queryKey: key, queryFn: () => api.review(regimenId) })
   const [focus, setFocus] = useState(0)
   const [renderedAt, setRenderedAt] = useState<Record<string, number>>({})
   const [correcting, setCorrecting] = useState<string | null>(null)
@@ -35,7 +38,7 @@ export function ReviewPage() {
   const onError = () => setFailed(true)
   const confirm = useMutation({
     mutationFn: (v: { id: string; fix?: { drug_text: string; dose_text: string; schedule_text: string | null } }) =>
-      pendingApi.confirmItem(v.id, {
+      api.confirmItem(v.id, {
         decision_latency_ms: Math.round(performance.now() - (renderedAt[v.id] ?? performance.now())),
         ...v.fix,
       }),
@@ -47,11 +50,12 @@ export function ReviewPage() {
     },
     onError,
   })
-  const remove = useMutation({ mutationFn: pendingApi.removeItem, onSuccess: refresh, onError })
-  const activate = useMutation({ mutationFn: () => pendingApi.activate(regimenId), onSuccess: refresh, onError })
+  const remove = useMutation({ mutationFn: api.removeItem, onSuccess: refresh, onError })
+  const activate = useMutation({ mutationFn: () => api.activate(regimenId), onSuccess: refresh, onError })
   const busy = confirm.isPending || remove.isPending
 
   const data = query.data
+  useTitle(en.review.title, data?.patient.full_name)
   const items = data?.items ?? []
   const current = items[Math.min(focus, items.length - 1)]
 
@@ -90,12 +94,14 @@ export function ReviewPage() {
   }, [data, items.length, current, renderedAt, busy, correcting, confirm, remove])
 
   return (
-    <main className="mx-auto w-full max-w-7xl px-4 pt-6 pb-40 sm:px-6">
+    <main className={`${PAGE} pt-6 pb-40`}>
       <Link to={`/patients/${patientId}/checklist`} className="text-sm text-ink-2 underline-offset-4 hover:text-ink hover:underline">
         {data ? `${en.review.back}: ${data.patient.full_name}` : en.review.back}
       </Link>
       {query.status === 'pending' && <div className="mt-6 h-96 rounded-xl bg-sunken" aria-busy="true" />}
-      {query.status === 'error' && <p className="mt-6 text-ink-2">{en.review.loadFailed}</p>}
+      {query.status === 'error' && (
+        <LoadError className="mt-6" message={en.review.loadFailed} onRetry={() => void query.refetch()} retrying={query.isFetching} />
+      )}
       {data && (
         <>
           <Header data={data} />

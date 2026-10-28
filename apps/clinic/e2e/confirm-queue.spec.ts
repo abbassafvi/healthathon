@@ -34,8 +34,7 @@ function valueState(registrationNo: string, analyte: string) {
 }
 
 test('shows the oldest item first, with the value exactly as read', async ({ page }) => {
-  await page.goto('/')
-  await expect(page).toHaveURL(/\/queue$/)
+  await page.goto('/queue')
   await expect(reading(page)).toContainText('162')
   await expect(page.getByText('Asha Verma')).toBeVisible()
   await expect(page.getByText('This part of the image is hard to read.')).toBeVisible()

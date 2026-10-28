@@ -1,9 +1,10 @@
 import { useState } from 'react'
 
-import type { AnswerEntry, ComplianceScore, GlucoseEntry, MealPhotoEntry, PatientEntry } from '../api/pending'
+import type { AnswerEntry, ComplianceScore, GlucoseEntry, MealPhotoEntry, PatientEntry } from '../api/client'
 import { Source } from '../entries/EntryRows'
 import { time } from '../entries/ticks'
 import { formatDate } from '../lib/dates'
+import { thumbnail } from '../lib/photos'
 import { en, fmt } from '../strings/en'
 import { Block } from './DocumentsHalf'
 import { ScoreBlock } from './ScoreBlock'
@@ -29,6 +30,8 @@ export function PatientHalf({ entries, score }: { entries: PatientEntry[]; score
           <p className="text-sm text-ink-2">{en.visit.noGlucose}</p>
         ) : (
           <div className="rounded-lg border border-line bg-surface">
+            {/* On a narrow screen the table scrolls on its own, not the page. */}
+            <div className="overflow-x-auto rounded-lg" tabIndex={0} role="region" aria-label={en.visit.glucoseTable}>
             <table className="w-full border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-line">
@@ -49,11 +52,12 @@ export function PatientHalf({ entries, score }: { entries: PatientEntry[]; score
                       )}
                     </td>
                     <td className="px-3 py-1.5 whitespace-nowrap">{en.entries.contexts[g.context] ?? g.context}</td>
-                    <td className="px-3 py-1.5"><Source e={g} />{g.channel === 'patient_app' && g.entered_by === 'patient' && <span className="font-mono text-xs text-ink-3">{en.visit.fromApp}</span>}</td>
+                    <td className="px-3 py-1.5"><Source e={g} />{g.channel === 'patient_app' && g.entered_by === 'patient' && <span className="text-xs text-ink-2">{en.visit.fromApp}</span>}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            </div>
             {glucose.length > GLUCOSE_SHOWN && (
               <ShowAll
                 open={showAllGlucose}
@@ -74,7 +78,7 @@ export function PatientHalf({ entries, score }: { entries: PatientEntry[]; score
             {meals.map((m) => (
               <li key={m.id}>
                 <a href={m.photo_url} target="_blank" rel="noreferrer" className="block rounded-md" aria-label={`${en.entries.openPhoto}, ${formatDate(m.occurred_at)} ${time(m.occurred_at)}`}>
-                  <img src={m.photo_url} alt="" loading="lazy" className="aspect-[4/3] w-full rounded-md border border-line object-cover" />
+                  <img src={thumbnail(m.photo_url)} alt="" loading="lazy" className="aspect-[4/3] w-full rounded-md border border-line object-cover" />
                 </a>
                 <p className="numerals mt-1 text-xs text-ink-2">{formatDate(m.occurred_at)}, {time(m.occurred_at)}</p>
               </li>

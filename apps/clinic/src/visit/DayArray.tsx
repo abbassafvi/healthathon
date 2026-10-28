@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 
-import type { ComplianceScore, DayCell, PatientEntry } from '../api/pending'
+import type { ComplianceScore, DayCell, PatientEntry } from '../api/client'
 import { Source } from '../entries/EntryRows'
 import { TickMark } from '../entries/TicksForDay'
 import { time } from '../entries/ticks'
@@ -77,7 +77,7 @@ export function DayArray({ score, entries }: { score: ComplianceScore; entries: 
               {week.map((date, i) => (
                 <th key={i} scope="col" className="px-0.5 pt-3 text-center font-normal">
                   {date && <span className="sr-only">{formatDate(date)}</span>}
-                  <span aria-hidden className="numerals block font-mono text-[0.625rem] leading-tight text-ink-3">
+                  <span aria-hidden className="numerals block font-mono text-xs leading-tight text-ink-3">
                     {WEEKDAYS[i]}
                     <br />
                     {date ? Number(date.slice(8)) : ''}

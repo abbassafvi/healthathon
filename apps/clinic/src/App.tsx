@@ -1,14 +1,19 @@
 import { Navigate, Route, Routes } from 'react-router'
 
 import { AppShell } from './app/AppShell'
+import { NotFound } from './app/NotFound'
+import { AuditLogPage } from './audit/AuditLogPage'
 import { ChecklistPage } from './checklist/ChecklistPage'
 import { ReviewPage } from './checklist/ReviewPage'
 import { ConfirmQueuePage } from './confirm-queue/ConfirmQueuePage'
 import { PaperFormPage } from './paperform/PaperFormPage'
 import { PatientLayout } from './patient/PatientLayout'
+import { ReadingPage } from './reading/ReadingPage'
 import { PatientsPage } from './record/PatientsPage'
 import { RecordPage } from './record/RecordPage'
+import { SmsCardPage } from './smscard/SmsCardPage'
 import { TimelinePage } from './timeline/TimelinePage'
+import { TodayPage } from './today/TodayPage'
 import { VisitPage } from './visit/VisitPage'
 import { TracePanel } from './trace/TracePanel'
 import { UploadPage } from './upload/UploadPage'
@@ -17,11 +22,14 @@ export function App() {
   return (
     <Routes>
       <Route element={<AppShell />}>
-        <Route index element={<Navigate to="/queue" replace />} />
+        <Route index element={<Navigate to="/today" replace />} />
+        <Route path="today" element={<TodayPage />} />
         <Route path="queue" element={<ConfirmQueuePage />} />
         <Route path="patients" element={<PatientsPage />} />
         <Route path="upload" element={<UploadPage />} />
+        <Route path="audit" element={<AuditLogPage />} />
         <Route path="patients/:patientId/checklist/review/:regimenId" element={<ReviewPage />} />
+        <Route path="patients/:patientId/sms-card" element={<SmsCardPage />} />
         <Route path="patients/:patientId" element={<PatientLayout />}>
           <Route index element={<Navigate to="visit" replace />} />
           <Route path="visit" element={<VisitPage />} />
@@ -31,8 +39,9 @@ export function App() {
           <Route path="documents" element={<RecordPage />}>
             <Route path="values/:valueId" element={<TracePanel />} />
           </Route>
+          <Route path="documents/:documentId/reading" element={<ReadingPage />} />
         </Route>
-        <Route path="*" element={<Navigate to="/queue" replace />} />
+        <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
   )

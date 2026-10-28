@@ -47,6 +47,12 @@ describe('ChecklistPage', () => {
     expect(screen.queryByRole('region', { name: 'Waiting for review' })).not.toBeInTheDocument()
   })
 
+  it('links to the SMS card, which numbers these medicines for a patient who texts', async () => {
+    setup('p-1')
+    const sms = await screen.findByRole('region', { name: 'Diary by SMS' })
+    expect(within(sms).getByRole('link', { name: 'SMS card' })).toHaveAttribute('href', '/patients/p-1/sms-card')
+  })
+
   it('says so when the checklist cannot be loaded', async () => {
     setup('nobody')
     expect(await screen.findByText('The checklist could not be loaded.')).toBeInTheDocument()

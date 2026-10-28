@@ -19,6 +19,7 @@ def test_lists_patients_by_registration_number(client: Any) -> None:
     res = client.get("/api/patients").json()
     assert [p["registration_no"] for p in res] == ["DEV-0001", "DEV-0002", "DEV-0003", "DEV-0004"]
     assert res[0]["full_name"] == "Asha Verma"
+    assert [p["preferred_language"] for p in res] == ["hi", "ur", "en", "hi"]
 
 
 def test_record_holds_only_renderable_values_in_page_order(

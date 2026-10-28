@@ -1,20 +1,22 @@
+import { api } from '../api/client'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router'
 
-import type { ActiveRegimen } from '../api/pending'
-import { pendingApi } from '../api/pendingClient'
+import type { ActiveRegimen } from '../api/client'
+import { LoadError } from '../app/LoadError'
 import { formatDate, formatDateTime } from '../lib/dates'
 import { en, fmt } from '../strings/en'
 import { ItemText } from './ItemText'
+import { BUTTON, PAGE } from '../app/page'
 
 export function ChecklistPage() {
   const { patientId } = useParams() as { patientId: string }
-  const query = useQuery({ queryKey: ['checklist', patientId], queryFn: () => pendingApi.checklist(patientId) })
+  const query = useQuery({ queryKey: ['checklist', patientId], queryFn: () => api.checklist(patientId) })
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 pt-6 pb-16 sm:px-6">
+    <main className={`${PAGE} pt-6 pb-16`}>
       {query.status === 'pending' && <div className="h-64 rounded-xl bg-sunken" aria-busy="true" />}
-      {query.status === 'error' && <p className="text-ink-2">{en.checklist.loadFailed}</p>}
+      {query.status === 'error' && <LoadError message={en.checklist.loadFailed} onRetry={() => void query.refetch()} retrying={query.isFetching} />}
       {query.status === 'success' && (
         <div className="flex flex-col gap-12">
           {query.data.awaiting_review.length > 0 && (
@@ -50,6 +52,13 @@ export function ChecklistPage() {
               </div>
             )}
           </section>
+          <section aria-labelledby="sms" className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3 border-t border-line pt-6">
+            <div>
+              <h2 id="sms" className="text-base font-semibold">{en.smsCard.checklistTitle}</h2>
+              <p className="mt-1 max-w-[65ch] text-sm text-ink-2">{en.smsCard.checklistNote}</p>
+            </div>
+            <Link to={`/patients/${patientId}/sms-card`} className={BUTTON}>{en.smsCard.open}</Link>
+          </section>
         </div>
       )}
     </main>
@@ -62,7 +71,10 @@ function Active({ regimen }: { regimen: ActiveRegimen }) {
     <>
       <p className="mb-4 text-sm text-ink-2">
         {fmt(en.checklist.activeSince, { when: formatDateTime(regimen.activated_at), name: regimen.activated_by_name, date })}{' '}
-        {en.checklist.patientSees}
+        {en.checklist.patientSees}{' '}
+        <Link to={`../documents/${regimen.source_document.id}/reading`} relative="path" className="text-accent underline underline-offset-4">
+          {en.reading.openPrescription}
+        </Link>
       </p>
       <ol className="border-t border-line">
         {regimen.items.map((item) => (

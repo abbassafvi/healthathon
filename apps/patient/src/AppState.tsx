@@ -1,7 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 
-import { api as defaultApi } from './data/mockApi'
+import { API_URL } from './data/config'
+import { createHttpApi } from './data/httpApi'
+import { api as mockApi } from './data/mockApi'
 import type { PatientApi } from './data/types'
 import { STRINGS, type Strings } from './i18n'
 import { isRtl, type Lang } from './theme'
@@ -25,9 +27,17 @@ const Ctx = createContext<AppState | null>(null)
  * Language and the chosen demo patient, remembered on the device. The scope
  * has no login; a patient is picked once and stays picked until changed.
  */
-export function AppStateProvider({ children, api = defaultApi }: { children: ReactNode; api?: PatientApi }) {
+export function AppStateProvider({ children, api: given }: { children: ReactNode; api?: PatientApi }) {
   const [session, setSession] = useState<Session>({ lang: 'en', patientId: null })
   const [ready, setReady] = useState(false)
+  // The real API when the app is told where it is, the mock otherwise.
+  const lang = useRef(session.lang)
+  useEffect(() => {
+    lang.current = session.lang
+  }, [session.lang])
+  const [api] = useState<PatientApi>(
+    () => given ?? (API_URL ? createHttpApi({ baseUrl: API_URL, language: () => lang.current }) : mockApi),
+  )
 
   useEffect(() => {
     AsyncStorage.getItem(KEY)

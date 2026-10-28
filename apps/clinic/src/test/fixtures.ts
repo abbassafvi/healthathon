@@ -1,4 +1,4 @@
-import type { QueueItem, Trace } from '../api/client'
+import type { PatientListItem, PatientSummary, QueueItem, Trace } from '../api/client'
 
 export function queueItem(overrides: Partial<QueueItem> = {}): QueueItem {
   return {
@@ -30,7 +30,7 @@ export function trace(overrides: Partial<Trace> = {}): Trace {
       unit_text: '%',
       observed_at: '2026-10-12',
     },
-    patient: { id: 'p-1', registration_no: 'DEV-0001', full_name: 'Asha Verma', year_of_birth: 1968, sex: 'F' },
+    patient: { id: 'p-1', registration_no: 'DEV-0001', full_name: 'Asha Verma', year_of_birth: 1968, sex: 'F', preferred_language: 'hi' },
     document: { id: 'd-1', doc_type: 'lab_report', document_date: '2026-10-12', issuing_source: 'Sunrise Diagnostics (fictional)' },
     provenance_kind: 'source_document',
     page: { url: '/api/storage/dev/pages/DEV-0001-lab.png', page_no: 1, page_count: 1, width_px: 1240, height_px: 1754 },
@@ -40,6 +40,31 @@ export function trace(overrides: Partial<Trace> = {}): Trace {
     reader_name: 'dev-seed',
     reader_version: '0',
     history: { kind: 'accepted', actor_name: null, at: null, original_value_text: null, original_unit_text: null },
+    ...overrides,
+  }
+}
+
+/* A row of /api/patients: the patient, with an empty record unless overridden. */
+export function patientListItem(
+  p: Pick<PatientSummary, 'id' | 'registration_no' | 'full_name'> & Partial<PatientSummary>,
+  overrides: Partial<PatientListItem> = {},
+): PatientListItem {
+  return {
+    year_of_birth: null,
+    sex: null,
+    preferred_language: 'en',
+    ...p,
+    enrolled_at: '2025-11-03T10:00:00+05:30',
+    caregiver: null,
+    last_visit: null,
+    next_visit: null,
+    checklist_since: null,
+    checklist_medicines: 0,
+    waiting_values: 0,
+    waiting_lines: 0,
+    documents: 0,
+    last_entry_at: null,
+    sms_phone_last4: null,
     ...overrides,
   }
 }

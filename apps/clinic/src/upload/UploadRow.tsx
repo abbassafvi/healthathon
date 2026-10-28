@@ -51,7 +51,7 @@ export function UploadRow({ u, onRetry }: { u: SessionUpload; onRetry: () => voi
             <>
               {s.outcome.regimen_id ? (
                 <p>{en.upload.rxDone}</p>
-              ) : (
+              ) : u.docType === 'prescription' ? null : (
                 <>
                   <p>{fmt(en.upload.labDone, { n: s.outcome.values_in_record })}</p>
                   {s.outcome.sent_to_queue.map((q) => (
@@ -62,6 +62,8 @@ export function UploadRow({ u, onRetry }: { u: SessionUpload; onRetry: () => voi
               <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
                 {s.outcome.regimen_id ? (
                   <Link className="font-medium text-accent underline-offset-4 hover:underline" to={`/patients/${u.patientId}/checklist/review/${s.outcome.regimen_id}`}>{en.upload.review}</Link>
+                ) : u.docType === 'prescription' ? (
+                  <Link className="font-medium text-accent underline-offset-4 hover:underline" to={`/patients/${u.patientId}/checklist`}>{en.visit.openChecklist}</Link>
                 ) : (
                   <>
                     <Link className="font-medium text-accent underline-offset-4 hover:underline" to={`/patients/${u.patientId}/documents`}>{en.upload.openRecord}</Link>

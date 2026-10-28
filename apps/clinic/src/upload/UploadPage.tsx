@@ -1,11 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router'
 
 import { api } from '../api/client'
 import { pendingApi } from '../api/pendingClient'
+import { useTitle } from '../app/useTitle'
 import { en, fmt } from '../strings/en'
 import { sha256Hex } from './sha256'
 import { UploadRow, type SessionUpload } from './UploadRow'
+import { PAGE } from '../app/page'
 
 type Picked = { key: string; file: File; preview: string }
 type DocType = 'prescription' | 'lab_report'
@@ -30,7 +33,10 @@ async function uploadOne(p: Picked, pid: string, type: DocType, patientName: str
  */
 export function UploadPage() {
   const patients = useQuery({ queryKey: ['patients'], queryFn: api.patients })
-  const [patientId, setPatientId] = useState('')
+  // A patient's page links here with ?patient=<id>, so that patient comes chosen.
+  const [params] = useSearchParams()
+  const [patientId, setPatientId] = useState(() => params.get('patient') ?? '')
+  useTitle(en.upload.title)
   const [docType, setDocType] = useState<DocType | ''>('')
   const [picked, setPicked] = useState<Picked[]>([])
   const [rejected, setRejected] = useState<string[]>([])
@@ -82,7 +88,7 @@ export function UploadPage() {
   const ready = !!patientId && !!docType && picked.length > 0 && !busy
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 pt-8 pb-16 sm:px-6">
+    <main className={`${PAGE} pt-8 pb-16`}>
       <h1 className="text-2xl font-semibold tracking-tight">{en.upload.title}</h1>
       <p className="mt-2 inline-block rounded-lg border border-line-strong bg-surface px-3 py-1.5 text-sm">{en.upload.fictionalOnly}</p>
 

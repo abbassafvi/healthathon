@@ -33,6 +33,22 @@ export type Today = {
 
 export type SurveyQuestion = Question
 
+/*
+ * An earlier day, exactly as it was recorded. Nothing is added up. Every
+ * medicine on that day's checklist is listed in checklist order; ticked is
+ * null when nothing was marked for it.
+ */
+export type PastDay = {
+  date: string
+  ticks: { item: ChecklistItem; ticked: boolean | null }[]
+  readings: Reading[]
+  answers: { question: Question; answer_text: string; occurred_at: string }[]
+  meals: Meal[]
+}
+
+/* Newest first. next_before asks for the days before these; null at the first entry. */
+export type PastDays = { days: PastDay[]; next_before: string | null }
+
 /* Every write carries a capture id made on the device: the idempotency key. */
 export type PatientApi = {
   patients(): Promise<PatientRef[]>
@@ -43,4 +59,5 @@ export type PatientApi = {
   addMeal(patientId: string, uri: string, captureId: string): Promise<Meal>
   surveyQuestions(patientId: string): Promise<SurveyQuestion[]>
   submitSurvey(patientId: string, answers: Record<string, string>, captureId: string): Promise<void>
+  pastDays(patientId: string, before?: string): Promise<PastDays>
 }

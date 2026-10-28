@@ -11,6 +11,36 @@ class PatientSummary(BaseModel):
     full_name: str
     year_of_birth: int | None
     sex: str | None
+    # The language the patient reads and writes in (BCP-47).
+    preferred_language: str
+
+
+class Caregiver(BaseModel):
+    full_name: str
+    relationship: str | None
+
+
+class PatientListItem(PatientSummary):
+    """
+    One row of the patient list: who the patient is, and what the record
+    holds now. Counts and dates of the record only, never a judgement.
+    """
+
+    enrolled_at: datetime
+    caregiver: Caregiver | None
+    last_visit: datetime | None
+    next_visit: datetime | None
+    # The checklist in force: when it came into force and how many medicines.
+    checklist_since: datetime | None
+    checklist_medicines: int
+    # Values in the confirm queue, and prescription lines waiting for review.
+    waiting_values: int
+    waiting_lines: int
+    documents: int
+    last_entry_at: datetime | None
+    # The last four digits of the phone SMS is read from, while the latest SMS
+    # consent is a yes not withdrawn. None means messages are refused.
+    sms_phone_last4: str | None
 
 
 class RecordValue(BaseModel):

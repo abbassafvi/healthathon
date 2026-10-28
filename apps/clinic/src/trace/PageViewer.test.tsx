@@ -87,4 +87,19 @@ describe('PageViewer with several marks', () => {
     rerender(<PageViewer url={URL_} width={1000} height={2000} marks={marks} focus={1} alt="rx" />)
     expect(screen.getByTestId('trace-box')).toHaveAttribute('data-box', '100.0 1000.0 300.0 40.0')
   })
+
+  it('opens on the whole page with nothing chosen, and zooms the first time a mark is chosen', async () => {
+    const images = controlImages()
+    const user = userEvent.setup()
+    const { rerender } = render(<PageViewer url={URL_} width={1000} height={2000} marks={marks} focus={-1} alt="rx" />)
+    act(() => images.load(URL_))
+    expect(screen.getByRole('img')).toHaveAttribute('data-mode', 'page')
+    expect(screen.queryByTestId('trace-box')).toBeNull()
+    rerender(<PageViewer url={URL_} width={1000} height={2000} marks={marks} focus={1} alt="rx" />)
+    expect(screen.getByRole('img')).toHaveAttribute('data-mode', 'zoom')
+    // Asking for the whole page is kept when the next mark is chosen.
+    await user.click(screen.getByRole('button', { name: /whole page/i }))
+    rerender(<PageViewer url={URL_} width={1000} height={2000} marks={marks} focus={0} alt="rx" />)
+    expect(screen.getByRole('img')).toHaveAttribute('data-mode', 'page')
+  })
 })

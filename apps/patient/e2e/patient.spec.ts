@@ -1,5 +1,22 @@
 import AxeBuilder from '@axe-core/playwright'
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
+
+import { query, reseed } from './db'
+import { API_URL } from './env'
+
+/* The real API and a real database: every test starts from the stand-in seed. */
+test.beforeEach(() => reseed())
+
+type Entry = { kind: string; channel: string; entered_by: string; language: string; ticked?: boolean; value_text?: string; context?: string; answer_text?: string; set?: string }
+
+/* What the clinician sees for today, read from the clinician's own endpoint. */
+async function clinicToday(request: APIRequestContext, registrationNo: string): Promise<Entry[]> {
+  const patients = (await (await request.get(`${API_URL}/api/patients`)).json()) as { id: string; registration_no: string }[]
+  const id = patients.find((p) => p.registration_no === registrationNo)!.id
+  const today = ((await (await request.get(`${API_URL}/api/app/patients/${id}/today`)).json()) as { date: string }).date
+  const page = (await (await request.get(`${API_URL}/api/patients/${id}/entries?from=${today}&to=${today}`)).json()) as { entries: Entry[] }
+  return page.entries
+}
 
 async function start(page: Page, lang: 'English' | 'हिन्दी' | 'اردو', patient: string) {
   await page.goto('/')
@@ -18,6 +35,8 @@ async function expectNoViolations(page: Page) {
 test('first launch picks a language and a demo patient, and remembers them', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByText('Demo: these are fictional patients.')).toBeVisible()
+  // Start is within reach without scrolling, on a phone-sized screen.
+  await expect(page.getByRole('button', { name: 'Start' })).toBeInViewport()
   await expectNoViolations(page)
   await start(page, 'English', 'Asha Verma')
   await expect(page.getByText('Hello, Asha')).toBeVisible()
@@ -25,16 +44,44 @@ test('first launch picks a language and a demo patient, and remembers them', asy
   await expect(page.getByText('Hello, Asha')).toBeVisible()
 })
 
-test('a medicine is ticked with one tap and unticked with another', async ({ page }) => {
+test('a medicine is marked taken or not taken, and a second tap clears it', async ({ page, request }) => {
   await start(page, 'English', 'Asha Verma')
-  const tick = page.getByRole('checkbox', { name: /Tab\. Metformin 500 mg/ })
-  await expect(tick).toHaveAttribute('aria-checked', 'false')
-  await tick.click()
-  await expect(tick).toHaveAttribute('aria-checked', 'true')
-  await expect(tick).toContainText('Taken')
-  await tick.click()
-  await expect(tick).toHaveAttribute('aria-checked', 'false')
+  const taken = page.getByRole('button', { name: 'Taken, Tab. Metformin 500 mg 1-0-1', exact: true })
+  const notTaken = page.getByRole('button', { name: 'Not taken, Tab. Metformin 500 mg 1-0-1', exact: true })
+  await expect(taken).toHaveAttribute('aria-pressed', 'false')
+  await taken.click()
+  await expect(taken).toHaveAttribute('aria-pressed', 'true')
   await expectNoViolations(page)
+  await notTaken.click()
+  await expect(notTaken).toHaveAttribute('aria-pressed', 'true')
+  await expect(taken).toHaveAttribute('aria-pressed', 'false')
+  let ticks = (await clinicToday(request, 'DEV-0001')).filter((e) => e.kind === 'medication_tick')
+  expect(ticks.map((t) => t.ticked)).toEqual([false])
+  await notTaken.click()
+  await expect(notTaken).toHaveAttribute('aria-pressed', 'false')
+  ticks = (await clinicToday(request, 'DEV-0001')).filter((e) => e.kind === 'medication_tick')
+  expect(ticks).toEqual([])
+})
+
+test('what the patient records reaches the clinician, marked as from the app', async ({ page, request }) => {
+  await start(page, 'हिन्दी', 'Asha Verma')
+  await page.getByRole('button', { name: /^ले ली, Tab\. Glimepiride/ }).click()
+  await expect(page.getByRole('button', { name: /^ले ली, Tab\. Glimepiride/ })).toHaveAttribute('aria-pressed', 'true')
+  await page.getByTestId('add-reading').click()
+  await page.getByTestId('glucose-value').fill('156')
+  await page.getByTestId('context-after_meal').click()
+  await page.getByTestId('save-reading').click()
+  await expect(page.getByTestId('reading')).toContainText('156')
+  await page.getByTestId('answer-no').click()
+  await expect(page.getByTestId('answer-given')).toBeVisible()
+
+  const entries = await clinicToday(request, 'DEV-0001')
+  expect(entries.map((e) => e.kind).sort()).toEqual(['glucose_reading', 'medication_tick', 'survey_answer'])
+  for (const e of entries) {
+    expect([e.channel, e.entered_by]).toEqual(['patient_app', 'patient'])
+  }
+  expect(entries.find((e) => e.kind === 'glucose_reading')).toMatchObject({ value_text: '156', context: 'after_meal' })
+  expect(entries.find((e) => e.kind === 'survey_answer')).toMatchObject({ set: 'daily', language: 'hi' })
 })
 
 test('a sugar reading needs its time of day, then shows as typed', async ({ page }) => {
@@ -74,6 +121,14 @@ test('Urdu lays the whole app out right to left, in Nastaliq', async ({ page }) 
   await expectNoViolations(page)
 })
 
+test('in Urdu, a medicine still reads as printed: dose, then schedule', async ({ page }) => {
+  await start(page, 'اردو', 'Asha Verma')
+  const card = page.getByRole('group', { name: 'Tab. Metformin 500 mg 1-0-1' })
+  const dose = await card.getByText('500 mg', { exact: true }).boundingBox()
+  const schedule = await card.getByText('1-0-1', { exact: true }).boundingBox()
+  expect(dose!.x).toBeLessThan(schedule!.x)
+})
+
 test('nothing interpretive is shown to the patient', async ({ page }) => {
   await start(page, 'English', 'Asha Verma')
   await page.getByRole('button', { name: 'Add a reading' }).click()
@@ -83,4 +138,101 @@ test('nothing interpretive is shown to the patient', async ({ page }) => {
   await expect(page.getByTestId('reading')).toContainText('410')
   const text = await page.locator('body').innerText()
   expect(text).not.toMatch(/\b(high|low|normal|target|range|average|trend|score|risk|good|bad|poor)\b/i)
+})
+
+test('a meal photo is sent as it is and shown back, with nothing estimated', async ({ page, request }) => {
+  await start(page, 'English', 'Meera Pillai')
+  // A tiny PNG made here: no real photograph is ever committed.
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64')
+  const chooser = page.waitForEvent('filechooser')
+  await page.getByTestId('add-meal').click()
+  await (await chooser).setFiles({ name: 'plate.png', mimeType: 'image/png', buffer: png })
+  await expect(page.getByText('1 photo today')).toBeVisible()
+  const meals = (await clinicToday(request, 'DEV-0003')).filter((e) => e.kind === 'meal_photo')
+  expect(meals).toHaveLength(1)
+  expect(Object.keys(meals[0]).filter((k) => /calor|portion|carb|protein|estimate/i.test(k))).toEqual([])
+})
+
+/* Yesterday as the clinician sees it, read from the clinician's own endpoint. */
+async function clinicYesterday(request: APIRequestContext, registrationNo: string) {
+  const patients = (await (await request.get(`${API_URL}/api/patients`)).json()) as { id: string; registration_no: string }[]
+  const id = patients.find((p) => p.registration_no === registrationNo)!.id
+  const today = ((await (await request.get(`${API_URL}/api/app/patients/${id}/today`)).json()) as { date: string }).date
+  const d = new Date(`${today}T12:00:00`)
+  d.setDate(d.getDate() - 1)
+  const yesterday = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  const page = (await (await request.get(`${API_URL}/api/patients/${id}/entries?from=${yesterday}&to=${yesterday}`)).json()) as {
+    entries: (Entry & { regimen_item?: { id: string } })[]
+  }
+  return { yesterday, entries: page.entries }
+}
+
+test('earlier days show what was recorded, as the clinic has it, and go back further', async ({ page, request }) => {
+  const { yesterday, entries } = await clinicYesterday(request, 'DEV-0001')
+  await start(page, 'English', 'Asha Verma')
+  await page.getByRole('button', { name: 'Earlier days' }).click()
+  await expect(page.getByRole('heading', { name: 'Earlier days' })).toBeVisible()
+
+  const day = page.getByTestId(`day-${yesterday}`)
+  await expect(day).toBeVisible()
+  const ticks = entries.filter((e) => e.kind === 'medication_tick')
+  for (const tick of ticks) {
+    await expect(day.getByTestId(`past-tick-${tick.regimen_item!.id}`)).toContainText(tick.ticked ? 'Taken' : 'Not taken')
+  }
+  const readings = entries.filter((e) => e.kind === 'glucose_reading').map((e) => e.value_text)
+  await expect(day.getByTestId('past-reading')).toHaveCount(readings.length)
+  for (const value of readings) await expect(day.getByText(value!, { exact: true }).first()).toBeVisible()
+  await expectNoViolations(page)
+
+  const shown = await page.locator('[data-testid^="day-"]').count()
+  await page.getByRole('button', { name: 'Show earlier days' }).click()
+  await expect(page.locator('[data-testid^="day-"]')).toHaveCount(shown + 7)
+  // The list ends with the same way back as it starts with.
+  await page.getByRole('button', { name: 'Back to today' }).last().click()
+  await expect(page.getByText('Hello, Asha')).toBeVisible()
+})
+
+test('earlier days read right to left in Urdu, with medicines as printed', async ({ page }) => {
+  await start(page, 'اردو', 'Asha Verma')
+  await page.getByRole('button', { name: 'پچھلے دن' }).click()
+  await expect(page.getByRole('heading', { name: 'پچھلے دن' })).toBeVisible()
+  const dir = await page.locator('[data-testid^="day-"]').first().evaluate((el) => getComputedStyle(el).direction)
+  expect(dir).toBe('rtl')
+  await expect(page.getByText('Tab. Metformin').first()).toBeVisible()
+})
+
+test('settings change the language at once, keep the patient, and say what the app is', async ({ page }) => {
+  await start(page, 'English', 'Asha Verma')
+  await page.getByRole('button', { name: 'Settings' }).click()
+  await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible()
+  await expect(page.getByText('Set up for Asha Verma, DEV-0001')).toBeVisible()
+  await expect(page.getByText('This app does not give medical advice.', { exact: false })).toBeVisible()
+  await expectNoViolations(page)
+  await page.getByRole('radio', { name: 'हिन्दी' }).click()
+  await expect(page.getByRole('heading', { name: 'सेटिंग्स' })).toBeVisible()
+  await page.getByRole('button', { name: 'आज पर वापस जाएँ' }).click()
+  await expect(page.getByText('दवाइयाँ')).toBeVisible()
+  await page.reload()
+  await expect(page.getByText('दवाइयाँ')).toBeVisible()
+})
+
+test('changing the patient from settings asks first, then goes back to the first screen', async ({ page }) => {
+  await start(page, 'English', 'Asha Verma')
+  await page.getByRole('button', { name: 'Settings' }).click()
+  await page.getByRole('button', { name: 'Change patient' }).click()
+  await expect(page.getByText('The app will go back to its first screen')).toBeVisible()
+  await page.getByRole('button', { name: 'Yes, change patient' }).click()
+  await expect(page.getByText('Who is using this phone?')).toBeVisible()
+})
+
+test('an earlier day lists a medicine nothing was marked for as not marked', async ({ page }) => {
+  query(`DELETE FROM pat.entry e USING pat.medication_tick t, core.patient p
+         WHERE t.entry_id = e.id AND p.id = e.patient_id AND p.registration_no = 'DEV-0001'
+           AND t.tick_date = (now() AT TIME ZONE 'Asia/Kolkata')::date - 1`)
+  await start(page, 'English', 'Asha Verma')
+  await page.getByRole('button', { name: 'Earlier days' }).click()
+  const yesterday = page.locator('[data-testid^="day-"]').first()
+  await expect(yesterday.getByText('Not marked')).toHaveCount(3)
+  await expect(yesterday.getByText('Taken', { exact: true })).toHaveCount(0)
+  await expectNoViolations(page)
 })

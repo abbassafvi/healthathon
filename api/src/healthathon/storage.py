@@ -1,5 +1,7 @@
 import hashlib
+import io
 from pathlib import Path
+from typing import Any
 
 from healthathon.config import get_settings
 
@@ -23,3 +25,20 @@ def sha256_of(key: str) -> bytes | None:
 
 def url_for(key: str) -> str:
     return f"/api/storage/{key}"
+
+
+def save(key: str, data: bytes) -> None:
+    """Write a file under the storage root. The key is built by the caller, never sent in."""
+    root = get_settings().storage_dir.resolve()
+    path = (root / key).resolve()
+    if not path.is_relative_to(root):
+        raise ValueError(f"storage key escapes the root: {key!r}")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(data)
+
+
+def save_image(key: str, image: Any) -> None:
+    """Save a Pillow image as PNG under the storage root."""
+    buf = io.BytesIO()
+    image.save(buf, format="PNG")
+    save(key, buf.getvalue())
