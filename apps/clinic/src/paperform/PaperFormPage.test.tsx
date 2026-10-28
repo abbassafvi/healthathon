@@ -5,6 +5,7 @@ import { http, HttpResponse } from 'msw'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { patientListItem } from '../test/fixtures'
 import { installMockServer, TEST_PATIENTS } from '../test/msw'
 import { PaperFormPage } from './PaperFormPage'
 
@@ -14,7 +15,7 @@ function setup() {
   const languages: Record<string, string> = { 'DEV-0001': 'hi', 'DEV-0002': 'ur' }
   server.use(
     http.get('*/api/patients', () =>
-      HttpResponse.json(TEST_PATIENTS.map((p) => ({ ...p, preferred_language: languages[p.registration_no] ?? 'en' }))),
+      HttpResponse.json(TEST_PATIENTS.map((p) => patientListItem({ ...p, preferred_language: languages[p.registration_no] ?? 'en' }))),
     ),
   )
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })

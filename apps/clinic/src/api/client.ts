@@ -6,6 +6,7 @@ export type Decision = components['schemas']['Decision']
 export type DecisionResult = components['schemas']['DecisionResult']
 export type CurrentUser = components['schemas']['CurrentUser']
 export type PatientSummary = components['schemas']['PatientSummary']
+export type PatientListItem = components['schemas']['PatientListItem']
 export type PatientRecord = components['schemas']['PatientRecord']
 export type RecordDocument = components['schemas']['RecordDocument']
 export type RecordValue = components['schemas']['RecordValue']
@@ -88,7 +89,7 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   me: () => request<CurrentUser>('/api/me'),
   queue: () => request<QueueList>('/api/confirm-queue'),
-  patients: () => request<PatientSummary[]>('/api/patients'),
+  patients: () => request<PatientListItem[]>('/api/patients'),
   record: (patientId: string) => request<PatientRecord>(`/api/patients/${patientId}/record`),
   trace: (valueId: string) => request<Trace>(`/api/values/${valueId}/trace`),
   checklist: (patientId: string) => request<Checklist>(`/api/patients/${patientId}/checklist`),

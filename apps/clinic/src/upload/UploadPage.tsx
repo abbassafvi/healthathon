@@ -1,8 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router'
 
 import { api } from '../api/client'
 import { pendingApi } from '../api/pendingClient'
+import { useTitle } from '../app/useTitle'
 import { en, fmt } from '../strings/en'
 import { sha256Hex } from './sha256'
 import { UploadRow, type SessionUpload } from './UploadRow'
@@ -31,7 +33,10 @@ async function uploadOne(p: Picked, pid: string, type: DocType, patientName: str
  */
 export function UploadPage() {
   const patients = useQuery({ queryKey: ['patients'], queryFn: api.patients })
-  const [patientId, setPatientId] = useState('')
+  // A patient's page links here with ?patient=<id>, so that patient comes chosen.
+  const [params] = useSearchParams()
+  const [patientId, setPatientId] = useState(() => params.get('patient') ?? '')
+  useTitle(en.upload.title)
   const [docType, setDocType] = useState<DocType | ''>('')
   const [picked, setPicked] = useState<Picked[]>([])
   const [rejected, setRejected] = useState<string[]>([])

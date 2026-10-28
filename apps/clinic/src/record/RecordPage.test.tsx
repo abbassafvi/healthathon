@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { trace } from '../test/fixtures'
+import { patientListItem, trace } from '../test/fixtures'
 import { controlImages } from '../test/images'
 import { PatientLayout } from '../patient/PatientLayout'
 import { TracePanel } from '../trace/TracePanel'
@@ -31,7 +31,7 @@ function setup(start = '/patients/p-1/documents', traceStatus = 200) {
   controlImages()
   vi.stubGlobal('fetch', vi.fn(async (input: string | URL) => {
     const url = new URL(String(input)).pathname
-    if (url === '/api/patients') return Response.json([record.patient])
+    if (url === '/api/patients') return Response.json([patientListItem(record.patient)])
     if (url === '/api/patients/p-1/record') return Response.json(record)
     if (url.startsWith('/api/values/')) {
       return traceStatus === 200

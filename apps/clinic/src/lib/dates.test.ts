@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { formatDate, formatDateTime } from './dates'
+import { formatDate, formatDateTime, formatWhen } from './dates'
 
 describe('formatDate', () => {
   it('formats a calendar date without shifting it across time zones', () => {
@@ -17,5 +17,18 @@ describe('formatDate', () => {
 describe('formatDateTime', () => {
   it('includes the day and a 24-hour time', () => {
     expect(formatDateTime('2026-10-21T14:02:00')).toMatch(/^21 Oct 2026,? 14:02$/)
+  })
+})
+
+describe('formatWhen', () => {
+  const now = new Date(2026, 9, 28, 9, 0)
+  it('names today, tomorrow and yesterday in words', () => {
+    expect(formatWhen('2026-10-28T10:00:00', now)).toBe('Today, 10:00')
+    expect(formatWhen('2026-10-29T10:30:00', now)).toBe('Tomorrow, 10:30')
+    expect(formatWhen('2026-10-27T21:40:00', now)).toBe('Yesterday, 21:40')
+  })
+
+  it('gives a date for anything further away', () => {
+    expect(formatWhen('2026-10-20T08:15:00', now)).toMatch(/^20 Oct 2026,? 08:15$/)
   })
 })
