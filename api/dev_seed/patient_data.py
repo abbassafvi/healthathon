@@ -223,3 +223,19 @@ def seed_contacts(
                 "patient_id": patients[reg], "item": "sms", "granted": True,
                 "language": lang, "captured_by": clinician,
             })  # fmt: skip
+
+
+def set_phone(conn: psycopg.Connection[Any], registration_no: str, number: str) -> str:
+    """Give a demo patient this phone instead of their fictional one. Returns its last four."""
+    normalised = phones.normalise(number)
+    if normalised is None:
+        raise SystemExit(f"Not a phone number: {number!r}")
+    row = conn.execute(
+        "UPDATE core.patient_phone SET phone_hmac = %s, phone_last4 = %s"
+        " WHERE patient_id = (SELECT id FROM core.patient WHERE registration_no = %s)"
+        " RETURNING phone_last4",
+        (phones.phone_hmac(normalised), normalised[-4:], registration_no),
+    ).fetchone()
+    if row is None:
+        raise SystemExit(f"No demo patient {registration_no!r}")
+    return str(row["phone_last4"])

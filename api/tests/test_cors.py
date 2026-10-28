@@ -21,3 +21,13 @@ def test_any_other_origin_is_not_allowed(client: Any) -> None:
     assert "access-control-allow-origin" not in res.headers
     get = client.get("/api/app/patients", headers={"Origin": "https://example.org"})
     assert "access-control-allow-origin" not in get.headers
+
+
+def test_the_patient_app_may_send_its_sign_in_token(client: Any) -> None:
+    res = client.options(
+        "/api/app/patients/x/today",
+        headers={"Origin": "http://localhost:8081", "Access-Control-Request-Method": "GET",
+                 "Access-Control-Request-Headers": "authorization"},
+    )  # fmt: skip
+    assert res.status_code == 200
+    assert "authorization" in res.headers["access-control-allow-headers"].lower()

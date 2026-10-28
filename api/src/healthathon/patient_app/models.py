@@ -4,7 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from healthathon.entries.models import CAPTURE_ID, GlucoseContext
+from healthathon.entries.models import CAPTURE_ID, GlucoseContext, MealName
 
 # What the patient app reads and writes. Everything the patient sees is
 # what the patient or the prescription put there: no range, no average, no score.
@@ -17,6 +17,27 @@ class AppPatient(BaseModel):
     registration_no: str
     full_name: str
     preferred_language: str
+
+
+class SignInStart(BaseModel):
+    phone: str = Field(min_length=6, max_length=24)
+
+
+class SignInStarted(BaseModel):
+    # Test mode only: the code, for the sign-in screen to show. Null with Twilio.
+    demo_code: str | None
+
+
+class SignInCheck(BaseModel):
+    phone: str = Field(min_length=6, max_length=24)
+    code: str = Field(pattern=r"^[0-9]{4,10}$")
+
+
+class SignedIn(BaseModel):
+    """A token for this phone, sent as `Authorization: Bearer <token>`, and whose it is."""
+
+    token: str
+    patient: AppPatient
 
 
 class AppChecklistItem(BaseModel):
@@ -41,9 +62,13 @@ class AppQuestion(BaseModel):
 
 
 class AppMeal(BaseModel):
+    """A meal photograph: which meal, when it was taken, and calories only if typed."""
+
     id: UUID
     uri: str
     occurred_at: datetime
+    meal: MealName | None
+    calories_text: str | None
 
 
 class SurveyState(BaseModel):
@@ -60,6 +85,8 @@ class Today(BaseModel):
     readings: list[AppReading]
     question: AppQuestion | None
     answer: str | None
+    # The recording with today's answer, when it was spoken.
+    answer_audio_uri: str | None
     meals: list[AppMeal]
     survey: SurveyState
 
@@ -77,14 +104,30 @@ class ReadingRequest(BaseModel):
     language: Lang | None = None
 
 
+# A recording the patient sent, as /recordings stored it.
+RECORDING_KEY = r"^voice/[0-9a-f-]{36}/[A-Za-z0-9_-]{8,64}\.(m4a|webm|ogg|wav)$"
+
+
 class AnswerRequest(BaseModel):
+    """An answer is words, a tap, a recording, or a tap with a recording."""
+
     question_key: str
-    answer_text: str = Field(max_length=2000)
+    answer_text: str | None = Field(default=None, max_length=2000)
+    audio_key: str | None = Field(default=None, pattern=RECORDING_KEY)
     capture_id: str = Field(pattern=CAPTURE_ID)
     language: Lang | None = None
 
 
 class SurveyRequest(BaseModel):
+    # Written answers, and recorded ones by question key; each question needs one or both.
     answers: dict[str, str] = Field(max_length=20)
+    recordings: dict[str, str] = Field(default_factory=dict, max_length=20)
     capture_id: str = Field(pattern=CAPTURE_ID)
     language: Lang | None = None
+
+
+class AppRecording(BaseModel):
+    """A recording kept at the clinic, to attach to an answer."""
+
+    key: str
+    uri: str

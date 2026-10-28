@@ -5,6 +5,11 @@ import type { ChecklistItem, GlucoseContext, Meal, PatientApi, PatientRef, Quest
  * seed patients. Writes are idempotent by capture id, as the real ones
  * must be. Nothing here computes anything about the readings.
  */
+const MOCK_CODE = '123456'
+const PHONES: Record<string, string> = Object.fromEntries([1, 2, 3, 4].map((n) => [`555000000${n}`, `DEV-000${n}`]))
+/* The last ten digits, so +91 55500 00001 and 55500 00001 are the same number. */
+const digits = (phone: string) => phone.replace(/\D/g, '').slice(-10)
+
 const PATIENTS: PatientRef[] = [
   { id: 'DEV-0001', registration_no: 'DEV-0001', full_name: 'Asha Verma', preferred_language: 'hi' },
   { id: 'DEV-0002', registration_no: 'DEV-0002', full_name: 'Imran Qureshi', preferred_language: 'ur' },
@@ -42,7 +47,7 @@ const SURVEY: Question[] = [
 
 const CONTEXTS: GlucoseContext[] = ['fasting', 'before_meal', 'after_meal', 'bedtime', 'overnight', 'random']
 
-type DayState = { ticks: Record<string, boolean>; readings: Reading[]; answer: string | null; meals: Meal[] }
+type DayState = { ticks: Record<string, boolean>; readings: Reading[]; answer: string | null; answerAudio: string | null; meals: Meal[] }
 
 export function localDay(d: Date): string {
   const p = (n: number) => String(n).padStart(2, '0')
@@ -60,11 +65,13 @@ export function createMockApi(clock: () => Date = () => new Date()): PatientApi 
   let days = new Map<string, DayState>()
   let surveys = new Set<string>()
   let seen = new Set<string>()
+  // Recording key -> the recording on this phone.
+  let recordings = new Map<string, string>()
   let n = 0
 
   const day = (pid: string): DayState => {
     const key = `${pid}|${localDay(clock())}`
-    if (!days.has(key)) days.set(key, { ticks: {}, readings: [], answer: null, meals: [] })
+    if (!days.has(key)) days.set(key, { ticks: {}, readings: [], answer: null, answerAudio: null, meals: [] })
     return days.get(key)!
   }
   const patient = (pid: string) => {
@@ -86,10 +93,17 @@ export function createMockApi(clock: () => Date = () => new Date()): PatientApi 
       days = new Map()
       surveys = new Set()
       seen = new Set()
+      recordings = new Map()
       n = 0
     },
-    async patients() {
-      return PATIENTS
+    // The fictional patients' numbers, as the dev seed gives them; the code is always 123456.
+    async startSignIn(phone) {
+      return { demo_code: PHONES[digits(phone)] ? MOCK_CODE : null }
+    },
+    async checkSignIn(phone, code) {
+      const p = PATIENTS.find((x) => x.id === PHONES[digits(phone)])
+      if (!p || code !== MOCK_CODE) throw new Error('That code is not right, or it has run out')
+      return { token: `mock-${p.id}`, patient: p }
     },
     async today(pid) {
       const p = patient(pid)
@@ -102,6 +116,7 @@ export function createMockApi(clock: () => Date = () => new Date()): PatientApi 
         readings: [...s.readings],
         question: DAILY_QUESTION,
         answer: s.answer,
+        answer_audio_uri: s.answerAudio,
         meals: [...s.meals],
         survey: { open: true, done: surveys.has(`${pid}|${weekOf(clock())}`) },
       }
@@ -126,18 +141,28 @@ export function createMockApi(clock: () => Date = () => new Date()): PatientApi 
       s.readings.push(reading)
       return reading
     },
-    async answer(pid, key, text, captureId) {
+    async answer(pid, key, text, captureId, audioKey) {
       patient(pid)
-      if (!text.trim()) throw new Error('An answer cannot be empty')
+      if (!text?.trim() && !audioKey) throw new Error('An answer cannot be empty')
+      if (audioKey && !recordings.has(audioKey)) throw new Error('That recording was not sent from this phone')
       if (key !== DAILY_QUESTION.key) throw new Error('Unknown question')
       if (!once(captureId)) return
-      day(pid).answer = text.trim()
+      const s = day(pid)
+      s.answer = text?.trim() || null
+      s.answerAudio = audioKey ? recordings.get(audioKey)! : null
     },
-    async addMeal(pid, uri, captureId) {
+    async uploadRecording(pid, uri, captureId) {
+      patient(pid)
+      const key = `voice/${pid}/${captureId}.m4a`
+      recordings.set(key, uri)
+      return { key, uri }
+    },
+    async addMeal(pid, m, captureId) {
       patient(pid)
       const s = day(pid)
-      if (!once(captureId)) return s.meals.find((m) => m.id === captureId)!
-      const meal: Meal = { id: captureId, uri, occurred_at: time() }
+      if (!once(captureId)) return s.meals.find((x) => x.id === captureId)!
+      if (m.calories !== null && !/^\d{1,4}$/.test(m.calories)) throw new Error('Calories are a number, as typed')
+      const meal: Meal = { id: captureId, uri: m.uri, occurred_at: m.takenAt.toISOString(), meal: m.meal, calories_text: m.calories }
       s.meals.push(meal)
       n++
       return meal
@@ -146,9 +171,9 @@ export function createMockApi(clock: () => Date = () => new Date()): PatientApi 
       patient(pid)
       return SURVEY
     },
-    async submitSurvey(pid, answers, captureId) {
+    async submitSurvey(pid, answers, captureId, spoken = {}) {
       patient(pid)
-      if (SURVEY.some((q) => !answers[q.key]?.trim())) throw new Error('Every question needs an answer')
+      if (SURVEY.some((q) => !answers[q.key]?.trim() && !recordings.has(spoken[q.key]))) throw new Error('Every question needs an answer')
       if (!once(captureId)) return
       surveys.add(`${pid}|${weekOf(clock())}`)
     },
@@ -165,7 +190,9 @@ export function createMockApi(clock: () => Date = () => new Date()): PatientApi 
           date,
           ticks: items.map((item) => ({ item, ticked: item.id in s.ticks ? s.ticks[item.id] : null })),
           readings: [...s.readings],
-          answers: s.answer ? [{ question: DAILY_QUESTION, answer_text: s.answer, occurred_at: `${date}T20:00:00` }] : [],
+          answers: s.answer || s.answerAudio
+            ? [{ question: DAILY_QUESTION, answer_text: s.answer, audio_uri: s.answerAudio, occurred_at: `${date}T20:00:00` }]
+            : [],
           meals: [...s.meals],
         }))
       return { days: past, next_before: null }

@@ -10,6 +10,10 @@ history of all of it. Usage:
     uv run python -m dev_seed                 # refuses if already seeded
     uv run python -m dev_seed --reset         # truncates every table first (dev only)
     uv run python -m dev_seed --no-history    # leaves the audit chain empty, for tests
+    uv run python -m dev_seed --phone DEV-0001=+91XXXXXXXXXX
+        # puts your own phone on a demo patient in this database only, so a
+        # sign-in code sent through Twilio can reach you. Works on a seeded
+        # database without --reset. Only its HMAC and last four digits are kept.
 """
 
 import argparse
@@ -33,6 +37,7 @@ from dev_seed.patient_data import (
     seed_questions,
     seed_regimens,
     seed_visits,
+    set_phone,
 )
 from healthathon.config import get_settings
 
@@ -91,16 +96,25 @@ def main() -> int:
     ap.add_argument(
         "--no-history", action="store_true", help="write no audit events for the seeded data"
     )
+    ap.add_argument(
+        "--phone", action="append", default=[], metavar="REG=NUMBER",
+        help="use this phone for a demo patient, e.g. DEV-0001=+919876543210",
+    )  # fmt: skip
     args = ap.parse_args()
     settings = get_settings()
     with psycopg.connect(settings.database_url, row_factory=dict_row) as conn:
+        seeded = conn.execute("SELECT 1 FROM core.patient LIMIT 1").fetchone()
         if args.reset:
             _truncate(conn)
-        elif conn.execute("SELECT 1 FROM core.patient LIMIT 1").fetchone():
+        elif seeded and not args.phone:
             print("Already seeded. Pass --reset to start again.", file=sys.stderr)
             return 1
-        seed(conn, settings.storage_dir, settings.stub_user_email, history=not args.no_history)
-    print("Seeded 4 patients. Storage:", settings.storage_dir)
+        if args.reset or not seeded:
+            seed(conn, settings.storage_dir, settings.stub_user_email, history=not args.no_history)
+            print("Seeded 4 patients. Storage:", settings.storage_dir)
+        for spec in args.phone:
+            reg, _, number = spec.partition("=")
+            print(f"{reg} now uses the phone ending {set_phone(conn, reg, number)}.")
     return 0
 
 

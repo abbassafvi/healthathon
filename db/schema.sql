@@ -71,6 +71,9 @@ CREATE TYPE core.entered_by AS ENUM ('patient', 'caregiver', 'clinic_staff');
 CREATE TYPE pat.glucose_context AS ENUM (
     'fasting', 'before_meal', 'after_meal', 'bedtime', 'overnight', 'random');
 
+-- The meal a photograph is of, as the patient chose it.
+CREATE TYPE pat.meal AS ENUM ('breakfast', 'lunch', 'dinner', 'snack');
+
 CREATE TYPE pat.entry_kind AS ENUM (
     'glucose_reading', 'medication_tick', 'felt_low_entry',
     'meal_photo', 'survey_answer', 'free_symptom_note', 'wearable_summary');
@@ -451,11 +454,15 @@ COMMENT ON TABLE pat.felt_low_entry IS
   'assistance" is a grading criterion in diabetology and this is not that.';
 
 CREATE TABLE pat.meal_photo (
-    entry_id     uuid PRIMARY KEY REFERENCES pat.entry(id) ON DELETE CASCADE,
-    storage_key  text NOT NULL,
-    taken_at     timestamptz NOT NULL
-    -- No portion, calorie or macronutrient column. In the pilot no estimate
-    -- is computed and no photograph leaves the clinic boundary.
+    entry_id      uuid PRIMARY KEY REFERENCES pat.entry(id) ON DELETE CASCADE,
+    storage_key   text NOT NULL,
+    taken_at      timestamptz NOT NULL,   -- when the photograph was taken
+    meal          pat.meal,               -- NULL only for photographs sent before it was asked
+    calories_text text CHECK (calories_text ~ '^[0-9]{1,4}$')
+    -- calories_text is only ever what the patient typed because they knew it,
+    -- stored as typed. Nothing is estimated from the photograph, nothing is
+    -- added up, and no photograph leaves the clinic boundary. There is no
+    -- portion or macronutrient column.
 );
 
 CREATE TABLE pat.wearable_summary (
@@ -512,9 +519,12 @@ CREATE TABLE pat.patient_question_set_item (
 CREATE TABLE pat.survey_answer (
     entry_id    uuid PRIMARY KEY REFERENCES pat.entry(id) ON DELETE CASCADE,
     question_id uuid NOT NULL REFERENCES pat.question_bank_item(id),
-    answer_text text NOT NULL,                 -- stored exactly as given
-    set_id      uuid REFERENCES pat.patient_question_set(id)
-    -- No score, no weight, no total. Answers are never added up.
+    answer_text text,                          -- stored exactly as given
+    audio_key   text,                          -- the patient's own recording, as recorded
+    set_id      uuid REFERENCES pat.patient_question_set(id),
+    CONSTRAINT answer_given CHECK (answer_text IS NOT NULL OR audio_key IS NOT NULL)
+    -- No score, no weight, no total. Answers are never added up. A spoken
+    -- answer is kept as a recording and not transcribed.
 );
 
 -- =====================================================================

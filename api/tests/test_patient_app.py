@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from typing import Any
 
 import psycopg
@@ -32,14 +33,9 @@ def _reading(client: Any, pid: str, cap: str = "cap-reading-1", **over: Any) -> 
     return client.post(f"/api/app/patients/{pid}/readings", json=body)
 
 
-def test_lists_the_four_patients_with_their_language(client: Any) -> None:
-    res = client.get("/api/app/patients").json()
-    assert [(p["registration_no"], p["preferred_language"]) for p in res] == [
-        ("DEV-0001", "hi"),
-        ("DEV-0002", "ur"),
-        ("DEV-0003", "en"),
-        ("DEV-0004", "hi"),
-    ]
+def test_a_phone_is_given_no_list_of_patients(client: Any) -> None:
+    # A phone signs in by its own number; it never sees who else is enrolled.
+    assert client.get("/api/app/patients").status_code in (404, 405)
 
 
 def test_today_starts_empty_with_the_checklist_as_printed(client: Any, pid: str) -> None:
@@ -216,22 +212,57 @@ def test_the_survey_needs_every_answer_and_is_saved_once(
 
 
 def test_a_meal_photograph_is_stored_and_served_unchanged(client: Any, pid: str) -> None:
-    url = f"/api/app/patients/{pid}/meals?capture_id=cap-meal-0001"
+    url = f"/api/app/patients/{pid}/meals?capture_id=cap-meal-0001&meal=lunch"
     res = client.post(url, content=PNG, headers={"Content-Type": "image/png"})
     assert res.status_code == 200, res.text
     meal = res.json()
     assert client.get(meal["uri"]).content == PNG
     assert client.post(url, content=PNG, headers={"Content-Type": "image/png"}).json() == meal
     assert [m["id"] for m in _today(client, pid)["meals"]] == [meal["id"]]
-    assert set(meal) == {"id", "uri", "occurred_at"}  # no estimate of any kind
+    # The meal as chosen, and nothing estimated: calories only if typed.
+    assert set(meal) == {"id", "uri", "occurred_at", "meal", "calories_text"}
+    assert (meal["meal"], meal["calories_text"]) == ("lunch", None)
 
 
-def test_only_a_photograph_is_accepted_as_a_meal(client: Any, pid: str) -> None:
-    url = f"/api/app/patients/{pid}/meals?capture_id=cap-meal-0002"
+def test_a_meal_happened_when_its_photograph_was_taken(client: Any, pid: str) -> None:
+    taken = (clinic_time.now() - timedelta(hours=5)).replace(microsecond=0)
+    url = (f"/api/app/patients/{pid}/meals?capture_id=cap-meal-0003&meal=breakfast"
+           f"&taken_at={taken.isoformat().replace('+', '%2B')}&calories=350")  # fmt: skip
+    meal = client.post(url, content=PNG).json()
+    assert datetime.fromisoformat(meal["occurred_at"]) == taken
+    assert (meal["meal"], meal["calories_text"]) == ("breakfast", "350")
+    entries = client.get(f"/api/patients/{pid}/entries?from={taken.date()}&to={taken.date()}")
+    shown = next(e for e in entries.json()["entries"] if e["kind"] == "meal_photo")
+    assert (shown["meal"], shown["calories_text"], shown["occurred_at"]) == (
+        "breakfast", "350", meal["occurred_at"])  # fmt: skip
+
+
+def test_a_time_without_an_offset_is_the_clinics_wall_time(client: Any, pid: str) -> None:
+    wall = (clinic_time.now() - timedelta(hours=1)).replace(microsecond=0, tzinfo=None)
+    url = (f"/api/app/patients/{pid}/meals?capture_id=cap-meal-0004&meal=snack"
+           f"&taken_at={wall.isoformat()}")  # fmt: skip
+    meal = client.post(url, content=PNG).json()
+    assert datetime.fromisoformat(meal["occurred_at"]).replace(tzinfo=None) == wall
+
+
+def test_only_a_photograph_with_its_meal_is_accepted(client: Any, pid: str) -> None:
+    url = f"/api/app/patients/{pid}/meals?capture_id=cap-meal-0002&meal=dinner"
     assert client.post(url, content=b"not an image").status_code == 415
     big = PNG + b"\x00" * (8 * 1024 * 1024)
     assert client.post(url, content=big).status_code == 413
     assert client.post(f"/api/app/patients/{pid}/meals", content=PNG).status_code == 422
+    no_meal = f"/api/app/patients/{pid}/meals?capture_id=cap-meal-0005"
+    assert client.post(no_meal, content=PNG).status_code == 422
+    assert client.post(f"{no_meal}&meal=supper", content=PNG).status_code == 422
+    for calories in ("about 300", "12345", "-5", "3.5"):
+        assert client.post(f"{url}&calories={calories}", content=PNG).status_code == 422, calories
+
+
+def test_a_meal_photograph_cannot_be_dated_ahead_or_long_ago(client: Any, pid: str) -> None:
+    for i, when in enumerate((timedelta(hours=1), -timedelta(days=4))):
+        t = (clinic_time.now() + when).isoformat().replace("+", "%2B")
+        url = f"/api/app/patients/{pid}/meals?capture_id=cap-meal-01{i}&meal=lunch&taken_at={t}"
+        assert client.post(url, content=PNG).status_code == 422
 
 
 def test_unknown_patients_are_404(client: Any) -> None:

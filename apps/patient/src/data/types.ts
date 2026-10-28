@@ -15,7 +15,14 @@ export type Reading = { id: string; value_text: string; context: GlucoseContext;
 
 export type Question = { key: string; text: Record<Lang, string> }
 
-export type Meal = { id: string; uri: string; occurred_at: string }
+export type MealName = 'breakfast' | 'lunch' | 'dinner' | 'snack'
+
+/* A meal photo; occurred_at is when it was taken. Calories only ever as the patient typed them. */
+export type Meal = { id: string; uri: string; occurred_at: string; meal: MealName | null; calories_text: string | null }
+
+export type Recording = { key: string; uri: string }
+
+export type NewMeal = { uri: string; meal: MealName; takenAt: Date; calories: string | null }
 
 export type Today = {
   date: string
@@ -26,7 +33,10 @@ export type Today = {
   ticks: Record<string, boolean>
   readings: Reading[]
   question: Question | null
+  /* A tapped Yes or No, or words; null when the answer was only spoken. */
   answer: string | null
+  /* The recording with today's answer, played as recorded. */
+  answer_audio_uri: string | null
   meals: Meal[]
   survey: { open: boolean; done: boolean }
 }
@@ -42,22 +52,29 @@ export type PastDay = {
   date: string
   ticks: { item: ChecklistItem; ticked: boolean | null }[]
   readings: Reading[]
-  answers: { question: Question; answer_text: string; occurred_at: string }[]
+  answers: { question: Question; answer_text: string | null; audio_uri: string | null; occurred_at: string }[]
   meals: Meal[]
 }
 
 /* Newest first. next_before asks for the days before these; null at the first entry. */
 export type PastDays = { days: PastDay[]; next_before: string | null }
 
+/* A phone signed in: the token its requests carry, and whose phone it is. */
+export type SignedIn = { token: string; patient: PatientRef }
+
 /* Every write carries a capture id made on the device: the idempotency key. */
 export type PatientApi = {
-  patients(): Promise<PatientRef[]>
+  /* Sends a code by SMS to a number on a patient's record. demo_code is set only in test mode. */
+  startSignIn(phone: string): Promise<{ demo_code: string | null }>
+  checkSignIn(phone: string, code: string): Promise<SignedIn>
   today(patientId: string): Promise<Today>
   setTick(patientId: string, itemId: string, ticked: boolean | null, captureId: string): Promise<void>
   addReading(patientId: string, r: { value_text: string; context: GlucoseContext }, captureId: string): Promise<Reading>
-  answer(patientId: string, questionKey: string, text: string, captureId: string): Promise<void>
-  addMeal(patientId: string, uri: string, captureId: string): Promise<Meal>
+  answer(patientId: string, questionKey: string, text: string | null, captureId: string, audioKey?: string): Promise<void>
+  /* A spoken answer, kept at the clinic as recorded; its key attaches it to an answer. */
+  uploadRecording(patientId: string, uri: string, captureId: string): Promise<Recording>
+  addMeal(patientId: string, meal: NewMeal, captureId: string): Promise<Meal>
   surveyQuestions(patientId: string): Promise<SurveyQuestion[]>
-  submitSurvey(patientId: string, answers: Record<string, string>, captureId: string): Promise<void>
+  submitSurvey(patientId: string, answers: Record<string, string>, captureId: string, recordings?: Record<string, string>): Promise<void>
   pastDays(patientId: string, before?: string): Promise<PastDays>
 }

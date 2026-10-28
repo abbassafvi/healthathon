@@ -10,6 +10,9 @@ from pydantic import BaseModel, Field
 Channel = Literal["patient_app", "paper_form", "sms"]
 EnteredBy = Literal["patient", "caregiver", "clinic_staff"]
 GlucoseContext = Literal["fasting", "before_meal", "after_meal", "bedtime", "overnight", "random"]
+MealName = Literal["breakfast", "lunch", "dinner", "snack"]
+# Calories only as the patient typed them, because they knew them. Never estimated.
+CALORIES = r"^[0-9]{1,4}$"
 
 CAPTURE_ID = r"^[A-Za-z0-9-]{8,64}$"
 # A reading as written: digits, optionally a decimal part. No range is applied.
@@ -53,12 +56,18 @@ class AnswerEntry(EntryBase):
     question_key: str
     question_text: str  # in English, for the clinician
     question_text_shown: str  # as the patient saw it
-    answer_text: str
+    # The patient's words, a tapped Yes or No, or None when the answer was only spoken.
+    answer_text: str | None
+    # The patient's own recording, kept as recorded and not transcribed.
+    audio_url: str | None
 
 
 class MealPhotoEntry(EntryBase):
     kind: Literal["meal_photo"]
     photo_url: str
+    # occurred_at is when the photograph was taken.
+    meal: MealName | None
+    calories_text: str | None
 
 
 PatientEntry = Annotated[

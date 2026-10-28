@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { Modal, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native'
+import { Modal, ScrollView, StyleSheet, TextInput, View } from 'react-native'
 
 import { useApp } from '../AppState'
 import type { GlucoseContext } from '../data/types'
-import { color, font, radius, space, touch } from '../theme'
+import { color, font, radius, space } from '../theme'
 import { Button } from './Button'
+import { ChoiceTile } from './ChoiceTile'
 import { Txt } from './Txt'
 
 const CONTEXTS: GlucoseContext[] = ['fasting', 'before_meal', 'after_meal', 'bedtime', 'overnight', 'random']
@@ -59,16 +60,14 @@ export function GlucoseSheet({ visible, onSave, onClose }: {
           <Txt size={17} tone="ink2" style={{ marginTop: space.md }}>{t.glucose.when}</Txt>
           <View style={styles.chips} role="radiogroup" aria-label={t.glucose.when}>
             {CONTEXTS.map((c) => (
-              <Pressable
+              <ChoiceTile
                 key={c}
-                testID={`context-${c}`}
-                role="radio"
-                aria-checked={context === c}
+                label={t.glucose.contexts[c]}
+                checked={context === c}
                 onPress={() => setContext(c)}
-                style={[styles.chip, context === c && styles.chipOn]}
-              >
-                <Txt size={17} weight="medium">{t.glucose.contexts[c]}</Txt>
-              </Pressable>
+                testID={`context-${c}`}
+                style={styles.chip}
+              />
             ))}
           </View>
           {tried && !context && <Txt tone="ink" size={16} accessibilityLiveRegion="polite">{t.glucose.needContext}</Txt>}
@@ -101,15 +100,6 @@ const styles = StyleSheet.create({
   },
   invalid: { borderColor: color.ink, borderWidth: 3 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  chip: {
-    minHeight: touch.min,
-    paddingHorizontal: space.lg,
-    borderRadius: radius.md,
-    borderWidth: 1.5,
-    borderColor: color.line,
-    backgroundColor: color.surface,
-    justifyContent: 'center',
-  },
-  chipOn: { borderColor: color.ink, borderWidth: 2.5 },
+  chip: { flexBasis: '47%', flexGrow: 1 },
   actions: { marginTop: space.xl, gap: space.sm },
 })

@@ -137,7 +137,9 @@ def _seed_patient(
             eid = entry("meal_photo", day, 13, rng.randint(0, 58), ("patient_app", by))
             key = f"dev/meals/{reg}-{n}.png"
             draw_meal(storage / key, key)
+            # Lunch, and now and then the calories the patient knew from a label.
             _insert(conn, "pat.meal_photo", {
                 "entry_id": eid, "storage_key": key,
-                "taken_at": clinic_time.at(day, time(13, 0)),
+                "taken_at": clinic_time.at(day, time(13, 0)), "meal": "lunch",
+                "calories_text": "420" if n % 4 == 0 else None,
             }, returning=None)  # fmt: skip

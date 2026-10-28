@@ -25,6 +25,12 @@ export function shownAnswer(text: string, t: Strings): string {
   return text
 }
 
+/* Whether an answer is a tapped Yes or No, in any language, rather than words. */
+export function isTapped(text: string): boolean {
+  const a = text.trim()
+  return Object.values(STRINGS).some((s) => s.today.yes === a || s.today.no === a)
+}
+
 /* Text with no Devanagari or Arabic letters keeps the Latin face in every language. */
 export function isLatin(text: string): boolean {
   return !/[\u0600-\u06FF\u0900-\u097F]/.test(text)

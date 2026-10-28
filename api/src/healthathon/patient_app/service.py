@@ -26,10 +26,6 @@ def require_patient(conn: Connection[DictRow], patient_id: UUID) -> dict[str, An
     return p
 
 
-def patients(conn: Connection[DictRow]) -> list[AppPatient]:
-    return [AppPatient(**p) for p in repo.patients(conn)]
-
-
 def today(conn: Connection[DictRow], patient_id: UUID) -> Today:
     """
     One day in the app: the checklist and what has been recorded today, by
@@ -61,6 +57,8 @@ def today(conn: Connection[DictRow], patient_id: UUID) -> Today:
             id=r["id"],
             uri=storage.url_for(r["storage_key"]),
             occurred_at=clinic_time.local(r["occurred_at"]),
+            meal=r["meal"],
+            calories_text=r["calories_text"],
         )
         for r in rows
         if r["kind"] == "meal_photo"
@@ -73,6 +71,9 @@ def today(conn: Connection[DictRow], patient_id: UUID) -> Today:
         readings=readings,
         question=daily_question(conn),
         answer=daily[-1]["answer_text"] if daily else None,
+        answer_audio_uri=storage.url_for(daily[-1]["audio_key"])
+        if daily and daily[-1]["audio_key"]
+        else None,
         meals=meals,
         survey=survey_state(conn, patient_id),
     )

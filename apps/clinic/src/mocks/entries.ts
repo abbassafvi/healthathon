@@ -115,7 +115,7 @@ export function generateEntries(regimens: MockRegimen[], now: Date): Record<stri
         const answers = q.answers[p.language]
         const entry: AnswerEntry = {
           ...base, ...who(), id: id(), kind: 'survey_answer', set: q.set, question_key: q.key,
-          question_text: q.en, question_text_shown: q[p.language], answer_text: answers[Math.floor(r() * answers.length)],
+          question_text: q.en, question_text_shown: q[p.language], answer_text: answers[Math.floor(r() * answers.length)], audio_url: null,
           occurred_at: at(day, 20, Math.floor(r() * 59)), recorded_at: at(day, 20, 59),
         }
         list.push(entry)
@@ -131,6 +131,7 @@ export function generateEntries(regimens: MockRegimen[], now: Date): Record<stri
         list.push({
           ...base, ...viaApp, id: eid, kind: 'meal_photo', photo_url: `/mock/meals/${eid}.svg`,
           occurred_at: at(day, 13, Math.floor(r() * 59)), recorded_at: at(day, 13, 59),
+          meal: 'lunch', calories_text: null,
         })
       }
     }

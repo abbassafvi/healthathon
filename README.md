@@ -74,6 +74,25 @@ target. Without it the app runs on its in-memory mock.
 
 Page images and crops go to `storage/`, which is never committed.
 
+### Patient sign-in
+
+A phone signs in with the mobile number on the patient's record and a code
+sent to it by SMS through Twilio Verify. Set these outside git:
+
+```
+HEALTHATHON_TWILIO_ACCOUNT_SID=AC...
+HEALTHATHON_TWILIO_AUTH_TOKEN=...
+HEALTHATHON_TWILIO_VERIFY_SID=VA...
+HEALTHATHON_SESSION_SECRET=<a long random value>
+```
+
+Without the Twilio values the API is in test mode: no SMS is sent, and the
+sign-in screen shows the code (it is also in the API's log). The seed's
+fictional patients use 55500 00001 to 55500 00004. To have a real code
+reach your own phone, put your number on a demo patient in your local
+database only: `uv run python -m dev_seed --phone DEV-0001=+91XXXXXXXXXX`.
+Never deploy in test mode.
+
 ### SMS
 
 `POST /api/sms/inbound` stands in for an SMS gateway. The patient writes one

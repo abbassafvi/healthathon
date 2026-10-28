@@ -13,4 +13,6 @@ export const E2E_ENV: Record<string, string> = {
   // Under storage/, which .gitignore excludes.
   HEALTHATHON_STORAGE_DIR: path.join(REPO, 'storage', 'e2e-patient'),
   HEALTHATHON_CORS_ORIGINS: JSON.stringify([`http://127.0.0.1:${WEB_PORT}`]),
+  // Every test signs in again on the same few numbers.
+  HEALTHATHON_OTP_SENDS_PER_HOUR: '1000',
 }

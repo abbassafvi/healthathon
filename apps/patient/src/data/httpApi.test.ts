@@ -69,23 +69,47 @@ describe('the HTTP patient API', () => {
     await client.submitSurvey('p1', { walk_days_week: '3' }, 'cap-s')
     expect(body(calls[0])).toEqual({ value_text: '132', context: 'fasting', capture_id: 'cap-r', language: 'hi' })
     expect(body(calls[1])).toEqual({ question_key: 'felt_unwell_today', answer_text: 'नहीं', capture_id: 'cap-a', language: 'hi' })
-    expect(body(calls[2])).toEqual({ answers: { walk_days_week: '3' }, capture_id: 'cap-s', language: 'hi' })
+    expect(body(calls[2])).toEqual({ answers: { walk_days_week: '3' }, recordings: {}, capture_id: 'cap-s', language: 'hi' })
   })
 
-  it('uploads a meal photo as it is, with its capture id', async () => {
-    const { client, calls, photos } = api(json({ id: 'm1', uri: '/api/storage/meals/p1/m1.jpg', occurred_at: 'x' }))
-    const meal = await client.addMeal('p1', 'file:///photo.jpg', 'cap-m')
+  it('uploads a meal photo as it is, with its meal, when it was taken, and its capture id', async () => {
+    const { client, calls, photos } = api(json({ id: 'm1', uri: '/api/storage/meals/p1/m1.jpg', occurred_at: 'x', meal: 'lunch', calories_text: null }))
+    const takenAt = new Date('2026-10-28T07:40:00Z')
+    const meal = await client.addMeal('p1', { uri: 'file:///photo.jpg', meal: 'lunch', takenAt, calories: null }, 'cap-m')
     expect(photos).toEqual(['file:///photo.jpg'])
-    expect(calls[0].url).toBe('http://clinic.test:8000/api/app/patients/p1/meals?capture_id=cap-m')
+    expect(calls[0].url).toBe('http://clinic.test:8000/api/app/patients/p1/meals?capture_id=cap-m&meal=lunch&taken_at=2026-10-28T07%3A40%3A00.000Z')
     expect(calls[0].init?.method).toBe('POST')
     expect(calls[0].init?.headers).toEqual({ 'Content-Type': 'image/jpeg' })
     expect(calls[0].init?.body).toBe(jpeg)
     expect(meal.uri).toBe('http://clinic.test:8000/api/storage/meals/p1/m1.jpg')
   })
 
+  it('sends a recording as recorded, then the answer that carries its key', async () => {
+    const { client, calls, photos } = api(json({ key: 'voice/p1/cap-v.m4a', uri: '/api/storage/voice/p1/cap-v.m4a' }), empty())
+    const rec = await client.uploadRecording('p1', 'file:///answer.m4a', 'cap-v')
+    await client.answer('p1', 'felt_unwell_today', 'No', 'cap-a', rec.key)
+    expect(photos).toEqual(['file:///answer.m4a'])
+    expect(calls[0].url).toBe('http://clinic.test:8000/api/app/patients/p1/recordings?capture_id=cap-v')
+    expect(calls[0].init?.body).toBe(jpeg)
+    expect(rec.uri).toBe('http://clinic.test:8000/api/storage/voice/p1/cap-v.m4a')
+    expect(body(calls[1])).toEqual({ question_key: 'felt_unwell_today', answer_text: 'No', audio_key: 'voice/p1/cap-v.m4a', capture_id: 'cap-a', language: 'hi' })
+  })
+
+  it('sends survey recordings by question, beside the written answers', async () => {
+    const { client, calls } = api(empty())
+    await client.submitSurvey('p1', { walk_days_week: '3' }, 'cap-s', { skipped_meal_week: 'voice/p1/cap-s-1.m4a' })
+    expect(body(calls[0])).toEqual({ answers: { walk_days_week: '3' }, recordings: { skipped_meal_week: 'voice/p1/cap-s-1.m4a' }, capture_id: 'cap-s', language: 'hi' })
+  })
+
+  it('sends calories only when the patient typed them', async () => {
+    const { client, calls } = api(json({ id: 'm1', uri: '/m.jpg', occurred_at: 'x', meal: 'snack', calories_text: '350' }))
+    await client.addMeal('p1', { uri: 'file:///photo.jpg', meal: 'snack', takenAt: new Date('2026-10-28T10:00:00Z'), calories: '350' }, 'cap-m')
+    expect(new URL(calls[0].url).searchParams.get('calories')).toBe('350')
+  })
+
   it('sends nothing when the photo cannot be read', async () => {
     const { client, calls } = api()
-    const err = await client.addMeal('p1', 'file:///missing.jpg', 'cap-m').catch((e: unknown) => e)
+    const err = await client.addMeal('p1', { uri: 'file:///missing.jpg', meal: 'dinner', takenAt: new Date(), calories: null }, 'cap-m').catch((e: unknown) => e)
     expect(err).toBeInstanceOf(ApiError)
     expect((err as ApiError).status).toBe(0)
     expect(calls).toEqual([])
@@ -115,9 +139,33 @@ describe('the HTTP patient API', () => {
     expect((err as ApiError).message).toBe('A reading must be a number')
   })
 
+  it('signs in with the code, and then sends the token on patient routes only', async () => {
+    let token: string | null = null
+    const calls: { url: string; init?: RequestInit }[] = []
+    const replies = [json({ demo_code: null }), json({ token: 'tok-1', patient: { id: 'p1' } }), json({})]
+    const client = createHttpApi({
+      baseUrl: 'http://clinic.test:8000',
+      language: () => 'en',
+      token: () => token,
+      fetch: (async (url: string, init?: RequestInit) => {
+        calls.push({ url, init })
+        return replies.shift()!
+      }) as typeof fetch,
+    })
+    await client.startSignIn('55500 00001')
+    const signed = await client.checkSignIn('55500 00001', '123456')
+    token = signed.token
+    await client.today('p1').catch(() => {})
+    expect(body(calls[0])).toEqual({ phone: '55500 00001' })
+    expect(calls[0].url).toBe('http://clinic.test:8000/api/app/sign-in/start')
+    expect(body(calls[1])).toEqual({ phone: '55500 00001', code: '123456' })
+    expect((calls[0].init?.headers as Record<string, string>).Authorization).toBeUndefined()
+    expect(calls[2].init?.headers).toEqual({ Authorization: 'Bearer tok-1' })
+  })
+
   it('reports a network failure as status 0', async () => {
     const { client } = api(new TypeError('Network request failed'))
-    const err = await client.patients().catch((e: unknown) => e)
+    const err = await client.startSignIn('55500 00001').catch((e: unknown) => e)
     expect(err).toBeInstanceOf(ApiError)
     expect((err as ApiError).status).toBe(0)
   })

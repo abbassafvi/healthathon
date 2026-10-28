@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
-import { Image, ScrollView, StyleSheet, View } from 'react-native'
+import { ScrollView, StyleSheet, View } from 'react-native'
 
 import { useApp } from '../AppState'
 import { Button } from '../components/Button'
+import { MealThumb } from '../components/MealCard'
+import { Playback } from '../components/Recorder'
 import { Txt } from '../components/Txt'
 import type { PastDay } from '../data/types'
 import { isLatin, shownAnswer } from '../i18n'
@@ -122,11 +124,12 @@ function Day({ day }: { day: PastDay }) {
       {day.answers.length > 0 && (
         <Group title={t.past.answers}>
           {day.answers.map((a, i) => {
-            const answer = shownAnswer(a.answer_text, t)
+            const answer = a.answer_text === null ? null : shownAnswer(a.answer_text, t)
             return (
               <View key={i} style={styles.answer}>
                 <Txt size={16} tone="ink2">{a.question.text[lang] ?? a.question.text.en}</Txt>
-                <Txt size={18} latin={lang !== 'en' && isLatin(answer)}>{answer}</Txt>
+                {answer !== null && <Txt size={18} latin={lang !== 'en' && isLatin(answer)}>{answer}</Txt>}
+                {a.audio_uri && <Playback uri={a.audio_uri} />}
               </View>
             )
           })}
@@ -136,9 +139,7 @@ function Day({ day }: { day: PastDay }) {
       {day.meals.length > 0 && (
         <Group title={t.past.meals}>
           <View style={styles.meals}>
-            {day.meals.map((m) => (
-              <Image key={m.id} source={{ uri: thumbnail(m.uri) }} style={styles.thumb} accessibilityIgnoresInvertColors />
-            ))}
+            {day.meals.map((m) => <MealThumb key={m.id} meal={{ ...m, uri: thumbnail(m.uri) }} />)}
           </View>
         </Group>
       )}
@@ -175,5 +176,4 @@ const styles = StyleSheet.create({
   reading: { flexDirection: 'row', alignItems: 'baseline', gap: space.sm, flexWrap: 'wrap' },
   answer: { gap: 2 },
   meals: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  thumb: { width: 88, height: 88, borderRadius: radius.md, backgroundColor: color.sunken },
 })

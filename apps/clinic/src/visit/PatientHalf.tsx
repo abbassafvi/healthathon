@@ -6,6 +6,7 @@ import { time } from '../entries/ticks'
 import { formatDate } from '../lib/dates'
 import { thumbnail } from '../lib/photos'
 import { en, fmt } from '../strings/en'
+import { Recording } from '../entries/Recording'
 import { Block } from './DocumentsHalf'
 import { ScoreBlock } from './ScoreBlock'
 
@@ -80,7 +81,11 @@ export function PatientHalf({ entries, score }: { entries: PatientEntry[]; score
                 <a href={m.photo_url} target="_blank" rel="noreferrer" className="block rounded-md" aria-label={`${en.entries.openPhoto}, ${formatDate(m.occurred_at)} ${time(m.occurred_at)}`}>
                   <img src={thumbnail(m.photo_url)} alt="" loading="lazy" className="aspect-[4/3] w-full rounded-md border border-line object-cover" />
                 </a>
-                <p className="numerals mt-1 text-xs text-ink-2">{formatDate(m.occurred_at)}, {time(m.occurred_at)}</p>
+                <p className="numerals mt-1 text-xs text-ink-2">
+                  {m.meal && <span className="font-medium text-ink">{en.entries.meals[m.meal]}, </span>}
+                  {formatDate(m.occurred_at)}, {time(m.occurred_at)}
+                </p>
+                {m.calories_text && <p className="numerals text-xs text-ink-2">{fmt(en.entries.calories, { n: m.calories_text })}</p>}
               </li>
             ))}
           </ul>
@@ -123,6 +128,7 @@ function Answers({ title, answers }: { title: string; answers: AnswerEntry[] }) 
                   <span className="numerals text-ink-2">{formatDate(a.occurred_at)}</span>
                   <span lang={a.language} dir={a.language === 'ur' ? 'rtl' : 'ltr'} className={a.language === 'ur' ? 'text-right' : ''}>
                     {a.answer_text}
+                    {a.audio_url && <Recording url={a.audio_url} />}
                   </span>
                 </li>
               ))}

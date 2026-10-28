@@ -369,24 +369,82 @@
         }
       }
     },
-    "/api/app/patients": {
-      "get": {
+    "/api/app/sign-in/start": {
+      "post": {
         "tags": [
           "patient-app"
         ],
-        "summary": "Get Patients",
-        "operationId": "get_patients_api_app_patients_get",
+        "summary": "Start Sign In",
+        "description": "Send a code to this number if it is on a patient's record. The answer is\nthe same either way, except that test mode shows the code it made.",
+        "operationId": "start_sign_in_api_app_sign_in_start_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignInStart"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/AppPatient"
-                  },
-                  "type": "array",
-                  "title": "Response Get Patients Api App Patients Get"
+                  "$ref": "#/components/schemas/SignInStarted"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/app/sign-in/check": {
+      "post": {
+        "tags": [
+          "patient-app"
+        ],
+        "summary": "Check Sign In",
+        "operationId": "check_sign_in_api_app_sign_in_check_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignInCheck"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignedIn"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -410,6 +468,22 @@
               "type": "string",
               "format": "uuid",
               "title": "Patient Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
             }
           }
         ],
@@ -464,6 +538,22 @@
               "format": "uuid",
               "title": "Item Id"
             }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
           }
         ],
         "requestBody": {
@@ -509,6 +599,22 @@
               "type": "string",
               "format": "uuid",
               "title": "Patient Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
             }
           }
         ],
@@ -562,6 +668,22 @@
               "type": "string",
               "format": "uuid",
               "title": "Patient Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
             }
           }
         ],
@@ -619,6 +741,77 @@
               "pattern": "^[A-Za-z0-9-]{8,64}$",
               "title": "Capture Id"
             }
+          },
+          {
+            "name": "meal",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "enum": [
+                "breakfast",
+                "lunch",
+                "dinner",
+                "snack"
+              ],
+              "type": "string",
+              "description": "The meal, as the patient chose it",
+              "title": "Meal"
+            },
+            "description": "The meal, as the patient chose it"
+          },
+          {
+            "name": "taken_at",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "When the photograph was taken; now by default",
+              "title": "Taken At"
+            },
+            "description": "When the photograph was taken; now by default"
+          },
+          {
+            "name": "calories",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[0-9]{1,4}$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only as typed by the patient",
+              "title": "Calories"
+            },
+            "description": "Only as typed by the patient"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
           }
         ],
         "requestBody": {
@@ -669,6 +862,112 @@
         }
       }
     },
+    "/api/app/patients/{patient_id}/recordings": {
+      "post": {
+        "tags": [
+          "patient-app"
+        ],
+        "summary": "Post Recording",
+        "description": "A spoken answer, kept as recorded. Attach its key to an answer or the survey.",
+        "operationId": "post_recording_api_app_patients__patient_id__recordings_post",
+        "parameters": [
+          {
+            "name": "patient_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Patient Id"
+            }
+          },
+          {
+            "name": "capture_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9-]{8,64}$",
+              "title": "Capture Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "contentMediaType": "application/octet-stream",
+                "title": "Body"
+              }
+            },
+            "audio/mp4": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "audio/webm": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "audio/ogg": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "audio/wav": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppRecording"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/app/patients/{patient_id}/survey": {
       "get": {
         "tags": [
@@ -685,6 +984,22 @@
               "type": "string",
               "format": "uuid",
               "title": "Patient Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
             }
           }
         ],
@@ -730,6 +1045,22 @@
               "type": "string",
               "format": "uuid",
               "title": "Patient Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
             }
           }
         ],
@@ -807,6 +1138,22 @@
               "minimum": 1,
               "default": 7,
               "title": "Count"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
             }
           }
         ],
@@ -1600,8 +1947,26 @@
             "title": "Question Text Shown"
           },
           "answer_text": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Answer Text"
+          },
+          "audio_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Url"
           }
         },
         "type": "object",
@@ -1618,7 +1983,8 @@
           "question_key",
           "question_text",
           "question_text_shown",
-          "answer_text"
+          "answer_text",
+          "audio_url"
         ],
         "title": "AnswerEntry"
       },
@@ -1629,9 +1995,28 @@
             "title": "Question Key"
           },
           "answer_text": {
-            "type": "string",
-            "maxLength": 2000,
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Answer Text"
+          },
+          "audio_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^voice/[0-9a-f-]{36}/[A-Za-z0-9_-]{8,64}\\.(m4a|webm|ogg|wav)$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Key"
           },
           "capture_id": {
             "type": "string",
@@ -1658,10 +2043,10 @@
         "type": "object",
         "required": [
           "question_key",
-          "answer_text",
           "capture_id"
         ],
-        "title": "AnswerRequest"
+        "title": "AnswerRequest",
+        "description": "An answer is words, a tap, a recording, or a tap with a recording."
       },
       "AppChecklistItem": {
         "properties": {
@@ -1761,15 +2146,46 @@
             "type": "string",
             "format": "date-time",
             "title": "Occurred At"
+          },
+          "meal": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "breakfast",
+                  "lunch",
+                  "dinner",
+                  "snack"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meal"
+          },
+          "calories_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Calories Text"
           }
         },
         "type": "object",
         "required": [
           "id",
           "uri",
-          "occurred_at"
+          "occurred_at",
+          "meal",
+          "calories_text"
         ],
-        "title": "AppMeal"
+        "title": "AppMeal",
+        "description": "A meal photograph: which meal, when it was taken, and calories only if typed."
       },
       "AppPastAnswer": {
         "properties": {
@@ -1777,8 +2193,26 @@
             "$ref": "#/components/schemas/AppQuestion"
           },
           "answer_text": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Answer Text"
+          },
+          "audio_uri": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Uri"
           },
           "occurred_at": {
             "type": "string",
@@ -1790,6 +2224,7 @@
         "required": [
           "question",
           "answer_text",
+          "audio_uri",
           "occurred_at"
         ],
         "title": "AppPastAnswer"
@@ -1905,6 +2340,25 @@
           "occurred_at"
         ],
         "title": "AppReading"
+      },
+      "AppRecording": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "uri": {
+            "type": "string",
+            "title": "Uri"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "uri"
+        ],
+        "title": "AppRecording",
+        "description": "A recording kept at the clinic, to attach to an answer."
       },
       "AuditEntry": {
         "properties": {
@@ -3164,6 +3618,34 @@
           "photo_url": {
             "type": "string",
             "title": "Photo Url"
+          },
+          "meal": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "breakfast",
+                  "lunch",
+                  "dinner",
+                  "snack"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meal"
+          },
+          "calories_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Calories Text"
           }
         },
         "type": "object",
@@ -3176,7 +3658,9 @@
           "occurred_at",
           "recorded_at",
           "kind",
-          "photo_url"
+          "photo_url",
+          "meal",
+          "calories_text"
         ],
         "title": "MealPhotoEntry"
       },
@@ -4760,6 +5244,80 @@
         ],
         "title": "ShownValue"
       },
+      "SignInCheck": {
+        "properties": {
+          "phone": {
+            "type": "string",
+            "maxLength": 24,
+            "minLength": 6,
+            "title": "Phone"
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^[0-9]{4,10}$",
+            "title": "Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "phone",
+          "code"
+        ],
+        "title": "SignInCheck"
+      },
+      "SignInStart": {
+        "properties": {
+          "phone": {
+            "type": "string",
+            "maxLength": 24,
+            "minLength": 6,
+            "title": "Phone"
+          }
+        },
+        "type": "object",
+        "required": [
+          "phone"
+        ],
+        "title": "SignInStart"
+      },
+      "SignInStarted": {
+        "properties": {
+          "demo_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Demo Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "demo_code"
+        ],
+        "title": "SignInStarted"
+      },
+      "SignedIn": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "title": "Token"
+          },
+          "patient": {
+            "$ref": "#/components/schemas/AppPatient"
+          }
+        },
+        "type": "object",
+        "required": [
+          "token",
+          "patient"
+        ],
+        "title": "SignedIn",
+        "description": "A token for this phone, sent as `Authorization: Bearer <token>`, and whose it is."
+      },
       "SmsProblem": {
         "properties": {
           "line": {
@@ -4854,6 +5412,14 @@
             "type": "object",
             "maxProperties": 20,
             "title": "Answers"
+          },
+          "recordings": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "maxProperties": 20,
+            "title": "Recordings"
           },
           "capture_id": {
             "type": "string",
@@ -5102,6 +5668,17 @@
             ],
             "title": "Answer"
           },
+          "answer_audio_uri": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Answer Audio Uri"
+          },
           "meals": {
             "items": {
               "$ref": "#/components/schemas/AppMeal"
@@ -5122,6 +5699,7 @@
           "readings",
           "question",
           "answer",
+          "answer_audio_uri",
           "meals",
           "survey"
         ],

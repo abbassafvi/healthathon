@@ -17,9 +17,9 @@ SELECT e.id, e.kind::text AS kind, e.channel::text AS channel,
        c.full_name AS caregiver_name, c.relationship AS caregiver_relationship,
        g.value_text, g.context::text AS context, g.insulin_units,
        t.tick_date, t.ticked, ri.id AS item_id, ri.drug_text, ri.dose_text, ri.schedule_text,
-       sa.answer_text, sa.set_id, qb.question_key,
+       sa.answer_text, sa.audio_key, sa.set_id, qb.question_key,
        qen.text AS question_text, COALESCE(qshown.text, qen.text) AS question_text_shown,
-       m.storage_key
+       m.storage_key, m.meal::text AS meal, m.calories_text
 FROM pat.entry e
 LEFT JOIN core.caregiver c ON c.id = e.caregiver_id
 LEFT JOIN pat.glucose_reading g ON g.entry_id = e.id
@@ -175,13 +175,14 @@ def insert_answer(
     conn: Connection[DictRow],
     entry_id: UUID,
     question_id: UUID,
-    answer_text: str,
+    answer_text: str | None,
     set_id: UUID | None,
+    audio_key: str | None = None,
 ) -> None:
     conn.execute(
-        "INSERT INTO pat.survey_answer (entry_id, question_id, answer_text, set_id)"
-        " VALUES (%s, %s, %s, %s)",
-        (entry_id, question_id, answer_text, set_id),
+        "INSERT INTO pat.survey_answer (entry_id, question_id, answer_text, set_id, audio_key)"
+        " VALUES (%s, %s, %s, %s, %s)",
+        (entry_id, question_id, answer_text, set_id, audio_key),
     )
 
 

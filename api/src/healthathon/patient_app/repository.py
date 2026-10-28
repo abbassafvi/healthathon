@@ -6,11 +6,14 @@ from psycopg import Connection
 from psycopg.rows import DictRow
 
 
-def patients(conn: Connection[DictRow]) -> list[dict[str, Any]]:
+def patient_by_phone(conn: Connection[DictRow], phone_hmac: bytes) -> dict[str, Any] | None:
+    """The enrolled patient whose recorded phone has this HMAC."""
     return conn.execute(
-        "SELECT id, registration_no, full_name, preferred_language FROM core.patient"
-        " WHERE exited_at IS NULL ORDER BY registration_no"
-    ).fetchall()
+        "SELECT p.id, p.registration_no, p.full_name, p.preferred_language"
+        " FROM core.patient_phone ph JOIN core.patient p ON p.id = ph.patient_id"
+        " WHERE ph.phone_hmac = %s AND p.exited_at IS NULL",
+        (phone_hmac,),
+    ).fetchone()
 
 
 def patient(conn: Connection[DictRow], patient_id: UUID) -> dict[str, Any] | None:
@@ -119,7 +122,7 @@ def reading(conn: Connection[DictRow], entry_id: UUID) -> dict[str, Any] | None:
 def meal(conn: Connection[DictRow], entry_id: UUID) -> dict[str, Any] | None:
     return conn.execute(
         """
-        SELECT e.id, e.occurred_at, m.storage_key
+        SELECT e.id, e.occurred_at, m.storage_key, m.meal::text AS meal, m.calories_text
         FROM pat.entry e JOIN pat.meal_photo m ON m.entry_id = e.id WHERE e.id = %s
         """,
         (entry_id,),
@@ -127,9 +130,15 @@ def meal(conn: Connection[DictRow], entry_id: UUID) -> dict[str, Any] | None:
 
 
 def insert_meal(
-    conn: Connection[DictRow], entry_id: UUID, storage_key: str, taken_at: datetime
+    conn: Connection[DictRow],
+    entry_id: UUID,
+    storage_key: str,
+    taken_at: datetime,
+    meal: str,
+    calories_text: str | None,
 ) -> None:
     conn.execute(
-        "INSERT INTO pat.meal_photo (entry_id, storage_key, taken_at) VALUES (%s, %s, %s)",
-        (entry_id, storage_key, taken_at),
+        "INSERT INTO pat.meal_photo (entry_id, storage_key, taken_at, meal, calories_text)"
+        " VALUES (%s, %s, %s, %s, %s)",
+        (entry_id, storage_key, taken_at, meal, calories_text),
     )
