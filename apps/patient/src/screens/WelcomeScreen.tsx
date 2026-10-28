@@ -1,13 +1,14 @@
 import { LinearGradient } from 'expo-linear-gradient'
 import { useCallback, useEffect, useState } from 'react'
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { ScrollView, StyleSheet, View } from 'react-native'
 
 import { useApp } from '../AppState'
 import { Button } from '../components/Button'
+import { ChoiceTile } from '../components/ChoiceTile'
 import { Txt } from '../components/Txt'
 import type { PatientRef } from '../data/types'
 import { STRINGS } from '../i18n'
-import { color, radius, space, touch, type Lang } from '../theme'
+import { color, space, type Lang } from '../theme'
 
 const LANGS: Lang[] = ['en', 'hi', 'ur']
 
@@ -41,17 +42,15 @@ export function WelcomeScreen() {
           <Txt lang={lang} size={20} weight="bold">{t.welcome.chooseLanguage}</Txt>
           <View style={styles.langs} role="radiogroup" aria-label={t.welcome.chooseLanguage}>
             {LANGS.map((l) => (
-              <Pressable
+              <ChoiceTile
                 key={l}
-                role="radio"
-                aria-checked={lang === l}
-                accessibilityLabel={STRINGS[l].langName}
-                testID={`lang-${l}`}
+                label={STRINGS[l].langName}
+                lang={l}
+                checked={lang === l}
                 onPress={() => setLang(l)}
-                style={[styles.choice, styles.langChoice, lang === l && styles.chosen]}
-              >
-                <Txt lang={l} size={20} weight="medium">{STRINGS[l].langName}</Txt>
-              </Pressable>
+                testID={`lang-${l}`}
+                style={styles.langChoice}
+              />
             ))}
           </View>
         </View>
@@ -67,18 +66,15 @@ export function WelcomeScreen() {
           )}
           <View style={styles.list} role="radiogroup" aria-label={t.welcome.choosePatient}>
             {patients.map((p) => (
-              <Pressable
+              <ChoiceTile
                 key={p.id}
-                role="radio"
-                aria-checked={patientId === p.id}
-                accessibilityLabel={p.full_name}
-                testID={`patient-${p.id}`}
+                label={p.full_name}
+                sub={p.registration_no}
+                latin
+                checked={patientId === p.id}
                 onPress={() => setPatientId(p.id)}
-                style={[styles.choice, styles.patient, patientId === p.id && styles.chosen]}
-              >
-                <Txt latin size={20} weight="medium">{p.full_name}</Txt>
-                <Txt latin size={14} tone="ink3">{p.registration_no}</Txt>
-              </Pressable>
+                testID={`patient-${p.id}`}
+              />
             ))}
           </View>
         </View>
@@ -105,18 +101,7 @@ const styles = StyleSheet.create({
   langs: { flexDirection: 'row', gap: space.sm, marginTop: space.sm, flexWrap: 'wrap' },
   list: { gap: space.sm, marginTop: space.sm },
   failed: { gap: space.md, marginTop: space.sm },
-  choice: {
-    minHeight: touch.large,
-    borderRadius: radius.md,
-    borderWidth: 1.5,
-    borderColor: color.line,
-    backgroundColor: color.surface,
-    justifyContent: 'center',
-    paddingHorizontal: space.lg,
-  },
-  langChoice: { flexGrow: 1, alignItems: 'center' },
-  patient: { paddingVertical: space.md },
-  chosen: { borderColor: color.ink, borderWidth: 2.5 },
+  langChoice: { flexGrow: 1 },
   screen: { flex: 1, backgroundColor: color.bg },
   footer: {
     paddingHorizontal: space.xl,

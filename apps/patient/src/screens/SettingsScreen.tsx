@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { ScrollView, StyleSheet, View } from 'react-native'
 
 import { expo } from '../../app.json'
 import { useApp } from '../AppState'
 import { Button } from '../components/Button'
+import { ChoiceTile } from '../components/ChoiceTile'
 import { Txt } from '../components/Txt'
 import type { PatientRef } from '../data/types'
 import { fmt, STRINGS } from '../i18n'
-import { color, radius, space, touch, type Lang } from '../theme'
+import { color, radius, space, type Lang } from '../theme'
 import { useBackButton } from '../useBackButton'
 
 const LANGS: Lang[] = ['en', 'hi', 'ur']
@@ -36,17 +37,15 @@ export function SettingsScreen({ onBack }: { onBack: () => void }) {
         <Txt size={16} tone="ink2">{t.settings.languageHelp}</Txt>
         <View style={styles.langs} role="radiogroup" aria-label={t.settings.language}>
           {LANGS.map((l) => (
-            <Pressable
+            <ChoiceTile
               key={l}
-              role="radio"
-              aria-checked={lang === l}
-              accessibilityLabel={STRINGS[l].langName}
-              testID={`settings-lang-${l}`}
+              label={STRINGS[l].langName}
+              lang={l}
+              checked={lang === l}
               onPress={() => choose({ lang: l, patientId })}
-              style={[styles.choice, lang === l && styles.chosen]}
-            >
-              <Txt lang={l} size={20} weight="medium">{STRINGS[l].langName}</Txt>
-            </Pressable>
+              testID={`settings-lang-${l}`}
+              style={styles.choice}
+            />
           ))}
         </View>
       </View>
@@ -81,16 +80,5 @@ const styles = StyleSheet.create({
   back: { alignSelf: 'flex-start' },
   block: { gap: space.sm, paddingTop: space.lg, borderTopWidth: 1, borderTopColor: color.line },
   langs: { flexDirection: 'row', gap: space.sm, marginTop: space.xs, flexWrap: 'wrap' },
-  choice: {
-    minHeight: touch.large,
-    flexGrow: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: space.lg,
-    borderRadius: radius.md,
-    borderWidth: 1.5,
-    borderColor: color.line,
-    backgroundColor: color.surface,
-  },
-  chosen: { borderColor: color.ink, borderWidth: 2.5 },
+  choice: { flexGrow: 1 },
 })
