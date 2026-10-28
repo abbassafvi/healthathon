@@ -28,7 +28,7 @@ test('a decision made in the queue appears in the audit log, with the chain chec
 test('opening the log is itself in the log', async ({ page }) => {
   await page.goto('/audit')
   await page.getByRole('button', { name: 'Reads' }).click()
-  await expect(page.getByRole('row').nth(1)).toContainText('Opened the audit log')
+  await expect(page.locator('tr[data-kind]').first()).toContainText('Opened the audit log')
 })
 
 test('a changed row breaks the chain, and the log says where', async ({ page }) => {

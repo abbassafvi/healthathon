@@ -72,8 +72,8 @@ describe('AuditLogPage', () => {
       ],
     }))
     const table = await screen.findByRole('table')
-    const [, ...body] = within(table).getAllByRole('row')
-    expect(body[0]).toHaveTextContent('The patientRecorded a glucose readingAsha Verma3')
+    const body = within(table).getAllByRole('row').filter((r) => r.hasAttribute('data-kind'))
+    expect(body[0]).toHaveTextContent('10:02The patientRecorded a glucose readingAsha Verma3')
     expect(body[1]).toHaveTextContent('Dr. Demo ClinicianCorrected a valueReason: Two readings of this region disagree. 3.4 s to decide')
     expect(body[2]).toHaveTextContent('SMS gatewayAn SMS was refused1')
     expect(within(body[0]).getByRole('link', { name: 'Asha Verma' })).toHaveAttribute('href', '/patients/p-1/visit')
@@ -97,8 +97,25 @@ describe('AuditLogPage', () => {
     await screen.findByRole('table')
     await user.click(screen.getByRole('button', { name: 'Show older events' }))
     await screen.findByText('1')
-    expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(4)
+    expect(within(screen.getByRole('table')).getAllByRole('row').filter((r) => r.hasAttribute('data-kind'))).toHaveLength(3)
     expect(asked.map((p) => p.get('before'))).toEqual([null, '2'])
     expect(screen.queryByRole('button', { name: 'Show older events' })).not.toBeInTheDocument()
+  })
+
+  it('heads each day once, so a row gives only its time', async () => {
+    setup(() => ({
+      chain: intact,
+      next_before: null,
+      entries: [
+        entry({ id: 3, occurred_at: '2026-10-21T18:30:00+05:30' }),
+        entry({ id: 2, occurred_at: '2026-10-21T09:15:00+05:30' }),
+        entry({ id: 1, occurred_at: '2026-10-20T21:40:00+05:30' }),
+      ],
+    }))
+    const table = await screen.findByRole('table')
+    const days = within(table).getAllByRole('columnheader').filter((h) => h.getAttribute('scope') === 'colgroup')
+    expect(days.map((d) => d.textContent)).toEqual(['Wednesday, 21 October 2026', 'Tuesday, 20 October 2026'])
+    const times = within(table).getAllByRole('row').filter((r) => r.hasAttribute('data-kind')).map((r) => r.querySelector('time')?.textContent)
+    expect(times).toEqual(['18:30', '09:15', '21:40'])
   })
 })

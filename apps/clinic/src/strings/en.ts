@@ -501,6 +501,8 @@ export const en = {
     reason: 'Reason: {reason}',
     latency: '{seconds} s to decide',
     more: 'Show older events',
+    today: 'Today',
+    yesterday: 'Yesterday',
     empty: 'Nothing has been recorded of this kind.',
     actions: {
       'value.confirm': 'Confirmed a value as read',
