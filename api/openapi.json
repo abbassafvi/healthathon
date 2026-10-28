@@ -117,7 +117,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/PatientSummary"
+                    "$ref": "#/components/schemas/PatientListItem"
                   },
                   "type": "array",
                   "title": "Response List Patients Api Patients Get"
@@ -2129,6 +2129,31 @@
         ],
         "title": "CandidateReading"
       },
+      "Caregiver": {
+        "properties": {
+          "full_name": {
+            "type": "string",
+            "title": "Full Name"
+          },
+          "relationship": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Relationship"
+          }
+        },
+        "type": "object",
+        "required": [
+          "full_name",
+          "relationship"
+        ],
+        "title": "Caregiver"
+      },
       "ChainCheck": {
         "properties": {
           "checked": {
@@ -3409,6 +3434,149 @@
           "next_before"
         ],
         "title": "PastDays"
+      },
+      "PatientListItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "registration_no": {
+            "type": "string",
+            "title": "Registration No"
+          },
+          "full_name": {
+            "type": "string",
+            "title": "Full Name"
+          },
+          "year_of_birth": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Year Of Birth"
+          },
+          "sex": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sex"
+          },
+          "preferred_language": {
+            "type": "string",
+            "title": "Preferred Language"
+          },
+          "enrolled_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Enrolled At"
+          },
+          "caregiver": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Caregiver"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_visit": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Visit"
+          },
+          "next_visit": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Visit"
+          },
+          "checklist_since": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checklist Since"
+          },
+          "checklist_medicines": {
+            "type": "integer",
+            "title": "Checklist Medicines"
+          },
+          "waiting_values": {
+            "type": "integer",
+            "title": "Waiting Values"
+          },
+          "waiting_lines": {
+            "type": "integer",
+            "title": "Waiting Lines"
+          },
+          "documents": {
+            "type": "integer",
+            "title": "Documents"
+          },
+          "last_entry_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Entry At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "registration_no",
+          "full_name",
+          "year_of_birth",
+          "sex",
+          "preferred_language",
+          "enrolled_at",
+          "caregiver",
+          "last_visit",
+          "next_visit",
+          "checklist_since",
+          "checklist_medicines",
+          "waiting_values",
+          "waiting_lines",
+          "documents",
+          "last_entry_at"
+        ],
+        "title": "PatientListItem",
+        "description": "One row of the patient list: who the patient is, and what the record\nholds now. Counts and dates of the record only, never a judgement."
       },
       "PatientRecord": {
         "properties": {

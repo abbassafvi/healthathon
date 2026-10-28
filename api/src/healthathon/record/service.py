@@ -1,3 +1,4 @@
+from datetime import datetime
 from itertools import groupby
 from typing import Any
 from uuid import UUID
@@ -6,13 +7,15 @@ from fastapi import HTTPException
 from psycopg import Connection
 from psycopg.rows import DictRow
 
-from healthathon import storage
+from healthathon import clinic_time, storage
 from healthathon.audit import record_event
 from healthathon.auth import CurrentUser
 from healthathon.record import repository as repo
 from healthathon.record.models import (
     Box,
+    Caregiver,
     DocumentInfo,
+    PatientListItem,
     PatientRecord,
     PatientSummary,
     RecordDocument,
@@ -23,6 +26,30 @@ from healthathon.record.models import (
 )
 
 NOT_SHOWN = "This value is not shown in the record"
+
+_COUNTS = ("checklist_medicines", "waiting_values", "waiting_lines", "documents")
+
+
+def patient_list(conn: Connection[DictRow]) -> list[PatientListItem]:
+    def local(t: datetime | None) -> datetime | None:
+        return clinic_time.local(t) if t else None
+
+    return [
+        PatientListItem(
+            id=r["id"], registration_no=r["registration_no"], full_name=r["full_name"],
+            year_of_birth=r["year_of_birth"], sex=r["sex"],
+            preferred_language=r["preferred_language"],
+            enrolled_at=clinic_time.local(r["enrolled_at"]),
+            caregiver=Caregiver(full_name=r["caregiver_name"],
+                                relationship=r["caregiver_relationship"])
+            if r["caregiver_name"] else None,
+            last_visit=local(r["last_visit"]), next_visit=local(r["next_visit"]),
+            checklist_since=local(r["checklist_since"]),
+            last_entry_at=local(r["last_entry_at"]),
+            **{k: int(r[k]) for k in _COUNTS},
+        )
+        for r in repo.list_patients(conn)
+    ]  # fmt: skip
 
 
 def patient_record(conn: Connection[DictRow], user: CurrentUser, patient_id: UUID) -> PatientRecord:

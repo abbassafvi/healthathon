@@ -15,6 +15,31 @@ class PatientSummary(BaseModel):
     preferred_language: str
 
 
+class Caregiver(BaseModel):
+    full_name: str
+    relationship: str | None
+
+
+class PatientListItem(PatientSummary):
+    """
+    One row of the patient list: who the patient is, and what the record
+    holds now. Counts and dates of the record only, never a judgement.
+    """
+
+    enrolled_at: datetime
+    caregiver: Caregiver | None
+    last_visit: datetime | None
+    next_visit: datetime | None
+    # The checklist in force: when it came into force and how many medicines.
+    checklist_since: datetime | None
+    checklist_medicines: int
+    # Values in the confirm queue, and prescription lines waiting for review.
+    waiting_values: int
+    waiting_lines: int
+    documents: int
+    last_entry_at: datetime | None
+
+
 class RecordValue(BaseModel):
     """A renderable value, exactly as printed. Nothing derived is attached."""
 

@@ -135,8 +135,8 @@ def seed(
     for i, ((reg, name, yob, sex, lang), report) in enumerate(zip(PATIENTS, REPORTS, strict=True)):
         patient = conn.execute(
             "INSERT INTO core.patient (registration_no, full_name, year_of_birth, sex,"
-            " preferred_language) VALUES (%s, %s, %s, %s, %s) RETURNING id",
-            (reg, name, yob, sex, lang),
+            " preferred_language, enrolled_at) VALUES (%s, %s, %s, %s, %s, %s) RETURNING id",
+            (reg, name, yob, sex, lang, now - timedelta(days=380 - 70 * i)),
         ).fetchone()["id"]
         patients[reg] = patient
         question_sets[reg] = seed_question_set(conn, patient, clinician, questions)
