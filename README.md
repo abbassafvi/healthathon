@@ -77,7 +77,9 @@ Page images and crops go to `storage/`, which is never committed.
 ### SMS
 
 `POST /api/sms/inbound` stands in for an SMS gateway. The patient writes one
-instruction per line, from the card the clinic gives them:
+instruction per line, from the card the clinic gives them. The clinic prints
+the card from the patient's Checklist tab ("SMS card"), in the language the
+patient reads, with their medicines numbered as the reader counts them:
 
 | Message | Means |
 | --- | --- |

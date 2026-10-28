@@ -11,6 +11,7 @@ import { PatientLayout } from './patient/PatientLayout'
 import { ReadingPage } from './reading/ReadingPage'
 import { PatientsPage } from './record/PatientsPage'
 import { RecordPage } from './record/RecordPage'
+import { SmsCardPage } from './smscard/SmsCardPage'
 import { TimelinePage } from './timeline/TimelinePage'
 import { TodayPage } from './today/TodayPage'
 import { VisitPage } from './visit/VisitPage'
@@ -28,6 +29,7 @@ export function App() {
         <Route path="upload" element={<UploadPage />} />
         <Route path="audit" element={<AuditLogPage />} />
         <Route path="patients/:patientId/checklist/review/:regimenId" element={<ReviewPage />} />
+        <Route path="patients/:patientId/sms-card" element={<SmsCardPage />} />
         <Route path="patients/:patientId" element={<PatientLayout />}>
           <Route index element={<Navigate to="visit" replace />} />
           <Route path="visit" element={<VisitPage />} />

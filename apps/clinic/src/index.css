@@ -10,6 +10,10 @@
 @theme {
   --font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'Geist Mono Variable', ui-monospace, monospace;
+  /* The SMS card, printed in the patient's script. Latin falls back to Geist. */
+  --font-deva: 'Noto Sans Devanagari', 'Geist Variable', ui-sans-serif, sans-serif;
+  --font-urdu: 'Noto Nastaliq Urdu', 'Geist Variable', serif;
+  --font-card-mono: 'Geist Mono Variable', 'Noto Sans Devanagari', 'Noto Nastaliq Urdu', ui-monospace, monospace;
 
   --color-bg: oklch(0.965 0 0);
   --color-surface: oklch(1 0 0);
@@ -132,6 +136,18 @@
 .animate-gate {
   transform-origin: left;
   animation: gate-progress 1.6s var(--ease-out-quart) both;
+}
+
+/* Only the SMS card is printed today; the app's frame hides itself. */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+
+  body {
+    background: white;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

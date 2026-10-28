@@ -7,7 +7,7 @@ import { LoadError } from '../app/LoadError'
 import { formatDate, formatDateTime } from '../lib/dates'
 import { en, fmt } from '../strings/en'
 import { ItemText } from './ItemText'
-import { PAGE } from '../app/page'
+import { BUTTON, PAGE } from '../app/page'
 
 export function ChecklistPage() {
   const { patientId } = useParams() as { patientId: string }
@@ -51,6 +51,13 @@ export function ChecklistPage() {
                 <p className="mt-1 max-w-[60ch] text-ink-2">{en.checklist.noneActiveBody}</p>
               </div>
             )}
+          </section>
+          <section aria-labelledby="sms" className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3 border-t border-line pt-6">
+            <div>
+              <h2 id="sms" className="text-base font-semibold">{en.smsCard.checklistTitle}</h2>
+              <p className="mt-1 max-w-[65ch] text-sm text-ink-2">{en.smsCard.checklistNote}</p>
+            </div>
+            <Link to={`/patients/${patientId}/sms-card`} className={BUTTON}>{en.smsCard.open}</Link>
           </section>
         </div>
       )}

@@ -19,7 +19,7 @@ export function AppShell() {
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="sticky top-0 z-(--z-sticky) border-b border-line bg-bg/95 backdrop-blur-sm">
+      <header className="sticky top-0 z-(--z-sticky) border-b border-line bg-bg/95 backdrop-blur-sm print:hidden">
         <div className={`${PAGE} flex h-14 items-center gap-6 sm:gap-8`}>
           <Link to="/today" className="hidden shrink-0 items-center gap-2.5 sm:flex" data-testid="brand">
             <Mark className="size-6" />
@@ -60,7 +60,7 @@ export function AppShell() {
         </div>
       </header>
       <Outlet />
-      <footer className="mt-auto border-t border-line">
+      <footer className="mt-auto border-t border-line print:hidden">
         <div className={`${PAGE} flex flex-wrap items-baseline justify-between gap-x-8 gap-y-1 py-4 text-xs text-ink-3`}>
           <p className="numerals">{fmt(en.app.build, { name: en.app.name, version: __APP_VERSION__, commit: __APP_COMMIT__ })}</p>
           <p>{en.app.boundary}</p>

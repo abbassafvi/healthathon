@@ -151,6 +151,26 @@ export const en = {
     loadFailed: 'The checklist could not be loaded.',
     patientSees: 'This is the list the patient ticks in the app, exactly as printed.',
   },
+  smsCard: {
+    title: 'SMS card',
+    checklistTitle: 'Diary by SMS',
+    checklistNote:
+      'A patient who sends their diary by SMS numbers their medicines from this checklist, in this order. A new checklist needs a new card.',
+    open: 'SMS card',
+    back: 'Checklist',
+    intro:
+      'The card the patient keeps by the phone: how to send sugar readings, medicines and answers by SMS, with their medicines numbered the way SMS counts them.',
+    language: 'Card language',
+    number: 'Clinic SMS number',
+    numberHint: 'The number patients send to. This computer remembers it for every card.',
+    numberNeeded: 'Type the number patients send to, in digits. It prints on the card.',
+    print: 'Print',
+    printHint: 'Prints on one sheet of A4.',
+    draft: 'This {language} card is a draft until a speaker reviews it. Do not give it to a patient before then.',
+    draftMark: 'Draft translation, not reviewed by a speaker. Not for patients.',
+    noSms: '{name} has not agreed to SMS, or has no phone on record, so messages from them are refused. A card would not work.',
+    loadFailed: 'The card could not be made.',
+  },
   review: {
     back: 'Checklist',
     title: 'Review prescription',
