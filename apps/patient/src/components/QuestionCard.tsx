@@ -3,7 +3,7 @@ import { StyleSheet, TextInput, View } from 'react-native'
 
 import { useApp } from '../AppState'
 import type { Question } from '../data/types'
-import { fmt } from '../i18n'
+import { fmt, shownAnswer } from '../i18n'
 import { color, font, lineHeightFactor, radius, space } from '../theme'
 import { Button } from './Button'
 import { Section } from './Section'
@@ -28,7 +28,7 @@ export function QuestionCard({ question, answer, onAnswer }: { question: Questio
       <Txt size={20} weight="medium">{question.text[lang]}</Txt>
       {answer !== null && !changing ? (
         <View style={styles.gap}>
-          <Txt size={18} tone="ink2" testID="answer-given">{fmt(t.today.answered, { answer })}</Txt>
+          <Txt size={18} tone="ink2" testID="answer-given">{fmt(t.today.answered, { answer: shownAnswer(answer, t) })}</Txt>
           <Button kind="quiet" label={t.today.changeAnswer} onPress={() => setChanging(true)} testID="change-answer" style={styles.change} />
         </View>
       ) : writing ? (

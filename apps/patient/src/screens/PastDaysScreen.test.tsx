@@ -112,6 +112,21 @@ describe('PastDaysScreen', () => {
     expect(within(row).queryByText('Taken')).toBeNull()
   })
 
+  it('shows a Yes or No in the language in use, and a written answer as written', async () => {
+    const q = yesterday.answers[0].question
+    setup(async () => ({
+      days: [day('2026-10-25', { answers: [
+        { question: q, answer_text: 'नहीं', occurred_at: '2026-10-25T20:00:00' },
+        { question: q, answer_text: 'सुबह थोड़ा चक्कर आया', occurred_at: '2026-10-25T20:05:00' },
+      ] })],
+      next_before: null,
+    }))
+    const y = await screen.findByTestId('day-2026-10-25')
+    expect(within(y).getByText('No')).toBeTruthy()
+    expect(within(y).queryByText('नहीं')).toBeNull()
+    expect(within(y).getByText('सुबह थोड़ा चक्कर आया')).toBeTruthy()
+  })
+
   it('shows nothing interpretive', async () => {
     setup(async () => ({ days: [yesterday, day('2026-10-24')], next_before: null }))
     await screen.findByTestId('day-2026-10-25')

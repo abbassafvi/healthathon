@@ -5,6 +5,7 @@ import { useApp } from '../AppState'
 import { Button } from '../components/Button'
 import { Txt } from '../components/Txt'
 import type { PastDay } from '../data/types'
+import { isLatin, shownAnswer } from '../i18n'
 import { color, radius, space } from '../theme'
 
 /*
@@ -113,12 +114,15 @@ function Day({ day }: { day: PastDay }) {
 
       {day.answers.length > 0 && (
         <Group title={t.past.answers}>
-          {day.answers.map((a, i) => (
-            <View key={i} style={styles.answer}>
-              <Txt size={16} tone="ink2">{a.question.text[lang] ?? a.question.text.en}</Txt>
-              <Txt size={18}>{a.answer_text}</Txt>
-            </View>
-          ))}
+          {day.answers.map((a, i) => {
+            const answer = shownAnswer(a.answer_text, t)
+            return (
+              <View key={i} style={styles.answer}>
+                <Txt size={16} tone="ink2">{a.question.text[lang] ?? a.question.text.en}</Txt>
+                <Txt size={18} latin={lang !== 'en' && isLatin(answer)}>{answer}</Txt>
+              </View>
+            )
+          })}
         </Group>
       )}
 

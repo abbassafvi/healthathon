@@ -1,5 +1,5 @@
 import { en } from './en'
-import { REVIEWED, STRINGS } from './index'
+import { isLatin, REVIEWED, shownAnswer, STRINGS } from './index'
 
 function keys(o: unknown, prefix = ''): string[] {
   if (Array.isArray(o)) return [`${prefix}[${o.length}]`]
@@ -33,5 +33,28 @@ describe('interface strings', () => {
 
   it('contains no em or en dashes in any language', () => {
     for (const s of Object.values(STRINGS)) expect(JSON.stringify(s)).not.toMatch(/[\u2013\u2014]/)
+  })
+})
+
+describe('answers', () => {
+  it('shows a tapped Yes or No in the language in use now, whichever language it was tapped in', () => {
+    for (const from of Object.values(STRINGS)) {
+      for (const now of Object.values(STRINGS)) {
+        expect(shownAnswer(from.today.yes, now)).toBe(now.today.yes)
+        expect(shownAnswer(` ${from.today.no} `, now)).toBe(now.today.no)
+      }
+    }
+  })
+
+  it('leaves a written answer as written', () => {
+    expect(shownAnswer('No, but I walked', STRINGS.hi)).toBe('No, but I walked')
+    expect(shownAnswer('4', STRINGS.ur)).toBe('4')
+  })
+
+  it('knows Latin text from Devanagari and Urdu', () => {
+    expect(isLatin('No')).toBe(true)
+    expect(isLatin('4')).toBe(true)
+    expect(isLatin('नहीं')).toBe(false)
+    expect(isLatin('نہیں')).toBe(false)
   })
 })
