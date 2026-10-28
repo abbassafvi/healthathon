@@ -6,7 +6,7 @@ const env = { ...process.env, ...E2E_ENV }
 
 /* Truncate every table and write the stand-in seed again. */
 export function reseed(): void {
-  execFileSync('uv', ['run', 'python', '-m', 'dev_seed', '--reset'], { cwd: API_DIR, env, stdio: 'pipe' })
+  execFileSync('uv', ['run', 'python', '-m', 'dev_seed', '--reset', '--no-history'], { cwd: API_DIR, env, stdio: 'pipe' })
 }
 
 /*

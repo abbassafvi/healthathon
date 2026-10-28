@@ -1,5 +1,6 @@
 import hashlib
 import json
+from datetime import datetime
 from typing import Any
 from uuid import UUID
 
@@ -22,6 +23,7 @@ def record_event(
     old_value: dict[str, Any] | None = None,
     new_value: dict[str, Any] | None = None,
     reason_code: str | None = None,
+    occurred_at: datetime | None = None,
 ) -> None:
     """
     Append one row to audit.event and extend the hash chain.
@@ -32,11 +34,16 @@ def record_event(
     this_hash = sha256(prev_hash || canonical JSON of the row). The advisory
     lock is held to the end of the transaction, so two writers cannot both
     read the same prev_hash and fork the chain.
+
+    occurred_at is for the dev seed alone, which writes the history of what
+    it seeds; every request leaves it to the database clock.
     """
     conn.execute("SELECT pg_advisory_xact_lock(%s)", (_CHAIN_LOCK_KEY,))
     last = conn.execute("SELECT this_hash FROM audit.event ORDER BY id DESC LIMIT 1").fetchone()
     prev_hash: bytes | None = bytes(last["this_hash"]) if last else None
-    occurred_at = conn.execute("SELECT now() AS t").fetchone()["t"]  # type: ignore[index]
+    # Read back through the database so the time hashes as verify() will read it.
+    at = conn.execute("SELECT COALESCE(%s::timestamptz, now()) AS t", (occurred_at,)).fetchone()
+    occurred_at = at["t"]  # type: ignore[index]
 
     row = {
         "occurred_at": occurred_at.isoformat(),

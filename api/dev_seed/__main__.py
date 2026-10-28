@@ -4,10 +4,12 @@ Stand-in seed for frontend work, until the seed script from Track A lands.
 Writes four fictional patients, one generated lab report each, extracted
 values with provenance pointing at real boxes on those pages, a few
 confirm queue items with their crops, prescriptions and their regimens,
-the question bank, and four weeks of patient-reported entries. Usage:
+the question bank, four weeks of patient-reported entries, and the audit
+history of all of it. Usage:
 
-    uv run python -m dev_seed            # refuses if already seeded
-    uv run python -m dev_seed --reset    # truncates every table first (dev only)
+    uv run python -m dev_seed                 # refuses if already seeded
+    uv run python -m dev_seed --reset         # truncates every table first (dev only)
+    uv run python -m dev_seed --no-history    # leaves the audit chain empty, for tests
 """
 
 import argparse
@@ -23,6 +25,7 @@ from psycopg.types.json import Jsonb
 
 from dev_seed.checks import seed_checks
 from dev_seed.entries import seed_entries
+from dev_seed.history import seed_history
 from dev_seed.pages import Row, cut_crop, draw_lab_report
 from dev_seed.patient_data import (
     seed_contacts,
@@ -85,6 +88,9 @@ TABLES = ("core", "pat", "proj", "audit", "eval")
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--reset", action="store_true", help="truncate every table first")
+    ap.add_argument(
+        "--no-history", action="store_true", help="write no audit events for the seeded data"
+    )
     args = ap.parse_args()
     settings = get_settings()
     with psycopg.connect(settings.database_url, row_factory=dict_row) as conn:
@@ -93,7 +99,7 @@ def main() -> int:
         elif conn.execute("SELECT 1 FROM core.patient LIMIT 1").fetchone():
             print("Already seeded. Pass --reset to start again.", file=sys.stderr)
             return 1
-        seed(conn, settings.storage_dir, settings.stub_user_email)
+        seed(conn, settings.storage_dir, settings.stub_user_email, history=not args.no_history)
     print("Seeded 4 patients. Storage:", settings.storage_dir)
     return 0
 
@@ -107,7 +113,9 @@ def _truncate(conn: psycopg.Connection[Any]) -> None:
     conn.execute("TRUNCATE " + ", ".join(r["t"] for r in rows) + " RESTART IDENTITY CASCADE")
 
 
-def seed(conn: psycopg.Connection[Any], storage: Path, user_email: str) -> None:
+def seed(
+    conn: psycopg.Connection[Any], storage: Path, user_email: str, history: bool = False
+) -> None:
     clinician = conn.execute(
         "INSERT INTO core.clinic_user (full_name, role, email)"
         " VALUES ('Dr. Demo Clinician', 'clinician', %s) RETURNING id",
@@ -234,6 +242,8 @@ def seed(conn: psycopg.Connection[Any], storage: Path, user_email: str) -> None:
     seed_entries(conn, storage, patients, active, questions, question_sets)
     seed_visits(conn, clinician, patients)
     seed_contacts(conn, clinician, patients)
+    if history:
+        seed_history(conn, clinician)
 
 
 if __name__ == "__main__":
