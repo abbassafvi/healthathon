@@ -116,10 +116,32 @@ describe('TodayScreen', () => {
     expect((await api.today('DEV-0001')).answer).toBe('A little dizzy after lunch')
   })
 
-  it('adds a meal photo and shows only a count, never an estimate', async () => {
-    renderApp(<As patient="DEV-0001" />)
+  it('asks which meal a photo is before sending it, and shows it back with its time', async () => {
+    const { api } = renderApp(<As patient="DEV-0001" />)
     fireEvent.press(await screen.findByTestId('add-meal'))
+    fireEvent.press(await screen.findByTestId('send-meal'))
+    expect(screen.getByText('Choose which meal it is.')).toBeTruthy()
+    expect((await api.today('DEV-0001')).meals).toEqual([])
+    fireEvent.press(screen.getByTestId('meal-lunch'))
+    fireEvent.press(screen.getByTestId('send-meal'))
     expect(await screen.findByText('1 photo today')).toBeTruthy()
+    const [meal] = (await api.today('DEV-0001')).meals
+    expect([meal.meal, meal.calories_text]).toEqual(['lunch', null])
+    expect(within(screen.getByTestId(`meal-thumb-${meal.id}`)).getByText('Lunch')).toBeTruthy()
+  })
+
+  it('sends calories only as the patient typed them, and never a total', async () => {
+    const { api } = renderApp(<As patient="DEV-0001" />)
+    fireEvent.press(await screen.findByTestId('add-meal'))
+    fireEvent.press(await screen.findByTestId('meal-snack'))
+    fireEvent.changeText(screen.getByTestId('meal-calories'), 'about 300')
+    fireEvent.press(screen.getByTestId('send-meal'))
+    expect(screen.getByText('Type the calories as a number, or leave it empty.')).toBeTruthy()
+    fireEvent.changeText(screen.getByTestId('meal-calories'), '300')
+    fireEvent.press(screen.getByTestId('send-meal'))
+    expect(await screen.findByText('300 kcal')).toBeTruthy()
+    expect((await api.today('DEV-0001')).meals[0].calories_text).toBe('300')
+    expect(screen.queryByText(/total|kcal today/i)).toBeNull()
   })
 
   it('lays out right to left for Urdu', async () => {

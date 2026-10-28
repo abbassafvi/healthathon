@@ -154,7 +154,7 @@ export function TodayScreen({ onOpenSurvey, onOpenPast, onOpenSettings }: {
         />
       )}
 
-      <MealCard meals={today.meals} onAdd={(uri) => write(api.addMeal(patientId, uri, captureId()))} />
+      <MealCard meals={today.meals} onAdd={(m) => write(api.addMeal(patientId, m, captureId()))} />
 
       {today.survey.open && (
         <Section title={t.today.survey}>

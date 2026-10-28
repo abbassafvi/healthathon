@@ -1,4 +1,5 @@
 import re
+from datetime import datetime, timedelta
 from typing import Any
 from uuid import UUID
 
@@ -135,10 +136,26 @@ def submit_survey(conn: Connection[DictRow], patient_id: UUID, req: SurveyReques
                  new_value={"answers": len(questions)})  # fmt: skip
 
 
-def add_meal(conn: Connection[DictRow], patient_id: UUID, capture_id: str, body: bytes) -> AppMeal:
+# A photograph sent later than this after it was taken belongs to no day the app shows.
+MEAL_PHOTO_AGE = timedelta(days=3)
+CLOCK_SKEW = timedelta(minutes=5)
+
+
+def add_meal(
+    conn: Connection[DictRow],
+    patient_id: UUID,
+    capture_id: str,
+    body: bytes,
+    meal: str,
+    taken_at: datetime | None,
+    calories_text: str | None,
+) -> AppMeal:
     """
-    Store a meal photograph inside the clinic boundary. Nothing is computed
-    from it: no portion, calories or macronutrients.
+    Store a meal photograph inside the clinic boundary, with the meal the
+    patient chose and when the photograph was taken; the entry happened
+    then, not when it was sent. Calories are stored only as the patient
+    typed them. Nothing is computed from the photograph: no portion,
+    calories or macronutrients.
     """
     require_patient(conn, patient_id)
     existing = entries_repo.entry_by_capture_id(conn, capture_id)
@@ -150,13 +167,22 @@ def add_meal(conn: Connection[DictRow], patient_id: UUID, capture_id: str, body:
         ext = next((e for magic, e in _IMAGE_TYPES.items() if body.startswith(magic)), None)
         if ext is None:
             raise HTTPException(415, "Send a JPEG or PNG photograph")
+        now = clinic_time.now()
+        # A time without an offset is the clinic's wall time, as the phone shows it.
+        when = (
+            now
+            if taken_at is None
+            else taken_at.replace(tzinfo=taken_at.tzinfo or clinic_time.zone())
+        )
+        if when > now + CLOCK_SKEW or when < now - MEAL_PHOTO_AGE:
+            raise HTTPException(422, "taken_at must be within the last three days")
         lang = _language(conn, patient_id, None)
-        new = _entry(conn, patient_id, "meal_photo", lang, capture_id)
+        new = _entry(conn, patient_id, "meal_photo", lang, capture_id, when)
         assert new is not None
         eid = new
         key = f"meals/{patient_id}/{eid}.{ext}"
         storage.save(key, body)
-        repo.insert_meal(conn, eid, key, clinic_time.now())
+        repo.insert_meal(conn, eid, key, when, meal, calories_text)
         record_event(conn, None, "meal.record", "pat.entry", eid)
     row = repo.meal(conn, eid)
     assert row is not None
@@ -164,15 +190,23 @@ def add_meal(conn: Connection[DictRow], patient_id: UUID, capture_id: str, body:
         id=row["id"],
         uri=storage.url_for(row["storage_key"]),
         occurred_at=clinic_time.local(row["occurred_at"]),
+        meal=row["meal"],
+        calories_text=row["calories_text"],
     )
 
 
 def _entry(
-    conn: Connection[DictRow], patient_id: UUID, kind: str, language: str, capture_id: str
+    conn: Connection[DictRow],
+    patient_id: UUID,
+    kind: str,
+    language: str,
+    capture_id: str,
+    occurred_at: datetime | None = None,
 ) -> UUID | None:
     return entries_repo.insert_entry(
-        conn, patient_id, kind, "patient_app", "patient", language, capture_id, clinic_time.now()
-    )
+        conn, patient_id, kind, "patient_app", "patient", language, capture_id,
+        occurred_at or clinic_time.now(),
+    )  # fmt: skip
 
 
 def _retried(conn: Connection[DictRow], patient_id: UUID, kind: str, capture_id: str) -> UUID:

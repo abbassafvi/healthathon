@@ -124,7 +124,10 @@ def to_entry(r: dict[str, Any]) -> PatientEntry:
             question_text_shown=r["question_text_shown"],
             answer_text=r["answer_text"],
         )
-    return MealPhotoEntry(**base, kind="meal_photo", photo_url=storage.url_for(r["storage_key"]))
+    return MealPhotoEntry(
+        **base, kind="meal_photo", photo_url=storage.url_for(r["storage_key"]),
+        meal=r["meal"], calories_text=r["calories_text"],
+    )  # fmt: skip
 
 
 def paper_form_questions(conn: Connection[DictRow]) -> list[PaperFormQuestion]:

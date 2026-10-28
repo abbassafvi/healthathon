@@ -16,7 +16,7 @@ const yesterday = day('2026-10-25', {
   ticks: [{ item, ticked: true }, { item: { ...item, id: 'i-2', drug_text: 'Tab. Atorvastatin', dose_text: '10 mg', schedule_text: null }, ticked: false }],
   readings: [{ id: 'r-1', value_text: '142', context: 'fasting', occurred_at: '2026-10-25T07:31:00' }],
   answers: [{ question: { key: 'felt_unwell_today', text: { en: 'Did you feel unwell today?', hi: 'क्या आज आपकी तबीयत ठीक नहीं थी?', ur: 'کیا آج آپ کی طبیعت ٹھیک نہیں تھی؟' } }, answer_text: 'No', occurred_at: '2026-10-25T20:00:00' }],
-  meals: [{ id: 'm-1', uri: 'http://clinic.test:8000/api/storage/meals/p/m-1.jpg', occurred_at: '2026-10-25T13:00:00' }],
+  meals: [{ id: 'm-1', uri: 'http://clinic.test:8000/api/storage/meals/p/m-1.jpg', occurred_at: '2026-10-25T13:00:00', meal: 'lunch', calories_text: '420' }],
 })
 
 function As({ lang = 'en', onBack = () => {} }: { lang?: Lang; onBack?: () => void }) {
@@ -60,6 +60,8 @@ describe('PastDaysScreen', () => {
     await screen.findByTestId('day-2026-10-25')
     const img = screen.UNSAFE_getByType(require('react-native').Image)
     expect(img.props.source).toEqual({ uri: 'http://clinic.test:8000/api/storage/meals/p/m-1.jpg?width=320' })
+    const meal = screen.getByTestId('meal-thumb-m-1')
+    for (const text of ['Lunch', '13:00', '420 kcal']) expect(within(meal).getByText(text)).toBeTruthy()
   })
 
   it('loads earlier days on request, and stops at the first entry', async () => {

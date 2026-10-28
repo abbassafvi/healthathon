@@ -15,7 +15,12 @@ export type Reading = { id: string; value_text: string; context: GlucoseContext;
 
 export type Question = { key: string; text: Record<Lang, string> }
 
-export type Meal = { id: string; uri: string; occurred_at: string }
+export type MealName = 'breakfast' | 'lunch' | 'dinner' | 'snack'
+
+/* A meal photo; occurred_at is when it was taken. Calories only ever as the patient typed them. */
+export type Meal = { id: string; uri: string; occurred_at: string; meal: MealName | null; calories_text: string | null }
+
+export type NewMeal = { uri: string; meal: MealName; takenAt: Date; calories: string | null }
 
 export type Today = {
   date: string
@@ -56,7 +61,7 @@ export type PatientApi = {
   setTick(patientId: string, itemId: string, ticked: boolean | null, captureId: string): Promise<void>
   addReading(patientId: string, r: { value_text: string; context: GlucoseContext }, captureId: string): Promise<Reading>
   answer(patientId: string, questionKey: string, text: string, captureId: string): Promise<void>
-  addMeal(patientId: string, uri: string, captureId: string): Promise<Meal>
+  addMeal(patientId: string, meal: NewMeal, captureId: string): Promise<Meal>
   surveyQuestions(patientId: string): Promise<SurveyQuestion[]>
   submitSurvey(patientId: string, answers: Record<string, string>, captureId: string): Promise<void>
   pastDays(patientId: string, before?: string): Promise<PastDays>

@@ -72,20 +72,27 @@ describe('the HTTP patient API', () => {
     expect(body(calls[2])).toEqual({ answers: { walk_days_week: '3' }, capture_id: 'cap-s', language: 'hi' })
   })
 
-  it('uploads a meal photo as it is, with its capture id', async () => {
-    const { client, calls, photos } = api(json({ id: 'm1', uri: '/api/storage/meals/p1/m1.jpg', occurred_at: 'x' }))
-    const meal = await client.addMeal('p1', 'file:///photo.jpg', 'cap-m')
+  it('uploads a meal photo as it is, with its meal, when it was taken, and its capture id', async () => {
+    const { client, calls, photos } = api(json({ id: 'm1', uri: '/api/storage/meals/p1/m1.jpg', occurred_at: 'x', meal: 'lunch', calories_text: null }))
+    const takenAt = new Date('2026-10-28T07:40:00Z')
+    const meal = await client.addMeal('p1', { uri: 'file:///photo.jpg', meal: 'lunch', takenAt, calories: null }, 'cap-m')
     expect(photos).toEqual(['file:///photo.jpg'])
-    expect(calls[0].url).toBe('http://clinic.test:8000/api/app/patients/p1/meals?capture_id=cap-m')
+    expect(calls[0].url).toBe('http://clinic.test:8000/api/app/patients/p1/meals?capture_id=cap-m&meal=lunch&taken_at=2026-10-28T07%3A40%3A00.000Z')
     expect(calls[0].init?.method).toBe('POST')
     expect(calls[0].init?.headers).toEqual({ 'Content-Type': 'image/jpeg' })
     expect(calls[0].init?.body).toBe(jpeg)
     expect(meal.uri).toBe('http://clinic.test:8000/api/storage/meals/p1/m1.jpg')
   })
 
+  it('sends calories only when the patient typed them', async () => {
+    const { client, calls } = api(json({ id: 'm1', uri: '/m.jpg', occurred_at: 'x', meal: 'snack', calories_text: '350' }))
+    await client.addMeal('p1', { uri: 'file:///photo.jpg', meal: 'snack', takenAt: new Date('2026-10-28T10:00:00Z'), calories: '350' }, 'cap-m')
+    expect(new URL(calls[0].url).searchParams.get('calories')).toBe('350')
+  })
+
   it('sends nothing when the photo cannot be read', async () => {
     const { client, calls } = api()
-    const err = await client.addMeal('p1', 'file:///missing.jpg', 'cap-m').catch((e: unknown) => e)
+    const err = await client.addMeal('p1', { uri: 'file:///missing.jpg', meal: 'dinner', takenAt: new Date(), calories: null }, 'cap-m').catch((e: unknown) => e)
     expect(err).toBeInstanceOf(ApiError)
     expect((err as ApiError).status).toBe(0)
     expect(calls).toEqual([])

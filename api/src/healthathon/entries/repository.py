@@ -19,7 +19,7 @@ SELECT e.id, e.kind::text AS kind, e.channel::text AS channel,
        t.tick_date, t.ticked, ri.id AS item_id, ri.drug_text, ri.dose_text, ri.schedule_text,
        sa.answer_text, sa.set_id, qb.question_key,
        qen.text AS question_text, COALESCE(qshown.text, qen.text) AS question_text_shown,
-       m.storage_key
+       m.storage_key, m.meal::text AS meal, m.calories_text
 FROM pat.entry e
 LEFT JOIN core.caregiver c ON c.id = e.caregiver_id
 LEFT JOIN pat.glucose_reading g ON g.entry_id = e.id

@@ -1,11 +1,11 @@
-from datetime import date
+from datetime import date, datetime
 from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Body, Query, Response
 
 from healthathon.auth import Conn
-from healthathon.entries.models import CAPTURE_ID
+from healthathon.entries.models import CALORIES, CAPTURE_ID, MealName
 from healthathon.patient_app import days, service, writes
 from healthathon.patient_app.models import (
     AnswerRequest,
@@ -69,8 +69,15 @@ def post_meal(
     conn: Conn,
     body: Annotated[bytes, Body(media_type="application/octet-stream", include_in_schema=False)],
     capture_id: Annotated[str, Query(pattern=CAPTURE_ID)],
+    meal: Annotated[MealName, Query(description="The meal, as the patient chose it")],
+    taken_at: Annotated[
+        datetime | None, Query(description="When the photograph was taken; now by default")
+    ] = None,
+    calories: Annotated[
+        str | None, Query(pattern=CALORIES, description="Only as typed by the patient")
+    ] = None,
 ) -> AppMeal:
-    return writes.add_meal(conn, patient_id, capture_id, body)
+    return writes.add_meal(conn, patient_id, capture_id, body, meal, taken_at, calories)
 
 
 @router.get("/patients/{patient_id}/survey", response_model=list[AppQuestion])

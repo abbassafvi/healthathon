@@ -4,7 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from healthathon.entries.models import CAPTURE_ID, GlucoseContext
+from healthathon.entries.models import CAPTURE_ID, GlucoseContext, MealName
 
 # What the patient app reads and writes. Everything the patient sees is
 # what the patient or the prescription put there: no range, no average, no score.
@@ -41,9 +41,13 @@ class AppQuestion(BaseModel):
 
 
 class AppMeal(BaseModel):
+    """A meal photograph: which meal, when it was taken, and calories only if typed."""
+
     id: UUID
     uri: str
     occurred_at: datetime
+    meal: MealName | None
+    calories_text: str | None
 
 
 class SurveyState(BaseModel):

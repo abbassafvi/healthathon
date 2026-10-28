@@ -133,11 +133,12 @@ export function createMockApi(clock: () => Date = () => new Date()): PatientApi 
       if (!once(captureId)) return
       day(pid).answer = text.trim()
     },
-    async addMeal(pid, uri, captureId) {
+    async addMeal(pid, m, captureId) {
       patient(pid)
       const s = day(pid)
-      if (!once(captureId)) return s.meals.find((m) => m.id === captureId)!
-      const meal: Meal = { id: captureId, uri, occurred_at: time() }
+      if (!once(captureId)) return s.meals.find((x) => x.id === captureId)!
+      if (m.calories !== null && !/^\d{1,4}$/.test(m.calories)) throw new Error('Calories are a number, as typed')
+      const meal: Meal = { id: captureId, uri: m.uri, occurred_at: m.takenAt.toISOString(), meal: m.meal, calories_text: m.calories }
       s.meals.push(meal)
       n++
       return meal

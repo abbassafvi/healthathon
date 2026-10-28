@@ -131,6 +131,7 @@ export function generateEntries(regimens: MockRegimen[], now: Date): Record<stri
         list.push({
           ...base, ...viaApp, id: eid, kind: 'meal_photo', photo_url: `/mock/meals/${eid}.svg`,
           occurred_at: at(day, 13, Math.floor(r() * 59)), recorded_at: at(day, 13, 59),
+          meal: 'lunch', calories_text: null,
         })
       }
     }

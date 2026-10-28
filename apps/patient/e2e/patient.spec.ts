@@ -7,7 +7,7 @@ import { API_URL } from './env'
 /* The real API and a real database: every test starts from the stand-in seed. */
 test.beforeEach(() => reseed())
 
-type Entry = { kind: string; channel: string; entered_by: string; language: string; ticked?: boolean; value_text?: string; context?: string; answer_text?: string; set?: string }
+type Entry = { kind: string; channel: string; entered_by: string; language: string; ticked?: boolean; value_text?: string; context?: string; answer_text?: string; set?: string; meal?: string | null; calories_text?: string | null }
 
 /* What the clinician sees for today, read from the clinician's own endpoint. */
 async function clinicToday(request: APIRequestContext, registrationNo: string): Promise<Entry[]> {
@@ -140,17 +140,26 @@ test('nothing interpretive is shown to the patient', async ({ page }) => {
   expect(text).not.toMatch(/\b(high|low|normal|target|range|average|trend|score|risk|good|bad|poor)\b/i)
 })
 
-test('a meal photo is sent as it is and shown back, with nothing estimated', async ({ page, request }) => {
+test('a meal photo goes as it is, with its meal and any calories typed, and nothing estimated', async ({ page, request }) => {
   await start(page, 'English', 'Meera Pillai')
   // A tiny PNG made here: no real photograph is ever committed.
   const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64')
   const chooser = page.waitForEvent('filechooser')
   await page.getByTestId('add-meal').click()
   await (await chooser).setFiles({ name: 'plate.png', mimeType: 'image/png', buffer: png })
+  await expect(page.getByText('Which meal is it?')).toBeVisible()
+  await expect(page.getByTestId('meal-taken')).toHaveText(/^Taken today at \d\d:\d\d$/)
+  await expectNoViolations(page)
+  await page.getByRole('radio', { name: 'Dinner' }).click()
+  await page.getByLabel('Calories, if you know them').fill('520')
+  await page.getByRole('button', { name: 'Send photo' }).click()
   await expect(page.getByText('1 photo today')).toBeVisible()
+  await expect(page.getByText('520 kcal')).toBeVisible()
   const meals = (await clinicToday(request, 'DEV-0003')).filter((e) => e.kind === 'meal_photo')
   expect(meals).toHaveLength(1)
-  expect(Object.keys(meals[0]).filter((k) => /calor|portion|carb|protein|estimate/i.test(k))).toEqual([])
+  expect(meals[0]).toMatchObject({ meal: 'dinner', calories_text: '520' })
+  // Calories only as typed: nothing about the photo is estimated.
+  expect(Object.keys(meals[0]).filter((k) => /portion|carb|protein|estimate|nutri/i.test(k))).toEqual([])
 })
 
 /* Yesterday as the clinician sees it, read from the clinician's own endpoint. */

@@ -619,6 +619,61 @@
               "pattern": "^[A-Za-z0-9-]{8,64}$",
               "title": "Capture Id"
             }
+          },
+          {
+            "name": "meal",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "enum": [
+                "breakfast",
+                "lunch",
+                "dinner",
+                "snack"
+              ],
+              "type": "string",
+              "description": "The meal, as the patient chose it",
+              "title": "Meal"
+            },
+            "description": "The meal, as the patient chose it"
+          },
+          {
+            "name": "taken_at",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "When the photograph was taken; now by default",
+              "title": "Taken At"
+            },
+            "description": "When the photograph was taken; now by default"
+          },
+          {
+            "name": "calories",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[0-9]{1,4}$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only as typed by the patient",
+              "title": "Calories"
+            },
+            "description": "Only as typed by the patient"
           }
         ],
         "requestBody": {
@@ -1761,15 +1816,46 @@
             "type": "string",
             "format": "date-time",
             "title": "Occurred At"
+          },
+          "meal": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "breakfast",
+                  "lunch",
+                  "dinner",
+                  "snack"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meal"
+          },
+          "calories_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Calories Text"
           }
         },
         "type": "object",
         "required": [
           "id",
           "uri",
-          "occurred_at"
+          "occurred_at",
+          "meal",
+          "calories_text"
         ],
-        "title": "AppMeal"
+        "title": "AppMeal",
+        "description": "A meal photograph: which meal, when it was taken, and calories only if typed."
       },
       "AppPastAnswer": {
         "properties": {
@@ -3164,6 +3250,34 @@
           "photo_url": {
             "type": "string",
             "title": "Photo Url"
+          },
+          "meal": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "breakfast",
+                  "lunch",
+                  "dinner",
+                  "snack"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meal"
+          },
+          "calories_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Calories Text"
           }
         },
         "type": "object",
@@ -3176,7 +3290,9 @@
           "occurred_at",
           "recorded_at",
           "kind",
-          "photo_url"
+          "photo_url",
+          "meal",
+          "calories_text"
         ],
         "title": "MealPhotoEntry"
       },

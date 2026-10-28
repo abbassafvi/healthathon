@@ -61,6 +61,8 @@ def today(conn: Connection[DictRow], patient_id: UUID) -> Today:
             id=r["id"],
             uri=storage.url_for(r["storage_key"]),
             occurred_at=clinic_time.local(r["occurred_at"]),
+            meal=r["meal"],
+            calories_text=r["calories_text"],
         )
         for r in rows
         if r["kind"] == "meal_photo"

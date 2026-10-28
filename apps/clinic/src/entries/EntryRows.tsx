@@ -80,7 +80,8 @@ export function MealRow({ e }: { e: MealPhotoEntry }) {
           />
         </a>
         <div>
-          <p className="label">{en.entries.meal}</p>
+          <p className="label">{(e.meal && en.entries.meals[e.meal]) || en.entries.meal}</p>
+          {e.calories_text && <p className="numerals text-sm">{fmt(en.entries.calories, { n: e.calories_text })}</p>}
           <Source e={e} />
         </div>
       </div>

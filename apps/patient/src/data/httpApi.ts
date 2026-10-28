@@ -66,14 +66,16 @@ export function createHttpApi({ baseUrl, language, fetch: f = fetch, readPhoto: 
         capture_id: captureId,
         language: language(),
       }),
-    async addMeal(patientId, uri, captureId) {
+    async addMeal(patientId, m, captureId) {
       let photo: { body: BodyInit; type: string }
       try {
-        photo = await read(uri)
+        photo = await read(m.uri)
       } catch {
         throw new ApiError(0, 'The photo could not be read')
       }
-      const meal = await call<Meal>(`${p(patientId)}/meals?capture_id=${encodeURIComponent(captureId)}`, {
+      const q = new URLSearchParams({ capture_id: captureId, meal: m.meal, taken_at: m.takenAt.toISOString() })
+      if (m.calories) q.set('calories', m.calories)
+      const meal = await call<Meal>(`${p(patientId)}/meals?${q}`, {
         method: 'POST',
         headers: { 'Content-Type': photo.type || 'image/jpeg' },
         body: photo.body,
