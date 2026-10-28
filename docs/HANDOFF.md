@@ -1,9 +1,10 @@
 # Handoff: state of the build and what comes next
 
-Last updated 27 October 2026, after Track B added four pages for the
-demonstration (the clinic's day, how a document was read, the audit log and
-the patient's earlier days) on top of PRs #4 to #8. Written for Abbas and
-for any agent working on Track A.
+Last updated 28 October 2026, after Track B's product pass: fixes from the
+critique of the four demonstration pages, a fuller patient list and patient
+header, prescriptions on the Documents tab, a settings screen and icon for
+the patient app, and the seed's audit history. Written for Abbas and for any
+agent working on Track A.
 Read `AGENTS.md` first; everything here sits under its rules.
 
 ## In one paragraph
@@ -13,7 +14,10 @@ Every interface surface in the scope exists: the clinician web app
 clinician screen except upload now runs on real endpoints (`api/`). Upload
 still runs against a typed mock, because the reading pipeline behind it is
 Track A's. The patient app runs on its endpoints (`/api/app/...`) when
-`EXPO_PUBLIC_API_URL` is set, and on its in-memory mock otherwise.
+`EXPO_PUBLIC_API_URL` is set, and on its in-memory mock otherwise. The
+patient app is called cliniConnect, as both tracks agreed. The name is a
+brand, so Hindi and Urdu write it in Latin letters too; neither it nor the
+icon names the condition on the phone's home screen.
 
 ## What is real and what is mocked
 
@@ -40,8 +44,11 @@ The real seed is a stand-in too: `api/dev_seed` writes four fictional
 patients, a lab report each, prescriptions with a box per line (two
 activated, two awaiting review), test orders, the question bank, a past
 visit and one booked for today (10:00 to 11:30, half an hour apart), the
-five check results for every value read, and four weeks of patient entries
-up to yesterday. Track A's
+five check results for every value read, four weeks of patient entries
+up to yesterday, and the audit history of all of it (`dev_seed/history.py`:
+every confirmed line, activation, past visit read and patient entry, written
+through `record_event` at the time it happened, so the chain checks out).
+The tests seed with `--no-history` and start from an empty chain. Track A's
 seed script should replace it, keeping the same four registration numbers
 (DEV-0001 to DEV-0004).
 
@@ -62,10 +69,22 @@ seed script should replace it, keeping the same four registration numbers
 | `GET /api/audit-log?kind&before&limit` | `test_audit_log.py` |
 | `GET /api/app/patients/{id}/days?before&count` | `test_past_days.py` |
 | `GET /api/storage/{key}?width` (a smaller copy of a photo, metadata removed) | `test_thumbnails.py` |
+| `GET /api/patients` now returns `PatientListItem`: the old fields plus enrolment date, caregiver, last and next visit, the checklist in force, values and lines waiting, documents and the latest entry | `test_patient_list.py` |
 
-The last five were added after the OpenAPI spec was frozen, for the
-demonstration. Each only adds a path or an optional parameter; nothing
-existing changed. They need agreeing like any other contract change.
+The last six were added after the OpenAPI spec was frozen, for the
+demonstration. Each only adds a path, an optional parameter or fields;
+nothing existing was removed or renamed. In the earlier days endpoint a
+tick's `ticked` is now `null` for a medicine on that day's checklist that
+nothing was marked for, and the medicines come in checklist order. They need
+agreeing like any other contract change.
+
+`record_event` takes an optional `occurred_at`. Only the seed passes it,
+to write history; every request leaves the time to the database clock.
+
+The English interface strings gained the product pass's wording: the
+header, footer and not-found page, the patient list and header, the retry
+message, the reading page's check summary, and the patient app's settings
+(in all three languages). Those additions need agreeing too.
 
 How a document was read lists, for each value, the five checks from
 `core.check_result`. Only the seed writes those rows today: the reading
