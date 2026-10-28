@@ -221,6 +221,47 @@ Things that will trip you up:
   the same commit that enables its button. Keep it that way; a passive effect
   reintroduced a race once.
 
+## Waiting on Track A (Abbas): the patient features of 28 October
+
+Built on `dev/saadat` after PR #9, not yet committed when this was written.
+Each needs Abbas's agreement, because it changes a frozen artefact.
+
+**Schema (`db/schema.sql`), all nullable or loosened, the guardrail view still empty:**
+- `pat.meal` enum (breakfast, lunch, dinner, snack) and two columns on
+  `pat.meal_photo`: `meal` and `calories_text`. `calories_text` is only ever
+  what the patient typed, digits only, never estimated or added up. This
+  reverses the old comment that said there is no calorie column; the
+  scope's ban is on estimates from a photograph, which this is not.
+- `pat.survey_answer.answer_text` may now be NULL, with a new `audio_key`
+  and a CHECK that one of them is present: a spoken answer is kept as a
+  recording and not transcribed.
+- Apply to an existing database by hand (there are no migrations yet):
+  `CREATE TYPE pat.meal ...; ALTER TABLE pat.meal_photo ADD COLUMN meal pat.meal, ADD COLUMN calories_text text CHECK (...); ALTER TABLE pat.survey_answer ALTER COLUMN answer_text DROP NOT NULL, ADD COLUMN audio_key text, ADD CONSTRAINT answer_given CHECK (answer_text IS NOT NULL OR audio_key IS NOT NULL);`
+
+**OpenAPI:**
+- `POST /meals` requires `meal`, takes `taken_at` and `calories`; the entry
+  happens when the photo was taken. `AppMeal` and `MealPhotoEntry` gain
+  `meal` and `calories_text`.
+- `POST /api/app/patients/{id}/recordings` stores a recording (m4a, WebM,
+  Ogg, WAV; 5 MB at most) and returns its key. Answers take `audio_key`;
+  the survey takes `recordings` by question key. `AnswerEntry` gains
+  `audio_url`; `Today` gains `answer_audio_uri`; past answers gain `audio_uri`.
+- **Patient sign-in.** `POST /api/app/sign-in/start` and `/sign-in/check`.
+  Every `/api/app/patients/{id}/...` route now needs
+  `Authorization: Bearer <token>` for that patient (401 without, 403 for
+  another patient). `GET /api/app/patients`, the unauthenticated list of
+  patients, is gone. CORS allows the `Authorization` header.
+
+**Sign-in, for deployment:** codes go through Twilio Verify when
+`HEALTHATHON_TWILIO_ACCOUNT_SID`, `_AUTH_TOKEN` and `_VERIFY_SID` are set.
+Without them the API is in test mode and shows the code on screen: never
+deploy without the keys, and set `HEALTHATHON_SESSION_SECRET`. To receive a
+real code on a demo patient: `uv run python -m dev_seed --phone DEV-0001=+91...`.
+
+**Not built, by decision:** AI advice to patients from food labels. It
+breaks the project's first rule (nothing interpretive to the patient, no
+treatment suggestions). Changing that rule is a team and clinical decision.
+
 ## Next steps
 
 **Track A (Abbas)**
