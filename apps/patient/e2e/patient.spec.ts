@@ -187,7 +187,8 @@ test('earlier days show what was recorded, as the clinic has it, and go back fur
   const shown = await page.locator('[data-testid^="day-"]').count()
   await page.getByRole('button', { name: 'Show earlier days' }).click()
   await expect(page.locator('[data-testid^="day-"]')).toHaveCount(shown + 7)
-  await page.getByRole('button', { name: 'Back to today' }).click()
+  // The list ends with the same way back as it starts with.
+  await page.getByRole('button', { name: 'Back to today' }).last().click()
   await expect(page.getByText('Hello, Asha')).toBeVisible()
 })
 

@@ -7,12 +7,15 @@ import { Txt } from '../components/Txt'
 import type { PastDay } from '../data/types'
 import { isLatin, shownAnswer } from '../i18n'
 import { color, radius, space } from '../theme'
+import { useBackButton } from '../useBackButton'
 
 /*
  * Earlier days, newest first, each exactly as the patient recorded it:
  * which medicines they marked, the readings, their answers, their photos.
  * Nothing is added up, compared or coloured, and a day with nothing on it
- * says so in words rather than as a gap.
+ * says so in words rather than as a gap. A medicine on that day's checklist
+ * with nothing marked says so too. Android back returns to today, and so
+ * does a button at each end of the list.
  */
 export function PastDaysScreen({ onBack }: { onBack: () => void }) {
   const { api, patientId, t, rtl } = useApp()
@@ -21,6 +24,7 @@ export function PastDaysScreen({ onBack }: { onBack: () => void }) {
   const [failed, setFailed] = useState(false)
   const [loading, setLoading] = useState(false)
   const latest = useRef(0)
+  useBackButton(onBack)
 
   const load = useCallback(
     (before?: string) => {
@@ -60,6 +64,9 @@ export function PastDaysScreen({ onBack }: { onBack: () => void }) {
       {days?.map((d) => <Day key={d.date} day={d} />)}
       {next && !failed && (
         <Button label={t.past.more} onPress={() => load(next)} disabled={loading} testID="more-days" />
+      )}
+      {!!days?.length && (
+        <Button kind="quiet" label={t.past.back} onPress={onBack} testID="back-to-today-end" style={styles.back} />
       )}
     </ScrollView>
   )

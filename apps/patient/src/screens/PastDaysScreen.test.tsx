@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react-native'
 import { useEffect } from 'react'
+import { BackHandler } from 'react-native'
 
 import { AppStateProvider, useApp } from '../AppState'
 import { createMockApi } from '../data/mockApi'
@@ -125,6 +126,22 @@ describe('PastDaysScreen', () => {
     expect(within(y).getByText('No')).toBeTruthy()
     expect(within(y).queryByText('नहीं')).toBeNull()
     expect(within(y).getByText('सुबह थोड़ा चक्कर आया')).toBeTruthy()
+  })
+
+  it("returns to today on Android's back, and from the end of the list", async () => {
+    const handlers: ((e: never) => boolean | null | undefined)[] = []
+    const spy = jest.spyOn(BackHandler, 'addEventListener').mockImplementation((_e, h) => {
+      handlers.push(h)
+      return { remove: () => {} }
+    })
+    const onBack = jest.fn()
+    setup(async () => ({ days: [yesterday], next_before: null }), 'en', onBack)
+    await screen.findByTestId('day-2026-10-25')
+    expect(handlers.at(-1)?.(undefined as never)).toBe(true)
+    expect(onBack).toHaveBeenCalledTimes(1)
+    fireEvent.press(screen.getByTestId('back-to-today-end'))
+    expect(onBack).toHaveBeenCalledTimes(2)
+    spy.mockRestore()
   })
 
   it('shows nothing interpretive', async () => {

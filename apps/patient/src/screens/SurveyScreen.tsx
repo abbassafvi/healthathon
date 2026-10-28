@@ -6,6 +6,7 @@ import { Button } from '../components/Button'
 import { Txt } from '../components/Txt'
 import { captureId } from '../data/captureId'
 import type { SurveyQuestion } from '../data/types'
+import { useBackButton } from '../useBackButton'
 import { color, font, lineHeightFactor, radius, space } from '../theme'
 
 /* The short weekly survey. Answers go as written; nothing is added up. */
@@ -15,6 +16,7 @@ export function SurveyScreen({ onDone }: { onDone: () => void }) {
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [id] = useState(captureId)
   const [failed, setFailed] = useState(false)
+  useBackButton(onDone)
 
   useEffect(() => {
     if (patientId) void api.surveyQuestions(patientId).then(setQuestions)
