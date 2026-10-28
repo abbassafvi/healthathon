@@ -35,10 +35,22 @@ describe('SettingsScreen', () => {
     expect(await screen.findByText('سیٹنگز')).toBeTruthy()
   })
 
-  it('changes the patient by going back to the first screen', async () => {
+  it('asks before changing the patient, then goes back to the first screen', async () => {
     renderApp(<As />)
     fireEvent.press(await screen.findByTestId('change-patient'))
+    expect(screen.getByText(en.settings.changeConfirm)).toBeTruthy()
+    expect(screen.getByTestId('state').props.children).toBe('DEV-0001|en')
+    fireEvent.press(screen.getByTestId('confirm-change'))
     expect(screen.getByTestId('state').props.children).toBe('signed out')
+  })
+
+  it('keeps the patient when the change is called off', async () => {
+    renderApp(<As />)
+    fireEvent.press(await screen.findByTestId('change-patient'))
+    fireEvent.press(screen.getByTestId('keep-patient'))
+    expect(screen.queryByText(en.settings.changeConfirm)).toBeNull()
+    expect(screen.getByTestId('change-patient')).toBeTruthy()
+    expect(screen.getByTestId('state').props.children).toBe('DEV-0001|en')
   })
 
   it('says what the app is and that it gives no medical advice, with its version', async () => {

@@ -17,10 +17,13 @@ const LANGS: Lang[] = ['en', 'hi', 'ur']
  * Settings: the language, which changes the app at once; the patient this
  * phone is set up for; and what the app is and is not. Each choice is a
  * large target, and the screen says in words that it gives no advice.
+ * Changing the patient is a quiet button that asks first, because one tap
+ * would otherwise drop a patient back on the first screen.
  */
 export function SettingsScreen({ onBack }: { onBack: () => void }) {
   const { api, patientId, lang, t, rtl, choose, signOut } = useApp()
   const [patient, setPatient] = useState<PatientRef | null>(null)
+  const [confirming, setConfirming] = useState(false)
   useBackButton(onBack)
 
   useEffect(() => {
@@ -57,8 +60,16 @@ export function SettingsScreen({ onBack }: { onBack: () => void }) {
             {fmt(t.settings.setUpFor, { name: patient.full_name, reg: patient.registration_no })}
           </Txt>
         )}
-        <Button label={t.settings.change} onPress={signOut} testID="change-patient" />
         <Txt size={15} tone="ink3">{t.settings.changeHelp}</Txt>
+        {confirming ? (
+          <View style={styles.confirm}>
+            <Txt size={17}>{t.settings.changeConfirm}</Txt>
+            <Button label={t.settings.changeYes} onPress={signOut} testID="confirm-change" />
+            <Button kind="quiet" label={t.settings.changeKeep} onPress={() => setConfirming(false)} testID="keep-patient" style={styles.inline} />
+          </View>
+        ) : (
+          <Button kind="quiet" label={t.settings.change} onPress={() => setConfirming(true)} testID="change-patient" style={styles.inline} />
+        )}
       </View>
 
       <View style={styles.block}>
@@ -77,7 +88,17 @@ export function SettingsScreen({ onBack }: { onBack: () => void }) {
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: color.bg },
   content: { padding: space.lg, paddingTop: 40, gap: space.xl, paddingBottom: space.xxxl, maxWidth: 640, width: '100%', alignSelf: 'center' },
-  back: { alignSelf: 'flex-start' },
+  // Quiet buttons line their words up with the text edge; the target stays 56 px tall.
+  back: { alignSelf: 'flex-start', paddingHorizontal: 0 },
+  inline: { alignSelf: 'flex-start', paddingHorizontal: 0 },
+  confirm: {
+    gap: space.sm,
+    padding: space.lg,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: color.lineStrong,
+    backgroundColor: color.surface,
+  },
   block: { gap: space.sm, paddingTop: space.lg, borderTopWidth: 1, borderTopColor: color.line },
   langs: { flexDirection: 'row', gap: space.sm, marginTop: space.xs, flexWrap: 'wrap' },
   choice: { flexGrow: 1 },

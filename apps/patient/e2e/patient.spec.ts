@@ -216,10 +216,12 @@ test('settings change the language at once, keep the patient, and say what the a
   await expect(page.getByText('दवाइयाँ')).toBeVisible()
 })
 
-test('changing the patient from settings goes back to the first screen', async ({ page }) => {
+test('changing the patient from settings asks first, then goes back to the first screen', async ({ page }) => {
   await start(page, 'English', 'Asha Verma')
   await page.getByRole('button', { name: 'Settings' }).click()
   await page.getByRole('button', { name: 'Change patient' }).click()
+  await expect(page.getByText('The app will go back to its first screen')).toBeVisible()
+  await page.getByRole('button', { name: 'Yes, change patient' }).click()
   await expect(page.getByText('Who is using this phone?')).toBeVisible()
 })
 
