@@ -201,6 +201,28 @@ test('earlier days read right to left in Urdu, with medicines as printed', async
   await expect(page.getByText('Tab. Metformin').first()).toBeVisible()
 })
 
+test('settings change the language at once, keep the patient, and say what the app is', async ({ page }) => {
+  await start(page, 'English', 'Asha Verma')
+  await page.getByRole('button', { name: 'Settings' }).click()
+  await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible()
+  await expect(page.getByText('Set up for Asha Verma, DEV-0001')).toBeVisible()
+  await expect(page.getByText('This app does not give medical advice.', { exact: false })).toBeVisible()
+  await expectNoViolations(page)
+  await page.getByRole('radio', { name: 'हिन्दी' }).click()
+  await expect(page.getByRole('heading', { name: 'सेटिंग्स' })).toBeVisible()
+  await page.getByRole('button', { name: 'आज पर वापस जाएँ' }).click()
+  await expect(page.getByText('दवाइयाँ')).toBeVisible()
+  await page.reload()
+  await expect(page.getByText('दवाइयाँ')).toBeVisible()
+})
+
+test('changing the patient from settings goes back to the first screen', async ({ page }) => {
+  await start(page, 'English', 'Asha Verma')
+  await page.getByRole('button', { name: 'Settings' }).click()
+  await page.getByRole('button', { name: 'Change patient' }).click()
+  await expect(page.getByText('Who is using this phone?')).toBeVisible()
+})
+
 test('an earlier day lists a medicine nothing was marked for as not marked', async ({ page }) => {
   query(`DELETE FROM pat.entry e USING pat.medication_tick t, core.patient p
          WHERE t.entry_id = e.id AND p.id = e.patient_id AND p.registration_no = 'DEV-0001'

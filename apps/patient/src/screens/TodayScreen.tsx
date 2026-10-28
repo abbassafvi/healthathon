@@ -22,7 +22,11 @@ import { color, radius, space } from '../theme'
  * their own screen, shown the same way. There is no chart, average, score
  * or colour that says good or bad.
  */
-export function TodayScreen({ onOpenSurvey, onOpenPast }: { onOpenSurvey: () => void; onOpenPast: () => void }) {
+export function TodayScreen({ onOpenSurvey, onOpenPast, onOpenSettings }: {
+  onOpenSurvey: () => void
+  onOpenPast: () => void
+  onOpenSettings: () => void
+}) {
   const { api, patientId, t, rtl, signOut } = useApp()
   const [today, setToday] = useState<Today | null>(null)
   const [sheet, setSheet] = useState(false)
@@ -80,6 +84,18 @@ export function TodayScreen({ onOpenSurvey, onOpenPast }: { onOpenSurvey: () => 
 
   return (
     <ScrollView style={[styles.page, { direction: rtl ? 'rtl' : 'ltr' }]} contentContainerStyle={styles.content}>
+      <View style={styles.appBar}>
+        <View style={styles.brand}>
+          {/* The app's icon in small: a calendar page with today's dot. */}
+          <View style={styles.mark} aria-hidden>
+            <View style={styles.markPage}>
+              <View style={styles.markDot} />
+            </View>
+          </View>
+          <Txt latin size={17} weight="bold">{t.appName}</Txt>
+        </View>
+        <Button kind="quiet" label={t.settings.open} onPress={onOpenSettings} testID="open-settings" />
+      </View>
       <View style={styles.header} accessible accessibilityRole="header" accessibilityLabel={`${t.days.short[d.getDay()]} ${d.getDate()} ${t.months[d.getMonth()]}`}>
         <View style={styles.dayRow}>
           <Txt latin size={92} weight="bold" style={styles.dayNumber}>{String(d.getDate())}</Txt>
@@ -151,7 +167,6 @@ export function TodayScreen({ onOpenSurvey, onOpenPast }: { onOpenSurvey: () => 
       )}
 
       <Button label={t.past.open} onPress={onOpenPast} testID="open-past" />
-      <Button kind="quiet" label={t.today.switchUser} onPress={signOut} />
 
       <GlucoseSheet
         visible={sheet}
@@ -173,7 +188,12 @@ const styles = StyleSheet.create({
     borderColor: color.ink,
     backgroundColor: color.surface,
   },
-  content: { padding: space.lg, paddingTop: 56, gap: space.lg, paddingBottom: space.xxxl, maxWidth: 640, width: '100%', alignSelf: 'center' },
+  content: { padding: space.lg, paddingTop: 32, gap: space.lg, paddingBottom: space.xxxl, maxWidth: 640, width: '100%', alignSelf: 'center' },
+  appBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md, paddingLeft: space.sm },
+  brand: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  mark: { width: 26, height: 26, borderRadius: 7, backgroundColor: color.accent, alignItems: 'center', justifyContent: 'center' },
+  markPage: { width: 13, height: 14, borderRadius: 3, backgroundColor: color.surface, alignItems: 'center', justifyContent: 'center', paddingTop: 2 },
+  markDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: color.accent },
   header: { paddingHorizontal: space.sm, marginBottom: space.sm, gap: space.sm },
   dayRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space.sm },
   dayNumber: { letterSpacing: -3 },
