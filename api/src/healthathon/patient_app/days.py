@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from healthathon import clinic_time, storage
 from healthathon.entries import repository as entries_repo
+from healthathon.patient_app import repository as repo
 from healthathon.patient_app.models import AppChecklistItem, AppMeal, AppQuestion, AppReading
 from healthathon.patient_app.service import require_patient
 
@@ -17,7 +18,8 @@ from healthathon.patient_app.service import require_patient
 
 class AppPastTick(BaseModel):
     item: AppChecklistItem
-    ticked: bool
+    # None when the medicine was on the checklist that day and nothing was marked.
+    ticked: bool | None
 
 
 class AppPastAnswer(BaseModel):
@@ -62,13 +64,19 @@ def past_days(
             conn, tuple({r["question_key"] for r in rows if r["question_key"]})
         )
     }
-    days = [_day(start + timedelta(days=i), rows, questions) for i in range((end - start).days)][
-        ::-1
-    ]
+    items = repo.checklist_items(conn, patient_id)
+    days = [
+        _day(start + timedelta(days=i), rows, questions, items) for i in range((end - start).days)
+    ][::-1]
     return PastDays(days=days, next_before=start if start > first_entry else None)
 
 
-def _day(day: date, rows: list[dict[str, Any]], questions: dict[str, AppQuestion]) -> AppDay:
+def _day(
+    day: date,
+    rows: list[dict[str, Any]],
+    questions: dict[str, AppQuestion],
+    items: list[dict[str, Any]],
+) -> AppDay:
     ticks: dict[UUID, dict[str, Any]] = {}
     for r in rows:
         if r["kind"] == "medication_tick" and r["tick_date"] == day:
@@ -80,16 +88,7 @@ def _day(day: date, rows: list[dict[str, Any]], questions: dict[str, AppQuestion
     ]
     return AppDay(
         date=day,
-        ticks=[
-            AppPastTick(
-                item=AppChecklistItem(
-                    id=r["item_id"], drug_text=r["drug_text"], dose_text=r["dose_text"],
-                    schedule_text=r["schedule_text"],
-                ),
-                ticked=r["ticked"],
-            )
-            for r in ticks.values()
-        ],
+        ticks=_ticks(day, ticks, items),
         readings=[
             AppReading(
                 id=r["id"], value_text=r["value_text"], context=r["context"],
@@ -116,6 +115,31 @@ def _day(day: date, rows: list[dict[str, Any]], questions: dict[str, AppQuestion
             if r["kind"] == "meal_photo"
         ],
     )  # fmt: skip
+
+
+def _ticks(
+    day: date, ticks: dict[UUID, dict[str, Any]], items: list[dict[str, Any]]
+) -> list[AppPastTick]:
+    """
+    The checklist in force at the end of the day, in its own order, each
+    medicine with what was marked or None; then anything marked against a
+    checklist that ended that day.
+    """
+    _, end = clinic_time.day_bounds(day, day)
+    listed = [
+        i for i in items
+        if i["activated_at"] < end and (i["superseded_at"] is None or i["superseded_at"] >= end)
+    ]  # fmt: skip
+    ids = {i["id"] for i in listed}
+    listed += [i for i in items if i["id"] in ticks and i["id"] not in ids]
+    return [
+        AppPastTick(
+            item=AppChecklistItem(id=i["id"], drug_text=i["drug_text"], dose_text=i["dose_text"],
+                                  schedule_text=i["schedule_text"]),
+            ticked=ticks[i["id"]]["ticked"] if i["id"] in ticks else None,
+        )
+        for i in listed
+    ]  # fmt: skip
 
 
 def _first_entry_day(conn: Connection[DictRow], patient_id: UUID) -> date | None:

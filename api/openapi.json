@@ -1800,7 +1800,14 @@
             "$ref": "#/components/schemas/AppChecklistItem"
           },
           "ticked": {
-            "type": "boolean",
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Ticked"
           }
         },

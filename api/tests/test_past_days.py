@@ -36,7 +36,8 @@ def test_a_day_holds_what_was_recorded_exactly_as_recorded(
     ticks = {
         e["regimen_item"]["id"]: e["ticked"] for e in entries if e["kind"] == "medication_tick"
     }
-    assert {t["item"]["id"]: t["ticked"] for t in day["ticks"]} == ticks
+    marked = {t["item"]["id"]: t["ticked"] for t in day["ticks"] if t["ticked"] is not None}
+    assert marked == ticks
     assert sorted(r["value_text"] for r in day["readings"]) == sorted(
         e["value_text"] for e in entries if e["kind"] == "glucose_reading"
     )
@@ -44,6 +45,44 @@ def test_a_day_holds_what_was_recorded_exactly_as_recorded(
     assert len(day["answers"]) == sum(e["kind"] == "survey_answer" for e in entries)
     for answer in day["answers"]:
         assert set(answer["question"]["text"]) == {"en", "hi", "ur"}
+
+
+def test_the_checklist_comes_in_its_own_order_every_day(
+    client: Any, db: psycopg.Connection[Any]
+) -> None:
+    pid = patient_id(db, "DEV-0001")
+    checklist = [i["id"] for i in client.get(f"/api/app/patients/{pid}/today").json()["items"]]
+    days = _days(client, pid)["days"]
+    assert checklist and days
+    for day in days:
+        assert [t["item"]["id"] for t in day["ticks"]] == checklist, day["date"]
+
+
+def test_a_medicine_nothing_was_marked_for_is_listed_as_not_marked(
+    client: Any, db: psycopg.Connection[Any]
+) -> None:
+    pid = patient_id(db, "DEV-0001")
+    yesterday = clinic_time.today() - timedelta(days=1)
+    db.execute(
+        "DELETE FROM pat.entry e USING pat.medication_tick t"
+        " WHERE t.entry_id = e.id AND e.patient_id = %s AND t.tick_date = %s",
+        (pid, yesterday),
+    )
+    day = _days(client, pid)["days"][0]
+    assert day["date"] == yesterday.isoformat()
+    assert day["ticks"] and all(t["ticked"] is None for t in day["ticks"])
+
+
+def test_a_day_before_the_first_checklist_lists_no_medicines(
+    client: Any, db: psycopg.Connection[Any]
+) -> None:
+    pid = patient_id(db, "DEV-0001")
+    first = db.execute(
+        "SELECT min(activated_at) AS t FROM core.regimen WHERE patient_id = %s", (pid,)
+    ).fetchone()["t"]
+    before = clinic_time.local(first).date()
+    day = _days(client, pid, before=before.isoformat(), count=1)["days"]
+    assert day == [] or day[0]["ticks"] == []
 
 
 def test_today_is_not_an_earlier_day(client: Any, db: psycopg.Connection[Any]) -> None:

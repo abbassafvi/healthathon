@@ -37,6 +37,25 @@ def active_items(conn: Connection[DictRow], patient_id: UUID) -> list[dict[str, 
     ).fetchall()
 
 
+def checklist_items(conn: Connection[DictRow], patient_id: UUID) -> list[dict[str, Any]]:
+    """
+    Every item of every checklist the patient has had, with when its
+    checklist came into force and ended, in the order written on the page.
+    """
+    return conn.execute(
+        """
+        SELECT ri.id, ri.drug_text, ri.dose_text, ri.schedule_text,
+               r.activated_at, r.superseded_at
+        FROM core.regimen r
+        JOIN core.regimen_item ri ON ri.regimen_id = r.id
+        JOIN core.provenance p ON p.id = ri.provenance_id
+        WHERE r.patient_id = %s AND r.activated_at IS NOT NULL
+        ORDER BY r.activated_at DESC, p.bbox_y NULLS LAST, ri.id
+        """,
+        (patient_id,),
+    ).fetchall()
+
+
 def question_set(conn: Connection[DictRow], patient_id: UUID) -> dict[str, Any] | None:
     """The patient's current survey: the latest set the clinician chose, still in force."""
     return conn.execute(
