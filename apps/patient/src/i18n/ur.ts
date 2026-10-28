@@ -9,6 +9,7 @@ export const REVIEWED = false
 
 export const ur: Strings = {
   langName: 'اردو',
+  appName: 'cliniConnect',
   welcome: {
     title: 'السلام علیکم',
     body: 'ہر روز اپنی دواؤں پر نشان لگائیں اور شوگر کی ریڈنگ لکھیں۔ اگلی ملاقات پر ڈاکٹر انہیں دیکھیں گے۔',

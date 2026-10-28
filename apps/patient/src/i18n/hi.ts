@@ -9,6 +9,7 @@ export const REVIEWED = false
 
 export const hi: Strings = {
   langName: 'हिन्दी',
+  appName: 'cliniConnect',
   welcome: {
     title: 'नमस्ते',
     body: 'हर दिन अपनी दवाइयों पर निशान लगाइए और शुगर की रीडिंग लिखिए। अगली बार डॉक्टर इन्हें देखेंगे।',

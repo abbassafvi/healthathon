@@ -4,6 +4,8 @@
  */
 export const en = {
   langName: 'English',
+  /* The product's name, written the same way in every language. */
+  appName: 'cliniConnect',
   welcome: {
     title: 'Hello',
     body: 'Each day, tick your medicines and note your sugar readings. Your doctor sees them at your next visit.',
