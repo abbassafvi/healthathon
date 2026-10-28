@@ -120,10 +120,17 @@ const STACKED = 'max-md:p-0 max-md:before:mb-0.5 max-md:before:block max-md:befo
 
 function Row({ p }: { p: PatientListItem }) {
   const none = (text: string) => <span className="text-ink-3">{text}</span>
+  // Each count leads to where it is settled, above the row's own link.
   const waiting = [
-    p.waiting_values > 0 && (p.waiting_values === 1 ? en.patients.valuesOne : fmt(en.patients.values, { n: p.waiting_values })),
-    p.waiting_lines > 0 && (p.waiting_lines === 1 ? en.patients.linesOne : fmt(en.patients.lines, { n: p.waiting_lines })),
-  ].filter(Boolean)
+    p.waiting_values > 0 && {
+      to: '/queue',
+      text: p.waiting_values === 1 ? en.patients.valuesOne : fmt(en.patients.values, { n: p.waiting_values }),
+    },
+    p.waiting_lines > 0 && {
+      to: `/patients/${p.id}/checklist`,
+      text: p.waiting_lines === 1 ? en.patients.linesOne : fmt(en.patients.lines, { n: p.waiting_lines }),
+    },
+  ].filter((w) => w !== false)
   return (
     // The name's link stretches over the whole row, so a click anywhere opens the
     // patient while the row stays one link for the keyboard and screen readers.
@@ -161,7 +168,11 @@ function Row({ p }: { p: PatientListItem }) {
         ) : none(en.patients.noChecklist)}
       </td>
       <td data-label={en.patients.waiting} className={`numerals py-3 pr-5 ${STACKED}`}>
-        {waiting.length ? waiting.map((w) => <p key={String(w)}>{w}</p>) : none(en.patients.nothingWaiting)}
+        {waiting.length ? waiting.map((w) => (
+          <p key={w.to}>
+            <Link to={w.to} className="relative inline-flex min-h-6 items-center text-accent underline-offset-4 hover:underline">{w.text}</Link>
+          </p>
+        )) : none(en.patients.nothingWaiting)}
       </td>
       <td data-label={en.patients.lastEntry} className={`numerals py-3 whitespace-nowrap ${STACKED}`}>{p.last_entry_at ? formatWhen(p.last_entry_at) : none(en.patients.noEntries)}</td>
     </tr>
