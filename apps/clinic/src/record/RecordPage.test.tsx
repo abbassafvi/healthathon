@@ -88,6 +88,7 @@ describe('RecordPage', () => {
       expect.stringContaining('Lab report12 Oct 2026'),
       expect.stringContaining('Prescription9 Oct 2026'),
     ])
+    expect(screen.getByText('Select a value to see where it came from on the page.').closest('section')).toHaveTextContent(/^Lab report/)
     expect(screen.getByText('3 lines waiting for review before they reach the checklist.')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Review the lines' })).toHaveAttribute('href', '/patients/p-1/checklist/review/r-2')
     expect(screen.getByText('The checklist in force since 9 Oct 2026: 3 medicines.')).toBeInTheDocument()

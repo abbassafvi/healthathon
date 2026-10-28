@@ -46,11 +46,16 @@ export function RecordPage() {
               <p className="text-ink-2">{en.record.empty}</p>
             ) : (
               <>
-                <p className="mb-4 text-sm text-ink-3">{en.record.traceHint}</p>
                 <div className="flex flex-col gap-10">
                   {newestFirst(query.data.documents, prescriptions(checklist.data)).map((d) =>
                     'values' in d ? (
-                      <DocumentValues key={d.id} doc={d} patientId={patientId} selected={valueId} />
+                      <DocumentValues
+                        key={d.id}
+                        doc={d}
+                        patientId={patientId}
+                        selected={valueId}
+                        hint={d.id === query.data.documents.find((x) => x.values.length > 0)?.id}
+                      />
                     ) : (
                       <PrescriptionEntry key={d.id} rx={d} patientId={patientId} />
                     ),
@@ -66,7 +71,8 @@ export function RecordPage() {
   )
 }
 
-function DocumentValues({ doc, patientId, selected }: { doc: RecordDocument; patientId: string; selected?: string }) {
+/* A report's values; the first report with values also says they can be traced. */
+function DocumentValues({ doc, patientId, selected, hint }: { doc: RecordDocument; patientId: string; selected?: string; hint: boolean }) {
   const docType = en.docTypes[doc.doc_type] ?? en.docTypes.other
   const headingId = `doc-${doc.id}`
   return (
@@ -81,6 +87,7 @@ function DocumentValues({ doc, patientId, selected }: { doc: RecordDocument; pat
           {en.reading.open}
         </Link>
       </h2>
+      {hint && <p className="mt-2 mb-1 text-sm text-ink-3">{en.record.traceHint}</p>}
       {doc.values.length === 0 ? (
         <p className="py-3 text-sm text-ink-2">{en.record.noValues}</p>
       ) : (
