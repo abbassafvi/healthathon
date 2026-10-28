@@ -56,7 +56,10 @@ class AnswerEntry(EntryBase):
     question_key: str
     question_text: str  # in English, for the clinician
     question_text_shown: str  # as the patient saw it
-    answer_text: str
+    # The patient's words, a tapped Yes or No, or None when the answer was only spoken.
+    answer_text: str | None
+    # The patient's own recording, kept as recorded and not transcribed.
+    audio_url: str | None
 
 
 class MealPhotoEntry(EntryBase):

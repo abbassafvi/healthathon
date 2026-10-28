@@ -79,7 +79,7 @@ export const paperFormHandlers = [
         return {
           ...base(`pf-${f.client_capture_id}-${++n}`), kind: 'survey_answer' as const, set: 'daily' as const,
           question_key: q.key, question_text: q.text, question_text_shown: q.text,
-          answer_text: a.answer_text.trim(), occurred_at: `${a.date}T20:00:00`,
+          answer_text: a.answer_text.trim(), audio_url: null, occurred_at: `${a.date}T20:00:00`,
         }
       }),
     ]

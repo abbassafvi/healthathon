@@ -16,6 +16,7 @@ from healthathon.patient_app.models import (
     AnswerRequest,
     AppMeal,
     AppReading,
+    AppRecording,
     ReadingRequest,
     SurveyRequest,
     TickRequest,
@@ -89,10 +90,14 @@ def add_reading(conn: Connection[DictRow], patient_id: UUID, req: ReadingRequest
 
 
 def answer(conn: Connection[DictRow], patient_id: UUID, req: AnswerRequest) -> None:
-    """The day's question. The answer is the patient's own words, kept as given."""
+    """
+    The day's question. The answer is the patient's own words or recording,
+    or both, kept as given. A recording is not transcribed.
+    """
     require_patient(conn, patient_id)
-    text = req.answer_text.strip()
-    if not text:
+    text = (req.answer_text or "").strip() or None
+    audio = _own_recording(patient_id, req.audio_key)
+    if not text and not audio:
         raise HTTPException(422, "An answer cannot be empty")
     if req.question_key not in entries_repo.DAILY_QUESTION_KEYS:
         raise HTTPException(422, "Unknown question")
@@ -104,7 +109,7 @@ def answer(conn: Connection[DictRow], patient_id: UUID, req: AnswerRequest) -> N
     if eid is None:
         _retried(conn, patient_id, "survey_answer", req.capture_id)
         return
-    entries_repo.insert_answer(conn, eid, q[0]["id"], text, None)
+    entries_repo.insert_answer(conn, eid, q[0]["id"], text, None, audio)
     record_event(conn, None, "answer.record", "pat.entry", eid)
 
 
@@ -118,9 +123,11 @@ def submit_survey(conn: Connection[DictRow], patient_id: UUID, req: SurveyReques
     questions = repo.set_questions(conn, qs["id"]) if qs else []
     if not qs or not questions:
         raise HTTPException(409, "There is no survey for this patient")
-    if set(req.answers) != {q["question_key"] for q in questions}:
+    keys = {q["question_key"] for q in questions}
+    if not set(req.answers) | set(req.recordings) == keys or not set(req.recordings) <= keys:
         raise HTTPException(422, "Answer exactly the questions in the survey")
-    if any(not v.strip() for v in req.answers.values()):
+    audio = {k: _own_recording(patient_id, v) for k, v in req.recordings.items()}
+    if any(not req.answers.get(k, "").strip() and not audio.get(k) for k in keys):
         raise HTTPException(422, "Every question needs an answer")
     entries_repo.lock_capture_id(conn, req.capture_id)
     if entries_repo.count_with_capture_prefix(conn, req.capture_id):
@@ -130,10 +137,50 @@ def submit_survey(conn: Connection[DictRow], patient_id: UUID, req: SurveyReques
         eid = _entry(conn, patient_id, "survey_answer", lang,
                      f"{req.capture_id}:{q['question_key']}")  # fmt: skip
         assert eid is not None
-        entries_repo.insert_answer(conn, eid, q["id"], req.answers[q["question_key"]].strip(),
-                                   qs["id"])  # fmt: skip
+        k = q["question_key"]
+        entries_repo.insert_answer(conn, eid, q["id"], req.answers.get(k, "").strip() or None,
+                                   qs["id"], audio.get(k))  # fmt: skip
     record_event(conn, None, "survey.submit", "pat.patient_question_set", qs["id"],
                  new_value={"answers": len(questions)})  # fmt: skip
+
+
+MAX_RECORDING_BYTES = 5 * 1024 * 1024
+# What phones record: MPEG-4 audio on Android, WebM in a browser, Ogg or WAV elsewhere.
+_AUDIO_TYPES: list[tuple[int, bytes, str]] = [
+    (4, b"ftyp", "m4a"),
+    (0, b"\x1a\x45\xdf\xa3", "webm"),
+    (0, b"OggS", "ogg"),
+    (8, b"WAVE", "wav"),
+]
+
+
+def add_recording(
+    conn: Connection[DictRow], patient_id: UUID, capture_id: str, body: bytes
+) -> AppRecording:
+    """
+    Keep a spoken answer at the clinic, as recorded, to attach to an answer.
+    It is not transcribed, and it never leaves the clinic boundary. The same
+    capture id keeps the same recording, so a retried upload is stored once.
+    """
+    require_patient(conn, patient_id)
+    if len(body) > MAX_RECORDING_BYTES:
+        raise HTTPException(413, "The recording is too long")
+    ext = next((e for at, magic, e in _AUDIO_TYPES if body[at : at + len(magic)] == magic), None)
+    if ext is None:
+        raise HTTPException(415, "Send an audio recording")
+    key = f"voice/{patient_id}/{capture_id}.{ext}"
+    if storage.resolve(key) is None:
+        storage.save(key, body)
+    return AppRecording(key=key, uri=storage.url_for(key))
+
+
+def _own_recording(patient_id: UUID, key: str | None) -> str | None:
+    """A recording key this patient's phone stored; anything else is refused."""
+    if key is None:
+        return None
+    if not key.startswith(f"voice/{patient_id}/") or storage.resolve(key) is None:
+        raise HTTPException(422, "That recording was not sent from this phone")
+    return key
 
 
 # A photograph sent later than this after it was taken belongs to no day the app shows.

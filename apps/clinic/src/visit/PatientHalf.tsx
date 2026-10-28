@@ -6,6 +6,7 @@ import { time } from '../entries/ticks'
 import { formatDate } from '../lib/dates'
 import { thumbnail } from '../lib/photos'
 import { en, fmt } from '../strings/en'
+import { Recording } from '../entries/Recording'
 import { Block } from './DocumentsHalf'
 import { ScoreBlock } from './ScoreBlock'
 
@@ -127,6 +128,7 @@ function Answers({ title, answers }: { title: string; answers: AnswerEntry[] }) 
                   <span className="numerals text-ink-2">{formatDate(a.occurred_at)}</span>
                   <span lang={a.language} dir={a.language === 'ur' ? 'rtl' : 'ltr'} className={a.language === 'ur' ? 'text-right' : ''}>
                     {a.answer_text}
+                    {a.audio_url && <Recording url={a.audio_url} />}
                   </span>
                 </li>
               ))}

@@ -1,6 +1,6 @@
 import type { Lang } from '../theme'
 import { readPhoto } from './readPhoto'
-import type { Meal, PastDays, PatientApi, PatientRef, Reading, SurveyQuestion, Today } from './types'
+import type { Meal, PastDays, PatientApi, PatientRef, Reading, Recording, SurveyQuestion, Today } from './types'
 
 /* A request the API refused or could not answer. `status` is 0 when the network failed. */
 export class ApiError extends Error {
@@ -53,19 +53,36 @@ export function createHttpApi({ baseUrl, language, fetch: f = fetch, readPhoto: 
     patients: () => call<PatientRef[]>('/patients'),
     async today(patientId) {
       const t = await call<Today>(`${p(patientId)}/today`)
-      return { ...t, meals: t.meals.map((m) => ({ ...m, uri: abs(m.uri) })) }
+      return { ...t, answer_audio_uri: t.answer_audio_uri && abs(t.answer_audio_uri), meals: t.meals.map((m) => ({ ...m, uri: abs(m.uri) })) }
     },
     setTick: (patientId, itemId, ticked, captureId) =>
       send<void>('PUT', `${p(patientId)}/ticks/${encodeURIComponent(itemId)}`, { ticked, capture_id: captureId }),
     addReading: (patientId, r, captureId) =>
       send<Reading>('POST', `${p(patientId)}/readings`, { ...r, capture_id: captureId, language: language() }),
-    answer: (patientId, questionKey, text, captureId) =>
+    answer: (patientId, questionKey, text, captureId, audioKey) =>
       send<void>('POST', `${p(patientId)}/answers`, {
         question_key: questionKey,
         answer_text: text,
+        ...(audioKey ? { audio_key: audioKey } : {}),
         capture_id: captureId,
         language: language(),
       }),
+    async uploadRecording(patientId, uri, captureId) {
+      let file: { body: BodyInit; type: string }
+      try {
+        file = await read(uri)
+      } catch {
+        throw new ApiError(0, 'The recording could not be read')
+      }
+      // Android records MPEG-4 audio (.m4a), a browser WebM.
+      const type = file.type || (uri.endsWith('.m4a') ? 'audio/mp4' : 'audio/webm')
+      const rec = await call<Recording>(`${p(patientId)}/recordings?capture_id=${encodeURIComponent(captureId)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': type },
+        body: file.body,
+      })
+      return { ...rec, uri: abs(rec.uri) }
+    },
     async addMeal(patientId, m, captureId) {
       let photo: { body: BodyInit; type: string }
       try {
@@ -83,11 +100,18 @@ export function createHttpApi({ baseUrl, language, fetch: f = fetch, readPhoto: 
       return { ...meal, uri: abs(meal.uri) }
     },
     surveyQuestions: (patientId) => call<SurveyQuestion[]>(`${p(patientId)}/survey`),
-    submitSurvey: (patientId, answers, captureId) =>
-      send<void>('POST', `${p(patientId)}/survey`, { answers, capture_id: captureId, language: language() }),
+    submitSurvey: (patientId, answers, captureId, recordings = {}) =>
+      send<void>('POST', `${p(patientId)}/survey`, { answers, recordings, capture_id: captureId, language: language() }),
     async pastDays(patientId, before) {
       const page = await call<PastDays>(`${p(patientId)}/days${before ? `?before=${encodeURIComponent(before)}` : ''}`)
-      return { ...page, days: page.days.map((d) => ({ ...d, meals: d.meals.map((m) => ({ ...m, uri: abs(m.uri) })) })) }
+      return {
+        ...page,
+        days: page.days.map((d) => ({
+          ...d,
+          answers: d.answers.map((a) => ({ ...a, audio_uri: a.audio_uri && abs(a.audio_uri) })),
+          meals: d.meals.map((m) => ({ ...m, uri: abs(m.uri) })),
+        })),
+      }
     },
   }
 }

@@ -18,7 +18,17 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     ...devices['Pixel 7'],
   },
-  projects: [{ name: 'android-sized', use: { ...devices['Pixel 7'] } }],
+  projects: [
+    {
+      name: 'android-sized',
+      use: {
+        ...devices['Pixel 7'],
+        // A made-up microphone, so spoken answers can be recorded without a real one.
+        permissions: ['microphone'],
+        launchOptions: { args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'] },
+      },
+    },
+  ],
   webServer: [
     {
       command: `uv run python -m dev_seed.create_db healthathon_patient_e2e && uv run uvicorn healthathon.main:app --port ${API_PORT}`,

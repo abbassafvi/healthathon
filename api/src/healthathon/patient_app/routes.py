@@ -13,6 +13,7 @@ from healthathon.patient_app.models import (
     AppPatient,
     AppQuestion,
     AppReading,
+    AppRecording,
     ReadingRequest,
     SurveyRequest,
     TickRequest,
@@ -78,6 +79,29 @@ def post_meal(
     ] = None,
 ) -> AppMeal:
     return writes.add_meal(conn, patient_id, capture_id, body, meal, taken_at, calories)
+
+
+@router.post(
+    "/patients/{patient_id}/recordings",
+    response_model=AppRecording,
+    openapi_extra={
+        "requestBody": {
+            "required": True,
+            "content": {
+                t: {"schema": {"type": "string", "format": "binary"}}
+                for t in ("audio/mp4", "audio/webm", "audio/ogg", "audio/wav")
+            },
+        }
+    },
+)
+def post_recording(
+    patient_id: UUID,
+    conn: Conn,
+    body: Annotated[bytes, Body(media_type="application/octet-stream", include_in_schema=False)],
+    capture_id: Annotated[str, Query(pattern=CAPTURE_ID)],
+) -> AppRecording:
+    """A spoken answer, kept as recorded. Attach its key to an answer or the survey."""
+    return writes.add_recording(conn, patient_id, capture_id, body)
 
 
 @router.get("/patients/{patient_id}/survey", response_model=list[AppQuestion])

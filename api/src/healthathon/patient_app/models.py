@@ -64,6 +64,8 @@ class Today(BaseModel):
     readings: list[AppReading]
     question: AppQuestion | None
     answer: str | None
+    # The recording with today's answer, when it was spoken.
+    answer_audio_uri: str | None
     meals: list[AppMeal]
     survey: SurveyState
 
@@ -81,14 +83,30 @@ class ReadingRequest(BaseModel):
     language: Lang | None = None
 
 
+# A recording the patient sent, as /recordings stored it.
+RECORDING_KEY = r"^voice/[0-9a-f-]{36}/[A-Za-z0-9_-]{8,64}\.(m4a|webm|ogg|wav)$"
+
+
 class AnswerRequest(BaseModel):
+    """An answer is words, a tap, a recording, or a tap with a recording."""
+
     question_key: str
-    answer_text: str = Field(max_length=2000)
+    answer_text: str | None = Field(default=None, max_length=2000)
+    audio_key: str | None = Field(default=None, pattern=RECORDING_KEY)
     capture_id: str = Field(pattern=CAPTURE_ID)
     language: Lang | None = None
 
 
 class SurveyRequest(BaseModel):
+    # Written answers, and recorded ones by question key; each question needs one or both.
     answers: dict[str, str] = Field(max_length=20)
+    recordings: dict[str, str] = Field(default_factory=dict, max_length=20)
     capture_id: str = Field(pattern=CAPTURE_ID)
     language: Lang | None = None
+
+
+class AppRecording(BaseModel):
+    """A recording kept at the clinic, to attach to an answer."""
+
+    key: str
+    uri: str

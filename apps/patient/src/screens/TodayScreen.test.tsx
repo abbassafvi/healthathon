@@ -116,6 +116,54 @@ describe('TodayScreen', () => {
     expect((await api.today('DEV-0001')).answer).toBe('A little dizzy after lunch')
   })
 
+  it('lets a patient add a few words after a Yes or No, kept with the tap', async () => {
+    const { api } = renderApp(<As patient="DEV-0001" />)
+    fireEvent.press(await screen.findByTestId('answer-no'))
+    expect(await screen.findByText('Your answer: No')).toBeTruthy()
+    fireEvent.press(screen.getByTestId('add-words'))
+    fireEvent.changeText(screen.getByTestId('answer-text'), 'I forgot the evening one')
+    fireEvent.press(screen.getByTestId('send-answer'))
+    expect(await screen.findByText('Your answer: No, I forgot the evening one')).toBeTruthy()
+    expect((await api.today('DEV-0001')).answer).toBe('No, I forgot the evening one')
+    // Words are words: no second round of adding to them.
+    expect(screen.queryByTestId('add-words')).toBeNull()
+  })
+
+  it('keeps the tap when the words are called off', async () => {
+    const { api } = renderApp(<As patient="DEV-0001" />)
+    fireEvent.press(await screen.findByTestId('answer-yes'))
+    fireEvent.press(await screen.findByTestId('add-words'))
+    fireEvent.press(screen.getByTestId('cancel-words'))
+    expect(await screen.findByText('Your answer: Yes')).toBeTruthy()
+    expect((await api.today('DEV-0001')).answer).toBe('Yes')
+  })
+
+  it('records a spoken answer, plays it back first, and keeps it as recorded', async () => {
+    const { api } = renderApp(<As patient="DEV-0001" />)
+    fireEvent.press(await screen.findByTestId('speak-answer'))
+    fireEvent.press(screen.getByTestId('start-recording'))
+    fireEvent.press(await screen.findByTestId('stop-recording'))
+    expect(await screen.findByTestId('playback')).toBeTruthy()
+    expect(screen.getByText('Your doctor listens to it as you recorded it.')).toBeTruthy()
+    fireEvent.press(screen.getByTestId('use-recording'))
+    await waitFor(async () => expect((await api.today('DEV-0001')).answer_audio_uri).toBe('file:///answer.m4a'))
+    expect((await api.today('DEV-0001')).answer).toBeNull()
+    expect(await screen.findByTestId('playback')).toBeTruthy()
+    expect(screen.queryByTestId('answer-given')).toBeNull()
+  })
+
+  it('keeps a tapped No with the words spoken after it', async () => {
+    const { api } = renderApp(<As patient="DEV-0001" />)
+    fireEvent.press(await screen.findByTestId('answer-no'))
+    fireEvent.press(await screen.findByTestId('say-words'))
+    fireEvent.press(screen.getByTestId('start-recording'))
+    fireEvent.press(await screen.findByTestId('stop-recording'))
+    fireEvent.press(await screen.findByTestId('use-recording'))
+    await waitFor(async () => expect((await api.today('DEV-0001')).answer_audio_uri).toBe('file:///answer.m4a'))
+    expect((await api.today('DEV-0001')).answer).toBe('No')
+    expect(await screen.findByText('Your answer: No')).toBeTruthy()
+  })
+
   it('asks which meal a photo is before sending it, and shows it back with its time', async () => {
     const { api } = renderApp(<As patient="DEV-0001" />)
     fireEvent.press(await screen.findByTestId('add-meal'))

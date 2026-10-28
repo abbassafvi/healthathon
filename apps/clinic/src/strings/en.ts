@@ -218,6 +218,8 @@ export const en = {
     mealAlt: 'Meal photograph taken at {time}',
     meals: { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack' } as Record<string, string>,
     calories: '{n} kcal, as the patient typed it',
+    spoken: 'Spoken, kept as recorded, not transcribed',
+    recording: 'The patient’s recording',
     openPhoto: 'Open the photograph',
     answeredIn: 'Answered in {language}',
     shownAs: 'Shown to the patient as',

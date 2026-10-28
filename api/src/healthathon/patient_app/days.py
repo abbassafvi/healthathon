@@ -24,7 +24,9 @@ class AppPastTick(BaseModel):
 
 class AppPastAnswer(BaseModel):
     question: AppQuestion
-    answer_text: str
+    answer_text: str | None
+    # The patient's own recording, when the answer was spoken.
+    audio_uri: str | None
     occurred_at: datetime
 
 
@@ -101,6 +103,7 @@ def _day(
             AppPastAnswer(
                 question=questions[r["question_key"]],
                 answer_text=r["answer_text"],
+                audio_uri=storage.url_for(r["audio_key"]) if r["audio_key"] else None,
                 occurred_at=clinic_time.local(r["occurred_at"]),
             )
             for r in on_day

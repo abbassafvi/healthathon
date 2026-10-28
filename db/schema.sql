@@ -519,9 +519,12 @@ CREATE TABLE pat.patient_question_set_item (
 CREATE TABLE pat.survey_answer (
     entry_id    uuid PRIMARY KEY REFERENCES pat.entry(id) ON DELETE CASCADE,
     question_id uuid NOT NULL REFERENCES pat.question_bank_item(id),
-    answer_text text NOT NULL,                 -- stored exactly as given
-    set_id      uuid REFERENCES pat.patient_question_set(id)
-    -- No score, no weight, no total. Answers are never added up.
+    answer_text text,                          -- stored exactly as given
+    audio_key   text,                          -- the patient's own recording, as recorded
+    set_id      uuid REFERENCES pat.patient_question_set(id),
+    CONSTRAINT answer_given CHECK (answer_text IS NOT NULL OR audio_key IS NOT NULL)
+    -- No score, no weight, no total. Answers are never added up. A spoken
+    -- answer is kept as a recording and not transcribed.
 );
 
 -- =====================================================================

@@ -42,7 +42,7 @@ const SURVEY: Question[] = [
 
 const CONTEXTS: GlucoseContext[] = ['fasting', 'before_meal', 'after_meal', 'bedtime', 'overnight', 'random']
 
-type DayState = { ticks: Record<string, boolean>; readings: Reading[]; answer: string | null; meals: Meal[] }
+type DayState = { ticks: Record<string, boolean>; readings: Reading[]; answer: string | null; answerAudio: string | null; meals: Meal[] }
 
 export function localDay(d: Date): string {
   const p = (n: number) => String(n).padStart(2, '0')
@@ -60,11 +60,13 @@ export function createMockApi(clock: () => Date = () => new Date()): PatientApi 
   let days = new Map<string, DayState>()
   let surveys = new Set<string>()
   let seen = new Set<string>()
+  // Recording key -> the recording on this phone.
+  let recordings = new Map<string, string>()
   let n = 0
 
   const day = (pid: string): DayState => {
     const key = `${pid}|${localDay(clock())}`
-    if (!days.has(key)) days.set(key, { ticks: {}, readings: [], answer: null, meals: [] })
+    if (!days.has(key)) days.set(key, { ticks: {}, readings: [], answer: null, answerAudio: null, meals: [] })
     return days.get(key)!
   }
   const patient = (pid: string) => {
@@ -86,6 +88,7 @@ export function createMockApi(clock: () => Date = () => new Date()): PatientApi 
       days = new Map()
       surveys = new Set()
       seen = new Set()
+      recordings = new Map()
       n = 0
     },
     async patients() {
@@ -102,6 +105,7 @@ export function createMockApi(clock: () => Date = () => new Date()): PatientApi 
         readings: [...s.readings],
         question: DAILY_QUESTION,
         answer: s.answer,
+        answer_audio_uri: s.answerAudio,
         meals: [...s.meals],
         survey: { open: true, done: surveys.has(`${pid}|${weekOf(clock())}`) },
       }
@@ -126,12 +130,21 @@ export function createMockApi(clock: () => Date = () => new Date()): PatientApi 
       s.readings.push(reading)
       return reading
     },
-    async answer(pid, key, text, captureId) {
+    async answer(pid, key, text, captureId, audioKey) {
       patient(pid)
-      if (!text.trim()) throw new Error('An answer cannot be empty')
+      if (!text?.trim() && !audioKey) throw new Error('An answer cannot be empty')
+      if (audioKey && !recordings.has(audioKey)) throw new Error('That recording was not sent from this phone')
       if (key !== DAILY_QUESTION.key) throw new Error('Unknown question')
       if (!once(captureId)) return
-      day(pid).answer = text.trim()
+      const s = day(pid)
+      s.answer = text?.trim() || null
+      s.answerAudio = audioKey ? recordings.get(audioKey)! : null
+    },
+    async uploadRecording(pid, uri, captureId) {
+      patient(pid)
+      const key = `voice/${pid}/${captureId}.m4a`
+      recordings.set(key, uri)
+      return { key, uri }
     },
     async addMeal(pid, m, captureId) {
       patient(pid)
@@ -147,9 +160,9 @@ export function createMockApi(clock: () => Date = () => new Date()): PatientApi 
       patient(pid)
       return SURVEY
     },
-    async submitSurvey(pid, answers, captureId) {
+    async submitSurvey(pid, answers, captureId, spoken = {}) {
       patient(pid)
-      if (SURVEY.some((q) => !answers[q.key]?.trim())) throw new Error('Every question needs an answer')
+      if (SURVEY.some((q) => !answers[q.key]?.trim() && !recordings.has(spoken[q.key]))) throw new Error('Every question needs an answer')
       if (!once(captureId)) return
       surveys.add(`${pid}|${weekOf(clock())}`)
     },
@@ -166,7 +179,9 @@ export function createMockApi(clock: () => Date = () => new Date()): PatientApi 
           date,
           ticks: items.map((item) => ({ item, ticked: item.id in s.ticks ? s.ticks[item.id] : null })),
           readings: [...s.readings],
-          answers: s.answer ? [{ question: DAILY_QUESTION, answer_text: s.answer, occurred_at: `${date}T20:00:00` }] : [],
+          answers: s.answer || s.answerAudio
+            ? [{ question: DAILY_QUESTION, answer_text: s.answer, audio_uri: s.answerAudio, occurred_at: `${date}T20:00:00` }]
+            : [],
           meals: [...s.meals],
         }))
       return { days: past, next_before: null }

@@ -67,7 +67,7 @@ export function PaperFormPage() {
   // Days the patient already answered in the app: shown, never retyped.
   const answered: Record<string, { text: string; language: string }> = {}
   for (const a of (week.data?.entries ?? []).filter((e): e is AnswerEntry => e.kind === 'survey_answer' && e.set === 'daily')) {
-    answered[`${a.question_key}|${a.occurred_at.slice(0, 10)}`] = { text: a.answer_text, language: a.language }
+    answered[`${a.question_key}|${a.occurred_at.slice(0, 10)}`] = { text: a.answer_text ?? en.entries.spoken, language: a.answer_text ? a.language : 'en' }
   }
   const items = (week.data?.regimen_items ?? []).filter((i) => i.active_from <= dates[6] && (!i.active_until || i.active_until > dates[0]))
   const problems = attempted ? validate(draft) : []

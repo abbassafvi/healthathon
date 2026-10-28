@@ -5,7 +5,7 @@ import { useApp } from '../AppState'
 import { Button } from '../components/Button'
 import { GlucoseSheet } from '../components/GlucoseSheet'
 import { MealCard } from '../components/MealCard'
-import { QuestionCard } from '../components/QuestionCard'
+import { QuestionCard, type GivenAnswer } from '../components/QuestionCard'
 import { Section } from '../components/Section'
 import { TickRow } from '../components/TickRow'
 import { Txt } from '../components/Txt'
@@ -80,6 +80,11 @@ export function TodayScreen({ onOpenSurvey, onOpenPast, onOpenSettings }: {
         load()
       },
     )
+  // A spoken answer goes to the clinic first, then the answer that carries it.
+  const sendAnswer = async (key: string, a: GivenAnswer) => {
+    const rec = a.audioUri ? await api.uploadRecording(patientId, a.audioUri, captureId()) : null
+    await api.answer(patientId, key, a.text, captureId(), rec?.key)
+  }
   const firstName = today.patient.full_name.split(' ')[0]
 
   return (
@@ -150,7 +155,8 @@ export function TodayScreen({ onOpenSurvey, onOpenPast, onOpenSettings }: {
         <QuestionCard
           question={today.question}
           answer={today.answer}
-          onAnswer={(a) => write(api.answer(patientId, today.question!.key, a, captureId()))}
+          answerAudio={today.answer_audio_uri}
+          onAnswer={(a) => write(sendAnswer(today.question!.key, a))}
         />
       )}
 

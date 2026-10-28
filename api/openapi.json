@@ -724,6 +724,96 @@
         }
       }
     },
+    "/api/app/patients/{patient_id}/recordings": {
+      "post": {
+        "tags": [
+          "patient-app"
+        ],
+        "summary": "Post Recording",
+        "description": "A spoken answer, kept as recorded. Attach its key to an answer or the survey.",
+        "operationId": "post_recording_api_app_patients__patient_id__recordings_post",
+        "parameters": [
+          {
+            "name": "patient_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Patient Id"
+            }
+          },
+          {
+            "name": "capture_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9-]{8,64}$",
+              "title": "Capture Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "contentMediaType": "application/octet-stream",
+                "title": "Body"
+              }
+            },
+            "audio/mp4": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "audio/webm": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "audio/ogg": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "audio/wav": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppRecording"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/app/patients/{patient_id}/survey": {
       "get": {
         "tags": [
@@ -1655,8 +1745,26 @@
             "title": "Question Text Shown"
           },
           "answer_text": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Answer Text"
+          },
+          "audio_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Url"
           }
         },
         "type": "object",
@@ -1673,7 +1781,8 @@
           "question_key",
           "question_text",
           "question_text_shown",
-          "answer_text"
+          "answer_text",
+          "audio_url"
         ],
         "title": "AnswerEntry"
       },
@@ -1684,9 +1793,28 @@
             "title": "Question Key"
           },
           "answer_text": {
-            "type": "string",
-            "maxLength": 2000,
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Answer Text"
+          },
+          "audio_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^voice/[0-9a-f-]{36}/[A-Za-z0-9_-]{8,64}\\.(m4a|webm|ogg|wav)$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Key"
           },
           "capture_id": {
             "type": "string",
@@ -1713,10 +1841,10 @@
         "type": "object",
         "required": [
           "question_key",
-          "answer_text",
           "capture_id"
         ],
-        "title": "AnswerRequest"
+        "title": "AnswerRequest",
+        "description": "An answer is words, a tap, a recording, or a tap with a recording."
       },
       "AppChecklistItem": {
         "properties": {
@@ -1863,8 +1991,26 @@
             "$ref": "#/components/schemas/AppQuestion"
           },
           "answer_text": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Answer Text"
+          },
+          "audio_uri": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Uri"
           },
           "occurred_at": {
             "type": "string",
@@ -1876,6 +2022,7 @@
         "required": [
           "question",
           "answer_text",
+          "audio_uri",
           "occurred_at"
         ],
         "title": "AppPastAnswer"
@@ -1991,6 +2138,25 @@
           "occurred_at"
         ],
         "title": "AppReading"
+      },
+      "AppRecording": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "uri": {
+            "type": "string",
+            "title": "Uri"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "uri"
+        ],
+        "title": "AppRecording",
+        "description": "A recording kept at the clinic, to attach to an answer."
       },
       "AuditEntry": {
         "properties": {
@@ -4971,6 +5137,14 @@
             "maxProperties": 20,
             "title": "Answers"
           },
+          "recordings": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "maxProperties": 20,
+            "title": "Recordings"
+          },
           "capture_id": {
             "type": "string",
             "pattern": "^[A-Za-z0-9-]{8,64}$",
@@ -5218,6 +5392,17 @@
             ],
             "title": "Answer"
           },
+          "answer_audio_uri": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Answer Audio Uri"
+          },
           "meals": {
             "items": {
               "$ref": "#/components/schemas/AppMeal"
@@ -5238,6 +5423,7 @@
           "readings",
           "question",
           "answer",
+          "answer_audio_uri",
           "meals",
           "survey"
         ],

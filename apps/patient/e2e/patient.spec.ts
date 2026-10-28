@@ -162,6 +162,27 @@ test('a meal photo goes as it is, with its meal and any calories typed, and noth
   expect(Object.keys(meals[0]).filter((k) => /portion|carb|protein|estimate|nutri/i.test(k))).toEqual([])
 })
 
+test('a spoken answer reaches the clinic as recorded, and is not transcribed', async ({ page, request }) => {
+  await start(page, 'English', 'Asha Verma')
+  await page.getByRole('button', { name: 'Speak your answer' }).click()
+  await page.getByRole('button', { name: 'Start recording' }).click()
+  await expect(page.getByTestId('recording-time')).toBeVisible()
+  await page.waitForTimeout(1500)
+  await page.getByRole('button', { name: 'Stop recording' }).click()
+  await expect(page.getByText('Your doctor listens to it as you recorded it.')).toBeVisible()
+  await expectNoViolations(page)
+  await page.getByRole('button', { name: 'Send this recording' }).click()
+  await expect(page.getByTestId('playback')).toBeVisible()
+  const answers = (await clinicToday(request, 'DEV-0001')).filter((e) => e.kind === 'survey_answer') as (Entry & { audio_url: string | null })[]
+  expect(answers).toHaveLength(1)
+  expect(answers[0].answer_text).toBeNull()
+  const audio = await request.get(`${API_URL}${answers[0].audio_url}`)
+  expect(audio.ok()).toBe(true)
+  // WebM, as the browser recorded it: the file begins with its own signature.
+  expect([...(await audio.body()).subarray(0, 4)]).toEqual([0x1a, 0x45, 0xdf, 0xa3])
+  expect(Object.keys(answers[0]).filter((k) => /transcri/i.test(k))).toEqual([])
+})
+
 /* Yesterday as the clinician sees it, read from the clinician's own endpoint. */
 async function clinicYesterday(request: APIRequestContext, registrationNo: string) {
   const patients = (await (await request.get(`${API_URL}/api/patients`)).json()) as { id: string; registration_no: string }[]

@@ -20,6 +20,15 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "cliniConnect records a spoken answer only when you press Record.",
+          "recordAudioAndroid": true
+        }
+      ]
+    ]
   }
 }

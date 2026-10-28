@@ -1,6 +1,7 @@
 import type { AnswerEntry, GlucoseEntry, MealPhotoEntry, PatientEntry } from '../api/client'
 import { thumbnail } from '../lib/photos'
 import { en, fmt } from '../strings/en'
+import { Recording } from './Recording'
 import { time } from './ticks'
 
 /*
@@ -53,9 +54,12 @@ export function AnswerRow({ e }: { e: AnswerEntry }) {
       <div className="min-w-0">
         <p className="label">{e.set === 'daily' ? en.entries.dailyQuestion : en.entries.survey}</p>
         <p className="text-sm text-ink-2">{e.question_text}</p>
-        <p lang={e.language} dir={rtl ? 'rtl' : 'ltr'} className={`mt-0.5 text-base text-ink ${rtl ? 'text-right' : ''}`}>
-          {e.answer_text}
-        </p>
+        {e.answer_text && (
+          <p lang={e.language} dir={rtl ? 'rtl' : 'ltr'} className={`mt-0.5 text-base text-ink ${rtl ? 'text-right' : ''}`}>
+            {e.answer_text}
+          </p>
+        )}
+        {e.audio_url && <Recording url={e.audio_url} />}
       </div>
       <span />
       <span className="flex flex-wrap gap-x-2 font-mono text-xs text-ink-3">

@@ -123,6 +123,7 @@ def to_entry(r: dict[str, Any]) -> PatientEntry:
             question_text=r["question_text"],
             question_text_shown=r["question_text_shown"],
             answer_text=r["answer_text"],
+            audio_url=storage.url_for(r["audio_key"]) if r["audio_key"] else None,
         )
     return MealPhotoEntry(
         **base, kind="meal_photo", photo_url=storage.url_for(r["storage_key"]),
