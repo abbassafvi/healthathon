@@ -21,7 +21,7 @@ const rows = (page: Page) => page.getByRole('main').locator('ol > li')
 test('says how much of a report went straight to the record and how much to a person', async ({ page }) => {
   await openAshaReport(page)
   await expect(page.getByRole('main')).toContainText('4values read')
-  await expect(page.getByRole('main')).toContainText('3passed every check and went straight to the record')
+  await expect(page.getByRole('main')).toContainText('3passed every check that applied and went straight to the record')
   await expect(page.getByRole('main')).toContainText('1went to a person')
   await expect(rows(page)).toHaveCount(4)
   await expect(page.getByRole('img', { name: /every region the reader found/ })).toBeVisible()

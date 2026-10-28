@@ -71,9 +71,10 @@ describe('ReadingPage', () => {
     await screen.findByRole('heading', { name: 'How this document was read' })
     const summary = screen.getByText('values read').parentElement!.parentElement!
     expect(summary).toHaveTextContent('4values read')
-    expect(summary).toHaveTextContent('1passed every check and went straight to the record')
+    expect(summary).toHaveTextContent('1passed every check that applied and went straight to the record')
     expect(summary).toHaveTextContent('3went to a person')
     expect(summary).toHaveTextContent('2 settled, 1 still waiting.')
+    expect(screen.getByText(/checks every value five ways/)).toBeInTheDocument()
   })
 
   it('lists each value in page order, numbered as on the page, with where it went', async () => {
@@ -97,16 +98,27 @@ describe('ReadingPage', () => {
     expect(rows()[3]).toHaveTextContent('Marked not a value by Dr. Demo Clinician, 21 Oct 2026, 10:03, after 2.1 s.')
   })
 
-  it('says what each check found in words, not by a mark or a colour alone', async () => {
+  it('spells out a failed check first, counts the rest, and says why one did not apply', async () => {
     setup(lab)
     await screen.findByText('HbA1c')
-    const checks = within(rows()[1]).getByRole('list', { name: 'Checks' })
-    expect(within(checks).getAllByRole('listitem').map((c) => c.textContent)).toEqual([
-      '✓Found on the page', '✓Two readings agree', '○No other document to compare', '✓Unit and value make sense', '✕Region hard to read',
+    const checks = (i: number) => within(rows()[i]).getByRole('list', { name: 'Checks' })
+    expect(within(checks(1)).getAllByRole('listitem').map((c) => c.textContent)).toEqual([
+      '✕Region hard to read', '✓Passed the other 3 checks', '○No other document to compare',
+    ])
+    expect(within(checks(1)).getByText('Region hard to read').closest('li')).toHaveAttribute('data-outcome', 'fail')
+    expect(within(checks(0)).getAllByRole('listitem').map((c) => c.textContent)).toEqual([
+      '✓Passed 4 checks', '○No other document to compare',
     ])
   })
 
-  it('for a prescription, keeps lines waiting for review off the page and links to the review', async () => {
+  it('counts every check as passed when all five did', async () => {
+    const all = (['grounding', 'reread_agreement', 'cross_document', 'well_formed', 'legibility'] as const).map(pass)
+    setup({ ...lab, values: [{ ...lab.values[0], checks: all }] })
+    await screen.findByText('HbA1c')
+    expect(within(rows()[0]).getByRole('list', { name: 'Checks' })).toHaveTextContent('✓Passed all 5 checks')
+  })
+
+  it('for a prescription, keeps lines waiting for review off the page and links once to the review', async () => {
     setup({
       ...base,
       document: { ...base.document, doc_type: 'prescription' },
@@ -118,8 +130,9 @@ describe('ReadingPage', () => {
     })
     await screen.findByText('lines read')
     expect(screen.getByText(/Every line of a handwritten prescription goes to a person/)).toHaveTextContent('1 still waiting for review.')
-    expect(within(rows()[0]).getByRole('link', { name: 'Waiting for review' })).toHaveAttribute('href', '/patients/p-1/checklist/review/r-9')
-    expect(rows()[0]).toHaveTextContent('Not shown until it is reviewed')
+    expect(screen.getByRole('link', { name: 'Review the waiting lines' })).toHaveAttribute('href', '/patients/p-1/checklist/review/r-9')
+    expect(within(rows()[0]).queryByRole('link')).toBeNull()
+    expect(rows()[0]).toHaveTextContent('Waiting for review. Not shown until a person reviews it.')
     expect(rows()[1]).toHaveTextContent('Corrected by Dr. Demo Clinician, 21 Oct 2026, 10:05. The reader had Inj. Insulin Glargine 14 units at bedtime.')
   })
 

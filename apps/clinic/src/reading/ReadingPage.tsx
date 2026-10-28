@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link, useParams } from 'react-router'
 
 import { api, type DocumentReading, type ReadLine, type ReadValue } from '../api/client'
+import { LoadError } from '../app/LoadError'
 import { PAGE } from '../app/page'
 import { formatDate, formatDateTime } from '../lib/dates'
 import { en, fmt } from '../strings/en'
@@ -19,9 +20,24 @@ export function ReadingPage() {
   const { patientId, documentId } = useParams() as { patientId: string; documentId: string }
   const query = useQuery({ queryKey: ['reading', documentId], queryFn: () => api.reading(documentId) })
   const [focus, setFocus] = useState(-1)
+  const viewer = useRef<HTMLDivElement>(null)
+  // Choosing a value zooms the page to it. Below the wide layout the page
+  // sits above the list, so bring it into view as well.
+  const choose = (i: number) => {
+    setFocus(i)
+    if (window.matchMedia?.('(min-width: 64rem)').matches) return
+    const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    viewer.current?.scrollIntoView?.({ block: 'start', behavior: still ? 'auto' : 'smooth' })
+  }
 
   if (query.status === 'pending') return <main className={`${PAGE} pt-6`}><div className="h-96 rounded-xl bg-sunken" aria-busy="true" /></main>
-  if (query.status === 'error') return <main className={`${PAGE} pt-6`}><p className="text-ink-2">{en.reading.loadFailed}</p></main>
+  if (query.status === 'error') {
+    return (
+      <main className={`${PAGE} pt-6`}>
+        <LoadError message={en.reading.loadFailed} onRetry={() => void query.refetch()} retrying={query.isFetching} />
+      </main>
+    )
+  }
 
   const r = query.data
   const doc = r.document
@@ -42,10 +58,10 @@ export function ReadingPage() {
         <span className="numerals">. {fmt(en.reading.received, { when: formatDateTime(doc.received_at) })}</span>
       </p>
 
-      <Summary r={r} />
+      <Summary r={r} patientId={patientId} />
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <div className="lg:sticky lg:top-20 lg:self-start">
+        <div ref={viewer} className="scroll-mt-4 lg:sticky lg:top-20 lg:self-start">
           {page ? (
             <PageViewer url={page.url} width={page.width_px} height={page.height_px} marks={marks} focus={focus} alt={en.reading.pageAlt} />
           ) : (
@@ -54,10 +70,10 @@ export function ReadingPage() {
         </div>
         <ol className="flex flex-col border-t border-line">
           {r.values.map((v, i) => (
-            <ValueRow key={v.id} v={v} n={i + 1} active={focus === i} onFocus={() => setFocus(i)} />
+            <ValueRow key={v.id} v={v} n={i + 1} active={focus === i} onFocus={() => choose(i)} />
           ))}
           {r.lines.map((l, i) => (
-            <LineRow key={l.id} l={l} n={i + 1} patientId={patientId} active={focus === i} onFocus={() => setFocus(i)} />
+            <LineRow key={l.id} l={l} n={i + 1} active={focus === i} onFocus={() => choose(i)} />
           ))}
         </ol>
       </div>
@@ -77,31 +93,42 @@ export function ReadingPage() {
 }
 
 /* The one sentence the page exists for: how much went straight to the record. */
-function Summary({ r }: { r: DocumentReading }) {
+function Summary({ r, patientId }: { r: DocumentReading; patientId: string }) {
   if (r.values.length) {
     const direct = r.values.filter((v) => v.went_to === 'record').length
     const person = r.values.filter((v) => v.went_to === 'person')
     const waiting = person.filter((v) => v.waiting).length
     return (
-      <div className="mt-6 flex flex-wrap items-baseline gap-x-10 gap-y-3 border-y border-line py-5">
-        <Figure n={r.values.length} label={en.reading.read} />
-        <Figure n={direct} label={en.reading.direct} />
-        <Figure n={person.length} label={en.reading.toPerson} />
-        {person.length > 0 && (
-          <p className="text-sm text-ink-2">
-            {waiting === 0 ? en.reading.allSettled : fmt(en.reading.someWaiting, { n: waiting, settled: person.length - waiting })}
-          </p>
-        )}
+      <div className="mt-6 border-y border-line py-5">
+        <div className="flex flex-wrap items-baseline gap-x-10 gap-y-3">
+          <Figure n={r.values.length} label={en.reading.read} />
+          <Figure n={direct} label={en.reading.direct} />
+          <Figure n={person.length} label={en.reading.toPerson} />
+          {person.length > 0 && (
+            <p className="text-sm text-ink-2">
+              {waiting === 0 ? en.reading.allSettled : fmt(en.reading.someWaiting, { n: waiting, settled: person.length - waiting })}
+            </p>
+          )}
+        </div>
+        <p className="mt-3 max-w-[75ch] text-sm text-pretty text-ink-2">{en.reading.checksIntro}</p>
       </div>
     )
   }
-  const waiting = r.lines.filter((l) => l.state === 'waiting').length
+  const waiting = r.lines.filter((l) => l.state === 'waiting')
   return (
     <div className="mt-6 flex flex-wrap items-baseline gap-x-10 gap-y-3 border-y border-line py-5">
       <Figure n={r.lines.length} label={en.reading.linesRead} />
       <p className="max-w-[52ch] text-sm text-ink-2">
-        {en.reading.everyLine} {waiting === 0 ? en.reading.allReviewed : fmt(en.reading.linesWaiting, { n: waiting })}
+        {en.reading.everyLine} {waiting.length === 0 ? en.reading.allReviewed : fmt(en.reading.linesWaiting, { n: waiting.length })}
       </p>
+      {waiting.length > 0 && (
+        <Link
+          to={`/patients/${patientId}/checklist/review/${waiting[0].regimen_id}`}
+          className="inline-flex h-9 items-center rounded-lg border border-line-strong bg-surface px-3.5 text-sm font-medium hover:bg-bg"
+        >
+          {en.reading.reviewLines}
+        </Link>
+      )}
     </div>
   )
 }
@@ -174,7 +201,7 @@ function SettledLine({ s }: { s: NonNullable<ReadValue['settled']> }) {
   )
 }
 
-function LineRow({ l, n, patientId, active, onFocus }: { l: ReadLine; n: number; patientId: string; active: boolean; onFocus: () => void }) {
+function LineRow({ l, n, active, onFocus }: { l: ReadLine; n: number; active: boolean; onFocus: () => void }) {
   return (
     <li className={ROW}>
       <Number n={n} active={active} />
@@ -189,13 +216,7 @@ function LineRow({ l, n, patientId, active, onFocus }: { l: ReadLine; n: number;
             </span>
           )}
         </button>
-        {l.state === 'waiting' ? (
-          <p className="text-sm">
-            <Link to={`/patients/${patientId}/checklist/review/${l.regimen_id}`} className="text-accent underline-offset-4 hover:underline">
-              {en.reading.lineWaiting}
-            </Link>
-          </p>
-        ) : (
+        {l.state !== 'waiting' && (
           <p className="numerals text-sm text-ink-2">
             {l.state === 'confirmed'
               ? fmt(en.reading.lineConfirmedBy, { name: l.by_name ?? en.reading.someone, when: l.at ? formatDateTime(l.at) : '' })
