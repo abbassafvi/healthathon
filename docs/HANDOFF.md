@@ -3,8 +3,8 @@
 Last updated 28 October 2026, after Track B's product pass: fixes from the
 critique of the four demonstration pages, a fuller patient list and patient
 header, prescriptions on the Documents tab, a settings screen and icon for
-the patient app, and the seed's audit history. Written for Abbas and for any
-agent working on Track A.
+the patient app, the seed's audit history, and the patients' SMS card.
+Written for Abbas and for any agent working on Track A.
 Read `AGENTS.md` first; everything here sits under its rules.
 
 ## In one paragraph
@@ -69,7 +69,7 @@ seed script should replace it, keeping the same four registration numbers
 | `GET /api/audit-log?kind&before&limit` | `test_audit_log.py` |
 | `GET /api/app/patients/{id}/days?before&count` | `test_past_days.py` |
 | `GET /api/storage/{key}?width` (a smaller copy of a photo, metadata removed) | `test_thumbnails.py` |
-| `GET /api/patients` now returns `PatientListItem`: the old fields plus enrolment date, caregiver, last and next visit, the checklist in force, values and lines waiting, documents and the latest entry | `test_patient_list.py` |
+| `GET /api/patients` now returns `PatientListItem`: the old fields plus enrolment date, caregiver, last and next visit, the checklist in force, values and lines waiting, documents, the latest entry, and `sms_phone_last4` (the phone SMS is read from, only while the patient agrees to SMS) | `test_patient_list.py` |
 
 The last six were added after the OpenAPI spec was frozen, for the
 demonstration. Each only adds a path, an optional parameter or fields;
@@ -82,9 +82,16 @@ agreeing like any other contract change.
 to write history; every request leaves the time to the database clock.
 
 The English interface strings gained the product pass's wording: the
-header, footer and not-found page, the patient list and header, the retry
-message, the reading page's check summary, and the patient app's settings
-(in all three languages). Those additions need agreeing too.
+header, footer and not-found page, the patient list and header (with the
+patient's SMS phone), the retry message, the reading page's check summary,
+the SMS card page, and the patient app's settings with its confirmation
+before changing the patient (in all three languages). The SMS card's own
+patient-facing wording is in `apps/clinic/src/smscard/cardStrings.ts`.
+Those additions need agreeing too.
+
+The clinic's SMS number is typed on the SMS card page and kept in that
+computer's browser storage, because there is no gateway number to store
+yet. When a gateway exists, it belongs in a clinic setting on the API.
 
 How a document was read lists, for each value, the five checks from
 `core.check_result`. Only the seed writes those rows today: the reading
@@ -158,7 +165,9 @@ These came up while building and need a decision from the schema owner.
 - **Hindi and Urdu strings are drafts.** `apps/patient/src/i18n/hi.ts` and
   `ur.ts` are marked `REVIEWED = false`, and a test keeps them that way until
   a speaker reviews every string. Do not use them at the demonstration
-  before then. The clinician app is English only.
+  before then. The clinician app is English only, except the SMS card it
+  prints for a patient (`apps/clinic/src/smscard/cardStrings.ts`), whose
+  Hindi and Urdu are drafts under the same rule.
 - **A day's answer can be changed in the app,** and each answer is stored
   as its own entry, so the clinician sees both, with their times. There is
   no supersede link between them.
@@ -168,8 +177,10 @@ These came up while building and need a decision from the schema owner.
   was taken. The small copies the screens show have none; whether to strip
   it from the original too is a decision for both of us.
 - **SMS** is built as an inbound endpoint with no reply (notifications are
-  out of scope). The message format is in the README. The patient card that
-  explains it has not been written or translated.
+  out of scope). The message format is in the README. The clinic prints each
+  patient's SMS card from their Checklist tab; a patient who has not agreed
+  to SMS gets no card. The card leaves a line for the clinic's SMS number,
+  because there is no gateway number yet.
 - **Native Android** has not been run on a device or emulator; the patient
   app is tested on Expo's web target. Run it on a phone before rehearsal.
 
@@ -224,5 +235,4 @@ Things that will trip you up:
 
 1. Get the Hindi and Urdu strings reviewed by speakers.
 2. Run the patient app on an Android phone.
-3. Write and translate the SMS card for patients.
-4. Wire upload once the pipeline lands, then `/impeccable audit`.
+3. Wire upload once the pipeline lands, then `/impeccable audit`.
