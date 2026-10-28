@@ -27,11 +27,14 @@ function Where() {
   return <span data-testid="where">{useLocation().pathname}</span>
 }
 
+let checklist: unknown = { active: null, awaiting_review: [] }
+
 function setup(start = '/patients/p-1/documents', traceStatus = 200) {
   controlImages()
   vi.stubGlobal('fetch', vi.fn(async (input: string | URL) => {
     const url = new URL(String(input)).pathname
     if (url === '/api/patients') return Response.json([patientListItem(record.patient)])
+    if (url === '/api/patients/p-1/checklist') return Response.json(checklist)
     if (url === '/api/patients/p-1/record') return Response.json(record)
     if (url.startsWith('/api/values/')) {
       return traceStatus === 200
@@ -58,7 +61,10 @@ function setup(start = '/patients/p-1/documents', traceStatus = 200) {
   return userEvent.setup()
 }
 
-afterEach(() => vi.unstubAllGlobals())
+afterEach(() => {
+  vi.unstubAllGlobals()
+  checklist = { active: null, awaiting_review: [] }
+})
 
 describe('RecordPage', () => {
   it('lists values exactly as printed, in page order', async () => {
@@ -66,6 +72,29 @@ describe('RecordPage', () => {
     expect(await screen.findByRole('heading', { name: 'Asha Verma' })).toBeInTheDocument()
     const links = screen.getAllByRole('link').filter((l) => l.hasAttribute('data-value-id'))
     expect(links.map((l) => l.textContent)).toEqual(['HbA1c8.4%', 'LDL cholesterol118mg/dL'])
+  })
+
+  it('lists prescriptions among the documents, newest first, with where each stands', async () => {
+    const rx = (id: string, date: string) => ({ id, document_date: date, issuing_source: 'Dr. Kavita Rao, MD (fictional)' })
+    checklist = {
+      active: { id: 'r-1', activated_at: '2026-10-09T10:05:00+05:30', activated_by_name: 'Dr. Demo Clinician', source_document: rx('d-rx1', '2026-10-09'), items: [{}, {}, {}] },
+      awaiting_review: [{ regimen_id: 'r-2', document: rx('d-rx2', '2026-10-27'), item_count: 4, confirmed_count: 1 }],
+    }
+    setup()
+    await screen.findByRole('heading', { name: 'Asha Verma' })
+    const headings = await screen.findAllByRole('heading', { level: 2 })
+    expect(headings.map((h) => h.textContent)).toEqual([
+      expect.stringContaining('Prescription27 Oct 2026'),
+      expect.stringContaining('Lab report12 Oct 2026'),
+      expect.stringContaining('Prescription9 Oct 2026'),
+    ])
+    expect(screen.getByText('3 lines waiting for review before they reach the checklist.')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Review the lines' })).toHaveAttribute('href', '/patients/p-1/checklist/review/r-2')
+    expect(screen.getByText('The checklist in force since 9 Oct 2026: 3 medicines.')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Open the checklist' })).toHaveAttribute('href', '/patients/p-1/checklist')
+    expect(screen.getAllByRole('link', { name: 'How this prescription was read' }).map((l) => l.getAttribute('href'))).toEqual([
+      '/patients/p-1/documents/d-rx2/reading', '/patients/p-1/documents/d-rx1/reading',
+    ])
   })
 
   it('opens the trace beside the record, and Escape returns focus to the value', async () => {

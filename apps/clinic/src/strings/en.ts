@@ -350,6 +350,13 @@ export const en = {
     loadFailed: 'This record could not be loaded.',
     notFound: 'There is no patient with this record.',
     traceHint: 'Select a value to see where it came from on the page.',
+    rxActive: 'The checklist in force since {date}: {n} medicines.',
+    rxActiveOne: 'The checklist in force since {date}: 1 medicine.',
+    rxWaiting: '{n} lines waiting for review before they reach the checklist.',
+    rxWaitingOne: '1 line waiting for review before it reaches the checklist.',
+    rxReviewed: 'Every line has been reviewed. Not yet the checklist.',
+    openChecklist: 'Open the checklist',
+    reviewLines: 'Review the lines',
   },
   trace: {
     title: 'Where this value came from',
