@@ -1,7 +1,9 @@
 import os
+import re
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
+from uuid import UUID
 
 import psycopg
 import pytest
@@ -52,11 +54,35 @@ def db(database: str, storage_dir: Path) -> Iterator[psycopg.Connection[Any]]:
         yield conn
 
 
+_APP_PATIENT = re.compile(r"^/api/app/patients/([0-9a-f-]{36})(/|$)")
+
+
+def _signed_in_as_the_path(request: Any) -> None:
+    """
+    A request to /api/app/patients/{id}/... carries a token for that patient,
+    as the patient's own phone would, unless the test set one itself. The
+    sign-in tests use `unsigned_client` to see what happens without one.
+    """
+    from healthathon.patient_app import signin
+
+    m = _APP_PATIENT.match(request.url.path)
+    if m and "authorization" not in request.headers:
+        request.headers["Authorization"] = f"Bearer {signin.token_for(UUID(m.group(1)))}"
+
+
 @pytest.fixture
-def client(db: psycopg.Connection[Any]) -> Iterator[Any]:
+def unsigned_client(db: psycopg.Connection[Any]) -> Iterator[Any]:
     from fastapi.testclient import TestClient
 
     from healthathon.main import app
+    from healthathon.patient_app import signin
 
+    signin.reset()
     with TestClient(app) as c:
         yield c
+
+
+@pytest.fixture
+def client(unsigned_client: Any) -> Any:
+    unsigned_client.event_hooks["request"].append(_signed_in_as_the_path)
+    return unsigned_client

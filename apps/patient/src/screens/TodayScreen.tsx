@@ -47,8 +47,8 @@ export function TodayScreen({ onOpenSurvey, onOpenPast, onOpenSettings }: {
       })
       .catch((e: unknown) => {
         if (n !== latest.current) return
-        // The patient chosen on this phone is no longer in the record: choose again.
-        if (e instanceof ApiError && (e.status === 404 || e.status === 422)) signOut()
+        // The token ran out, or names a patient this server does not know: sign in again.
+        if (e instanceof ApiError && [401, 403, 404, 422].includes(e.status)) signOut()
         else setFailed('load')
       })
   }, [api, patientId, signOut])

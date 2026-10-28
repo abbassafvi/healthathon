@@ -557,6 +557,7 @@ export const en = {
       'meal.record': 'Sent a meal photo',
       'sms.receive': 'Sent entries by SMS',
       'sms.refuse': 'An SMS was refused',
+      'patient.sign_in': 'Signed in to the app with a code sent by SMS',
     } as Record<string, string>,
   },
   reasons: {

@@ -77,11 +77,19 @@ test('the documents half stays in view while the patient half scrolls', async ({
 })
 
 test('a tick made in the patient app today appears in the day array', async ({ page, request }) => {
-  const patients = (await (await request.get('/api/app/patients')).json()) as { id: string; registration_no: string }[]
-  const asha = patients.find((p) => p.registration_no === 'DEV-0001')!
-  const today = (await (await request.get(`/api/app/patients/${asha.id}/today`)).json()) as { date: string; items: { id: string; drug_text: string }[] }
+  // Asha's phone signs in as the app does: her number, then the code (shown, since the API is in test mode).
+  const phone = '55500 00001'
+  const { demo_code } = (await (await request.post('/api/app/sign-in/start', { data: { phone } })).json()) as { demo_code: string }
+  const signed = (await (await request.post('/api/app/sign-in/check', { data: { phone, code: demo_code } })).json()) as {
+    token: string
+    patient: { id: string }
+  }
+  const headers = { Authorization: `Bearer ${signed.token}` }
+  const asha = signed.patient
+  const today = (await (await request.get(`/api/app/patients/${asha.id}/today`, { headers })).json()) as { date: string; items: { id: string; drug_text: string }[] }
   const item = today.items[0]
   const res = await request.put(`/api/app/patients/${asha.id}/ticks/${item.id}`, {
+    headers,
     data: { ticked: true, capture_id: 'e2e-visit-tick-0001' },
   })
   expect(res.status()).toBe(204)

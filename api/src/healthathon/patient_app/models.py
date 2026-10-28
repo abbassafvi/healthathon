@@ -19,6 +19,27 @@ class AppPatient(BaseModel):
     preferred_language: str
 
 
+class SignInStart(BaseModel):
+    phone: str = Field(min_length=6, max_length=24)
+
+
+class SignInStarted(BaseModel):
+    # Test mode only: the code, for the sign-in screen to show. Null with Twilio.
+    demo_code: str | None
+
+
+class SignInCheck(BaseModel):
+    phone: str = Field(min_length=6, max_length=24)
+    code: str = Field(pattern=r"^[0-9]{4,10}$")
+
+
+class SignedIn(BaseModel):
+    """A token for this phone, sent as `Authorization: Bearer <token>`, and whose it is."""
+
+    token: str
+    patient: AppPatient
+
+
 class AppChecklistItem(BaseModel):
     """Exactly as printed on the activated prescription."""
 

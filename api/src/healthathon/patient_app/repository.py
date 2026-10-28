@@ -6,11 +6,14 @@ from psycopg import Connection
 from psycopg.rows import DictRow
 
 
-def patients(conn: Connection[DictRow]) -> list[dict[str, Any]]:
+def patient_by_phone(conn: Connection[DictRow], phone_hmac: bytes) -> dict[str, Any] | None:
+    """The enrolled patient whose recorded phone has this HMAC."""
     return conn.execute(
-        "SELECT id, registration_no, full_name, preferred_language FROM core.patient"
-        " WHERE exited_at IS NULL ORDER BY registration_no"
-    ).fetchall()
+        "SELECT p.id, p.registration_no, p.full_name, p.preferred_language"
+        " FROM core.patient_phone ph JOIN core.patient p ON p.id = ph.patient_id"
+        " WHERE ph.phone_hmac = %s AND p.exited_at IS NULL",
+        (phone_hmac,),
+    ).fetchone()
 
 
 def patient(conn: Connection[DictRow], patient_id: UUID) -> dict[str, Any] | None:

@@ -26,10 +26,6 @@ def require_patient(conn: Connection[DictRow], patient_id: UUID) -> dict[str, An
     return p
 
 
-def patients(conn: Connection[DictRow]) -> list[AppPatient]:
-    return [AppPatient(**p) for p in repo.patients(conn)]
-
-
 def today(conn: Connection[DictRow], patient_id: UUID) -> Today:
     """
     One day in the app: the checklist and what has been recorded today, by

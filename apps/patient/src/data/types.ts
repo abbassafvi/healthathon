@@ -59,9 +59,14 @@ export type PastDay = {
 /* Newest first. next_before asks for the days before these; null at the first entry. */
 export type PastDays = { days: PastDay[]; next_before: string | null }
 
+/* A phone signed in: the token its requests carry, and whose phone it is. */
+export type SignedIn = { token: string; patient: PatientRef }
+
 /* Every write carries a capture id made on the device: the idempotency key. */
 export type PatientApi = {
-  patients(): Promise<PatientRef[]>
+  /* Sends a code by SMS to a number on a patient's record. demo_code is set only in test mode. */
+  startSignIn(phone: string): Promise<{ demo_code: string | null }>
+  checkSignIn(phone: string, code: string): Promise<SignedIn>
   today(patientId: string): Promise<Today>
   setTick(patientId: string, itemId: string, ticked: boolean | null, captureId: string): Promise<void>
   addReading(patientId: string, r: { value_text: string; context: GlucoseContext }, captureId: string): Promise<Reading>

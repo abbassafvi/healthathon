@@ -28,6 +28,20 @@ class Settings(BaseSettings):
     phone_hmac_key: str = "dev-only-phone-key"
     # The SMS gateway stand-in sends this in X-Gateway-Key.
     sms_gateway_key: str = "dev-only-gateway-key"
+    # Patient sign-in by a code sent by SMS. With all three Twilio values set,
+    # codes go through Twilio Verify. Without them sign-in is in test mode: the
+    # code is shown on the sign-in screen and written to the log, which is for
+    # development and the demonstration only. Set them outside git, never in it.
+    twilio_account_sid: str | None = None
+    twilio_auth_token: str | None = None
+    twilio_verify_sid: str | None = None
+    # Test mode only: a fixed code instead of a random one, for automated tests.
+    otp_test_code: str | None = None
+    # Signs the patient app's session tokens. Set a long random value outside development.
+    session_secret: str = "dev-only-session-secret"
+    session_days: int = 30
+    # Codes one number may be sent in an hour. Browser tests sign in on the same numbers all day.
+    otp_sends_per_hour: int = 5
 
 
 @lru_cache

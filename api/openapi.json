@@ -369,24 +369,82 @@
         }
       }
     },
-    "/api/app/patients": {
-      "get": {
+    "/api/app/sign-in/start": {
+      "post": {
         "tags": [
           "patient-app"
         ],
-        "summary": "Get Patients",
-        "operationId": "get_patients_api_app_patients_get",
+        "summary": "Start Sign In",
+        "description": "Send a code to this number if it is on a patient's record. The answer is\nthe same either way, except that test mode shows the code it made.",
+        "operationId": "start_sign_in_api_app_sign_in_start_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignInStart"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/AppPatient"
-                  },
-                  "type": "array",
-                  "title": "Response Get Patients Api App Patients Get"
+                  "$ref": "#/components/schemas/SignInStarted"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/app/sign-in/check": {
+      "post": {
+        "tags": [
+          "patient-app"
+        ],
+        "summary": "Check Sign In",
+        "operationId": "check_sign_in_api_app_sign_in_check_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignInCheck"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignedIn"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -410,6 +468,22 @@
               "type": "string",
               "format": "uuid",
               "title": "Patient Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
             }
           }
         ],
@@ -464,6 +538,22 @@
               "format": "uuid",
               "title": "Item Id"
             }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
           }
         ],
         "requestBody": {
@@ -509,6 +599,22 @@
               "type": "string",
               "format": "uuid",
               "title": "Patient Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
             }
           }
         ],
@@ -562,6 +668,22 @@
               "type": "string",
               "format": "uuid",
               "title": "Patient Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
             }
           }
         ],
@@ -674,6 +796,22 @@
               "title": "Calories"
             },
             "description": "Only as typed by the patient"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
           }
         ],
         "requestBody": {
@@ -751,6 +889,22 @@
               "type": "string",
               "pattern": "^[A-Za-z0-9-]{8,64}$",
               "title": "Capture Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
             }
           }
         ],
@@ -831,6 +985,22 @@
               "format": "uuid",
               "title": "Patient Id"
             }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
           }
         ],
         "responses": {
@@ -875,6 +1045,22 @@
               "type": "string",
               "format": "uuid",
               "title": "Patient Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
             }
           }
         ],
@@ -952,6 +1138,22 @@
               "minimum": 1,
               "default": 7,
               "title": "Count"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
             }
           }
         ],
@@ -5041,6 +5243,80 @@
           "unit_text"
         ],
         "title": "ShownValue"
+      },
+      "SignInCheck": {
+        "properties": {
+          "phone": {
+            "type": "string",
+            "maxLength": 24,
+            "minLength": 6,
+            "title": "Phone"
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^[0-9]{4,10}$",
+            "title": "Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "phone",
+          "code"
+        ],
+        "title": "SignInCheck"
+      },
+      "SignInStart": {
+        "properties": {
+          "phone": {
+            "type": "string",
+            "maxLength": 24,
+            "minLength": 6,
+            "title": "Phone"
+          }
+        },
+        "type": "object",
+        "required": [
+          "phone"
+        ],
+        "title": "SignInStart"
+      },
+      "SignInStarted": {
+        "properties": {
+          "demo_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Demo Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "demo_code"
+        ],
+        "title": "SignInStarted"
+      },
+      "SignedIn": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "title": "Token"
+          },
+          "patient": {
+            "$ref": "#/components/schemas/AppPatient"
+          }
+        },
+        "type": "object",
+        "required": [
+          "token",
+          "patient"
+        ],
+        "title": "SignedIn",
+        "description": "A token for this phone, sent as `Authorization: Bearer <token>`, and whose it is."
       },
       "SmsProblem": {
         "properties": {

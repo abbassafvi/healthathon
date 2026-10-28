@@ -33,14 +33,9 @@ def _reading(client: Any, pid: str, cap: str = "cap-reading-1", **over: Any) -> 
     return client.post(f"/api/app/patients/{pid}/readings", json=body)
 
 
-def test_lists_the_four_patients_with_their_language(client: Any) -> None:
-    res = client.get("/api/app/patients").json()
-    assert [(p["registration_no"], p["preferred_language"]) for p in res] == [
-        ("DEV-0001", "hi"),
-        ("DEV-0002", "ur"),
-        ("DEV-0003", "en"),
-        ("DEV-0004", "hi"),
-    ]
+def test_a_phone_is_given_no_list_of_patients(client: Any) -> None:
+    # A phone signs in by its own number; it never sees who else is enrolled.
+    assert client.get("/api/app/patients").status_code in (404, 405)
 
 
 def test_today_starts_empty_with_the_checklist_as_printed(client: Any, pid: str) -> None:

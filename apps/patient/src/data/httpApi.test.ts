@@ -139,9 +139,33 @@ describe('the HTTP patient API', () => {
     expect((err as ApiError).message).toBe('A reading must be a number')
   })
 
+  it('signs in with the code, and then sends the token on patient routes only', async () => {
+    let token: string | null = null
+    const calls: { url: string; init?: RequestInit }[] = []
+    const replies = [json({ demo_code: null }), json({ token: 'tok-1', patient: { id: 'p1' } }), json({})]
+    const client = createHttpApi({
+      baseUrl: 'http://clinic.test:8000',
+      language: () => 'en',
+      token: () => token,
+      fetch: (async (url: string, init?: RequestInit) => {
+        calls.push({ url, init })
+        return replies.shift()!
+      }) as typeof fetch,
+    })
+    await client.startSignIn('55500 00001')
+    const signed = await client.checkSignIn('55500 00001', '123456')
+    token = signed.token
+    await client.today('p1').catch(() => {})
+    expect(body(calls[0])).toEqual({ phone: '55500 00001' })
+    expect(calls[0].url).toBe('http://clinic.test:8000/api/app/sign-in/start')
+    expect(body(calls[1])).toEqual({ phone: '55500 00001', code: '123456' })
+    expect((calls[0].init?.headers as Record<string, string>).Authorization).toBeUndefined()
+    expect(calls[2].init?.headers).toEqual({ Authorization: 'Bearer tok-1' })
+  })
+
   it('reports a network failure as status 0', async () => {
     const { client } = api(new TypeError('Network request failed'))
-    const err = await client.patients().catch((e: unknown) => e)
+    const err = await client.startSignIn('55500 00001').catch((e: unknown) => e)
     expect(err).toBeInstanceOf(ApiError)
     expect((err as ApiError).status).toBe(0)
   })

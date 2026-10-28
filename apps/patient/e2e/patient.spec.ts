@@ -9,20 +9,32 @@ test.beforeEach(() => reseed())
 
 type Entry = { kind: string; channel: string; entered_by: string; language: string; ticked?: boolean; value_text?: string; context?: string; answer_text?: string; set?: string; meal?: string | null; calories_text?: string | null }
 
+/* Today's date at the clinic, which keeps India time whatever the test machine's clock says. */
+const clinicDate = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date())
+
 /* What the clinician sees for today, read from the clinician's own endpoint. */
 async function clinicToday(request: APIRequestContext, registrationNo: string): Promise<Entry[]> {
   const patients = (await (await request.get(`${API_URL}/api/patients`)).json()) as { id: string; registration_no: string }[]
   const id = patients.find((p) => p.registration_no === registrationNo)!.id
-  const today = ((await (await request.get(`${API_URL}/api/app/patients/${id}/today`)).json()) as { date: string }).date
+  const today = clinicDate()
   const page = (await (await request.get(`${API_URL}/api/patients/${id}/entries?from=${today}&to=${today}`)).json()) as { entries: Entry[] }
   return page.entries
 }
 
+/* The seed's fictional numbers. */
+const PHONES: Record<string, string> = {
+  'Asha Verma': '55500 00001', 'Imran Qureshi': '55500 00002', 'Meera Pillai': '55500 00003', 'Rakesh Yadav': '55500 00004',
+}
+
+/* Signs in as the patient: their number, then the code. The API is in test mode, so the screen shows the code. */
 async function start(page: Page, lang: 'English' | 'हिन्दी' | 'اردو', patient: string) {
   await page.goto('/')
   await page.getByRole('radio', { name: lang }).click()
-  await page.getByRole('radio', { name: patient }).click()
-  await page.getByRole('button', { name: /^(Start|शुरू करें|شروع کریں)$/ }).click()
+  await page.getByTestId('phone').fill(PHONES[patient])
+  await page.getByTestId('send-code').click()
+  const code = (await page.getByTestId('demo-code').innerText()).match(/\d{6}/)![0]
+  await page.getByTestId('code').fill(code)
+  await page.getByTestId('sign-in').click()
 }
 
 async function expectNoViolations(page: Page) {
@@ -32,12 +44,20 @@ async function expectNoViolations(page: Page) {
   expect(violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target).join(', ')}`)).toEqual([])
 }
 
-test('first launch picks a language and a demo patient, and remembers them', async ({ page }) => {
+test('first launch signs in with the number on record and a code, and stays signed in', async ({ page }) => {
   await page.goto('/')
-  await expect(page.getByText('Demo: these are fictional patients.')).toBeVisible()
-  // Start is within reach without scrolling, on a phone-sized screen.
-  await expect(page.getByRole('button', { name: 'Start' })).toBeInViewport()
+  await expect(page.getByText('Your mobile number')).toBeVisible()
+  await expect(page.getByText('Asha Verma')).toHaveCount(0) // no list of patients on a phone
+  // The next step is within reach without scrolling, on a phone-sized screen.
+  await expect(page.getByRole('button', { name: 'Send the code' })).toBeInViewport()
   await expectNoViolations(page)
+  await page.getByTestId('phone').fill('55500 00001')
+  await page.getByRole('button', { name: 'Send the code' }).click()
+  await expect(page.getByTestId('demo-code')).toHaveText(/^Demo, no SMS is sent: the code is \d{6}\.$/)
+  await expectNoViolations(page)
+  await page.getByTestId('code').fill('000000')
+  await page.getByRole('button', { name: 'Sign in' }).click()
+  await expect(page.getByRole('alert')).toContainText('That code is not right')
   await start(page, 'English', 'Asha Verma')
   await expect(page.getByText('Hello, Asha')).toBeVisible()
   await page.reload()
@@ -187,7 +207,7 @@ test('a spoken answer reaches the clinic as recorded, and is not transcribed', a
 async function clinicYesterday(request: APIRequestContext, registrationNo: string) {
   const patients = (await (await request.get(`${API_URL}/api/patients`)).json()) as { id: string; registration_no: string }[]
   const id = patients.find((p) => p.registration_no === registrationNo)!.id
-  const today = ((await (await request.get(`${API_URL}/api/app/patients/${id}/today`)).json()) as { date: string }).date
+  const today = clinicDate()
   const d = new Date(`${today}T12:00:00`)
   d.setDate(d.getDate() - 1)
   const yesterday = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -246,13 +266,13 @@ test('settings change the language at once, keep the patient, and say what the a
   await expect(page.getByText('दवाइयाँ')).toBeVisible()
 })
 
-test('changing the patient from settings asks first, then goes back to the first screen', async ({ page }) => {
+test('signing out from settings asks first, then goes back to sign-in', async ({ page }) => {
   await start(page, 'English', 'Asha Verma')
   await page.getByRole('button', { name: 'Settings' }).click()
-  await page.getByRole('button', { name: 'Change patient' }).click()
+  await page.getByRole('button', { name: 'Sign out' }).click()
   await expect(page.getByText('The app will go back to its first screen')).toBeVisible()
-  await page.getByRole('button', { name: 'Yes, change patient' }).click()
-  await expect(page.getByText('Who is using this phone?')).toBeVisible()
+  await page.getByRole('button', { name: 'Yes, sign out' }).click()
+  await expect(page.getByText('Your mobile number')).toBeVisible()
 })
 
 test('an earlier day lists a medicine nothing was marked for as not marked', async ({ page }) => {

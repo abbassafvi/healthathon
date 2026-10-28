@@ -15,7 +15,7 @@ KINDS: dict[str, tuple[str, ...]] = {
     ),
     "patient": (
         "tick.record", "tick.change", "tick.clear", "reading.record", "answer.record",
-        "survey.submit", "meal.record", "sms.receive", "sms.refuse",
+        "survey.submit", "meal.record", "sms.receive", "sms.refuse", "patient.sign_in",
     ),
 }  # fmt: skip
 

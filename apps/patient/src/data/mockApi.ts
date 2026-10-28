@@ -5,6 +5,11 @@ import type { ChecklistItem, GlucoseContext, Meal, PatientApi, PatientRef, Quest
  * seed patients. Writes are idempotent by capture id, as the real ones
  * must be. Nothing here computes anything about the readings.
  */
+const MOCK_CODE = '123456'
+const PHONES: Record<string, string> = Object.fromEntries([1, 2, 3, 4].map((n) => [`555000000${n}`, `DEV-000${n}`]))
+/* The last ten digits, so +91 55500 00001 and 55500 00001 are the same number. */
+const digits = (phone: string) => phone.replace(/\D/g, '').slice(-10)
+
 const PATIENTS: PatientRef[] = [
   { id: 'DEV-0001', registration_no: 'DEV-0001', full_name: 'Asha Verma', preferred_language: 'hi' },
   { id: 'DEV-0002', registration_no: 'DEV-0002', full_name: 'Imran Qureshi', preferred_language: 'ur' },
@@ -91,8 +96,14 @@ export function createMockApi(clock: () => Date = () => new Date()): PatientApi 
       recordings = new Map()
       n = 0
     },
-    async patients() {
-      return PATIENTS
+    // The fictional patients' numbers, as the dev seed gives them; the code is always 123456.
+    async startSignIn(phone) {
+      return { demo_code: PHONES[digits(phone)] ? MOCK_CODE : null }
+    },
+    async checkSignIn(phone, code) {
+      const p = PATIENTS.find((x) => x.id === PHONES[digits(phone)])
+      if (!p || code !== MOCK_CODE) throw new Error('That code is not right, or it has run out')
+      return { token: `mock-${p.id}`, patient: p }
     },
     async today(pid) {
       const p = patient(pid)

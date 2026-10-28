@@ -1,6 +1,6 @@
 import type { Lang } from '../theme'
 import { readPhoto } from './readPhoto'
-import type { Meal, PastDays, PatientApi, PatientRef, Reading, Recording, SurveyQuestion, Today } from './types'
+import type { Meal, PastDays, PatientApi, Reading, Recording, SignedIn, SurveyQuestion, Today } from './types'
 
 /* A request the API refused or could not answer. `status` is 0 when the network failed. */
 export class ApiError extends Error {
@@ -16,6 +16,8 @@ type Options = {
   baseUrl: string
   /* The language the patient is using now; written answers are stored with it. */
   language: () => Lang
+  /* The signed-in phone's token, sent on every patient route. */
+  token?: () => string | null
   fetch?: typeof fetch
   /* Reads a photo the phone saved; expo-file-system on Android, fetch on the web. */
   readPhoto?: (uri: string) => Promise<{ body: BodyInit; type: string }>
@@ -26,15 +28,17 @@ type Options = {
  * write sends the capture id made on the device, so a retried request is
  * stored once. Photos are sent as they are taken.
  */
-export function createHttpApi({ baseUrl, language, fetch: f = fetch, readPhoto: read = readPhoto }: Options): PatientApi {
+export function createHttpApi({ baseUrl, language, token = () => null, fetch: f = fetch, readPhoto: read = readPhoto }: Options): PatientApi {
   const root = baseUrl.replace(/\/+$/, '')
   const url = (path: string) => `${root}/api/app${path}`
   const abs = (path: string) => (path.startsWith('/') ? `${root}${path}` : path)
 
   async function call<T>(path: string, init?: RequestInit): Promise<T> {
     let res: Response
+    const t = path.startsWith('/patients/') ? token() : null
+    const headers = t ? { ...(init?.headers as Record<string, string> | undefined), Authorization: `Bearer ${t}` } : init?.headers
     try {
-      res = await f(url(path), init)
+      res = await f(url(path), headers ? { ...init, headers } : init)
     } catch {
       throw new ApiError(0, 'The server could not be reached')
     }
@@ -50,7 +54,8 @@ export function createHttpApi({ baseUrl, language, fetch: f = fetch, readPhoto: 
   const p = (id: string) => `/patients/${encodeURIComponent(id)}`
 
   return {
-    patients: () => call<PatientRef[]>('/patients'),
+    startSignIn: (phone) => send<{ demo_code: string | null }>('POST', '/sign-in/start', { phone }),
+    checkSignIn: (phone, code) => send<SignedIn>('POST', '/sign-in/check', { phone, code }),
     async today(patientId) {
       const t = await call<Today>(`${p(patientId)}/today`)
       return { ...t, answer_audio_uri: t.answer_audio_uri && abs(t.answer_audio_uri), meals: t.meals.map((m) => ({ ...m, uri: abs(m.uri) })) }

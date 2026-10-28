@@ -21,14 +21,16 @@ const LANGS: Lang[] = ['en', 'hi', 'ur']
  * would otherwise drop a patient back on the first screen.
  */
 export function SettingsScreen({ onBack }: { onBack: () => void }) {
-  const { api, patientId, lang, t, rtl, choose, signOut } = useApp()
+  const { api, patientId, patient: signedInAs, lang, t, rtl, choose, signOut } = useApp()
   const [patient, setPatient] = useState<PatientRef | null>(null)
   const [confirming, setConfirming] = useState(false)
   useBackButton(onBack)
 
   useEffect(() => {
-    api.patients().then((all) => setPatient(all.find((p) => p.id === patientId) ?? null), () => {})
-  }, [api, patientId])
+    // The patient this phone signed in as; Today has it too, for a phone signed in before it was kept.
+    if (signedInAs) return setPatient(signedInAs)
+    if (patientId) api.today(patientId).then((t) => setPatient(t.patient), () => {})
+  }, [api, patientId, signedInAs])
 
   return (
     <ScrollView style={[styles.page, { direction: rtl ? 'rtl' : 'ltr' }]} contentContainerStyle={styles.content}>
