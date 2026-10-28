@@ -15,7 +15,8 @@ def list_patients(conn: Connection[DictRow]) -> list[dict[str, Any]]:
     """
     Every enrolled patient, with what their record holds now: visits, the
     checklist, what waits for a person, documents and the latest entry.
-    Counts of the record only; nothing here ranks or judges a patient.
+    Counts of the record only; nothing here ranks or judges a patient. The
+    phone SMS is read from is named only while the patient agrees to SMS.
     """
     return conn.execute(
         """
@@ -39,13 +40,22 @@ def list_patients(conn: Connection[DictRow]) -> list[dict[str, Any]]:
                    AND ri.confirmed_at IS NULL) AS waiting_lines,
                (SELECT count(*) FROM core.document d WHERE d.patient_id = p.id) AS documents,
                (SELECT max(e.occurred_at) FROM pat.entry e
-                 WHERE e.patient_id = p.id) AS last_entry_at
+                 WHERE e.patient_id = p.id) AS last_entry_at,
+               CASE WHEN sms.agreed THEN
+                 (SELECT ph.phone_last4 FROM core.patient_phone ph WHERE ph.patient_id = p.id
+                   ORDER BY ph.is_primary DESC, ph.id LIMIT 1)
+               END AS sms_phone_last4
         FROM core.patient p
         LEFT JOIN LATERAL (
             SELECT full_name, relationship FROM core.caregiver c
             WHERE c.patient_id = p.id AND c.revoked_at IS NULL
             ORDER BY c.nominated_at DESC LIMIT 1
         ) cg ON true
+        LEFT JOIN LATERAL (
+            SELECT c.granted AND c.withdrawn_at IS NULL AS agreed FROM core.consent c
+            WHERE c.patient_id = p.id AND c.item = 'sms'
+            ORDER BY c.captured_at DESC LIMIT 1
+        ) sms ON true
         LEFT JOIN core.regimen r
                ON r.patient_id = p.id AND r.activated_at IS NOT NULL AND r.superseded_at IS NULL
         WHERE p.exited_at IS NULL

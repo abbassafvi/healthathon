@@ -3561,6 +3561,17 @@
               }
             ],
             "title": "Last Entry At"
+          },
+          "sms_phone_last4": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sms Phone Last4"
           }
         },
         "type": "object",
@@ -3580,7 +3591,8 @@
           "waiting_values",
           "waiting_lines",
           "documents",
-          "last_entry_at"
+          "last_entry_at",
+          "sms_phone_last4"
         ],
         "title": "PatientListItem",
         "description": "One row of the patient list: who the patient is, and what the record\nholds now. Counts and dates of the record only, never a judgement."

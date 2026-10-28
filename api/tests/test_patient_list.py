@@ -62,3 +62,16 @@ def test_settling_a_value_takes_it_off_the_patient_s_waiting_count(client: Any) 
 def test_the_list_judges_no_one(client: Any) -> None:
     keys = {k for p in _list(client).values() for k in p}
     assert not [k for k in keys if any(b in k for b in BANNED_KEYS)]
+
+
+def test_the_sms_phone_is_named_only_while_the_patient_agrees(
+    client: Any, db: psycopg.Connection[Any]
+) -> None:
+    patients = _list(client)
+    assert patients["DEV-0001"]["sms_phone_last4"] == "0001"
+    assert patients["DEV-0004"]["sms_phone_last4"] is None
+    db.execute(
+        "UPDATE core.consent SET withdrawn_at = now() WHERE item = 'sms' AND patient_id ="
+        " (SELECT id FROM core.patient WHERE registration_no = 'DEV-0001')"
+    )
+    assert _list(client)["DEV-0001"]["sms_phone_last4"] is None

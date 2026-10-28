@@ -64,6 +64,7 @@ export function patientListItem(
     waiting_lines: 0,
     documents: 0,
     last_entry_at: null,
+    sms_phone_last4: null,
     ...overrides,
   }
 }

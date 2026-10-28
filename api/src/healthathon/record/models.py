@@ -38,6 +38,9 @@ class PatientListItem(PatientSummary):
     waiting_lines: int
     documents: int
     last_entry_at: datetime | None
+    # The last four digits of the phone SMS is read from, while the latest SMS
+    # consent is a yes not withdrawn. None means messages are refused.
+    sms_phone_last4: str | None
 
 
 class RecordValue(BaseModel):

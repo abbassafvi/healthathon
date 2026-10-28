@@ -46,6 +46,7 @@ def patient_list(conn: Connection[DictRow]) -> list[PatientListItem]:
             last_visit=local(r["last_visit"]), next_visit=local(r["next_visit"]),
             checklist_since=local(r["checklist_since"]),
             last_entry_at=local(r["last_entry_at"]),
+            sms_phone_last4=r["sms_phone_last4"],
             **{k: int(r[k]) for k in _COUNTS},
         )
         for r in repo.list_patients(conn)
