@@ -85,7 +85,7 @@ describe('TodayPage', () => {
     expect(within(row).getByText('1 lab report')).toBeInTheDocument()
     expect(within(row).getByRole('link', { name: '2 values in the confirm queue' })).toHaveAttribute('href', '/queue')
     expect(within(row).getByRole('link', { name: '3 medicines, since 2 Oct 2026' })).toHaveAttribute('href', '/patients/p-1/checklist')
-    expect(within(row).getByText('51 medicine ticks, 30 glucose readings, 1 answer, 0 meal photos')).toBeInTheDocument()
+    expect(within(row).getByText('51 medicine ticks, 30 glucose readings, 1 answer')).toBeInTheDocument()
     expect(within(row).getByText(/^Last entry 20 Oct 2026, 21:10$/)).toBeInTheDocument()
     expect(within(row).getAllByRole('link', { name: /Open the visit|Asha Verma/ }).map((l) => l.getAttribute('href')))
       .toEqual(['/patients/p-1/visit', '/patients/p-1/visit'])

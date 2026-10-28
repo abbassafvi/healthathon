@@ -3,7 +3,9 @@ import { useState, type ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router'
 
 import { api, type DayVisit } from '../api/client'
+import { LoadError } from '../app/LoadError'
 import { PAGE } from '../app/page'
+import { useTitle } from '../app/useTitle'
 import { time } from '../entries/ticks'
 import { formatDate, formatDateTime } from '../lib/dates'
 import { localIsoDate } from '../lib/localDate'
@@ -24,6 +26,7 @@ export function TodayPage() {
   const day = params.get('date') ?? today
   const query = useQuery({ queryKey: ['clinic-day', day], queryFn: () => api.clinicDay(day) })
   const go = (next: string) => setParams(next === today ? {} : { date: next })
+  useTitle(day === today ? en.today.title : longDay(day))
 
   return (
     <main className={`${PAGE} pt-8 pb-16`}>
@@ -41,7 +44,9 @@ export function TodayPage() {
       <p className="mt-4 max-w-[65ch] text-sm text-ink-2">{en.today.intro}</p>
 
       {query.status === 'pending' && <div className="mt-8 h-64 rounded-xl bg-sunken" aria-busy="true" />}
-      {query.status === 'error' && <p className="mt-8 text-ink-2">{en.today.loadFailed}</p>}
+      {query.status === 'error' && (
+        <LoadError className="mt-8" message={en.today.loadFailed} onRetry={() => void query.refetch()} retrying={query.isFetching} />
+      )}
       {query.status === 'success' && query.data.visits.length === 0 && (
         <p className="mt-8 text-ink-2">{en.today.noVisits}</p>
       )}
@@ -126,12 +131,16 @@ function VisitRow({ v }: { v: DayVisit }) {
           ) : (
             <>
               <p className="numerals">
-                {[
-                  count(v.entries.medicine_ticks, en.today.ticksOne, en.today.ticks),
-                  count(v.entries.glucose_readings, en.today.readingsOne, en.today.readings),
-                  count(v.entries.answers, en.today.answersOne, en.today.answers),
-                  count(v.entries.meal_photos, en.today.photosOne, en.today.photos),
-                ].join(', ')}
+                {/* Only what arrived: a kind with nothing in it is left out, not counted as 0. */}
+                {([
+                  [v.entries.medicine_ticks, en.today.ticksOne, en.today.ticks],
+                  [v.entries.glucose_readings, en.today.readingsOne, en.today.readings],
+                  [v.entries.answers, en.today.answersOne, en.today.answers],
+                  [v.entries.meal_photos, en.today.photosOne, en.today.photos],
+                ] as const)
+                  .filter(([n]) => n > 0)
+                  .map(([n, one, many]) => count(n, one, many))
+                  .join(', ')}
               </p>
               <p className="numerals text-ink-3">{fmt(en.today.lastEntry, { when: formatDateTime(v.entries.last_at) })}</p>
             </>
