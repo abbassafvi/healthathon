@@ -70,8 +70,9 @@ test('every control is reachable by Tab with a visible focus ring', async ({ pag
     expect(info.outline, `focus ring on ${info.name}`).toBe(true)
     reached.push(info.name)
   }
-  expect(reached[0]).toBe('Today')
-  expect(reached[1]).toMatch(/^Confirm queue/)
+  expect(reached[0]).toBe('Consultation Readiness')
+  expect(reached[1]).toBe('Today')
+  expect(reached[2]).toMatch(/^Confirm queue/)
   for (const label of ['Confirm as read', 'Type the value', 'Not a value']) {
     expect(reached.some((r) => r.startsWith(label))).toBe(true)
   }

@@ -1,4 +1,6 @@
 import { KeysHelp } from '../app/KeysHelp'
+import { LoadError } from '../app/LoadError'
+import { useTitle } from '../app/useTitle'
 import { en, fmt } from '../strings/en'
 import { DecisionToast } from './DecisionToast'
 import { ReviewItem } from './ReviewItem'
@@ -13,6 +15,7 @@ export function ConfirmQueuePage({
   schedule?: Scheduler
 }) {
   const s = useReviewSession(undoWindowMs, schedule)
+  useTitle(s.status === 'success' && s.total ? `${en.queue.title} (${s.total})` : en.queue.title)
 
   return (
     <main className={`${PAGE} pt-8 pb-28`}>
@@ -29,18 +32,7 @@ export function ConfirmQueuePage({
       </header>
 
       {s.status === 'pending' && <QueueSkeleton />}
-      {s.status === 'error' && (
-        <div className="flex items-center gap-4 rounded-xl border border-line bg-surface p-6">
-          <p className="text-ink-2">{en.queue.loadFailed}</p>
-          <button
-            type="button"
-            onClick={() => void s.refetch()}
-            className="rounded-lg border border-line-strong px-3 py-1.5 text-sm font-medium hover:bg-bg"
-          >
-            {en.queue.retry}
-          </button>
-        </div>
-      )}
+      {s.status === 'error' && <LoadError message={en.queue.loadFailed} onRetry={() => void s.refetch()} />}
       {s.status === 'success' &&
         (s.current ? (
           <ReviewItem key={s.current.id} item={s.current} onDecide={(d) => s.decide(s.current!, d)} />

@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router'
 
 import { api } from '../api/client'
+import { LoadError } from '../app/LoadError'
 import { formatDate } from '../lib/dates'
 import { en, fmt } from '../strings/en'
 import { DocumentsHalf } from './DocumentsHalf'
@@ -29,7 +30,9 @@ export function VisitPage() {
   })
 
   if (visit.isError || record.isError || entries.isError) {
-    return <Shell><p className="text-ink-2">{en.visit.loadFailed}</p></Shell>
+    const retry = () => [visit, record, entries].forEach((q) => q.isError && void q.refetch())
+    const busy = visit.isFetching || record.isFetching || entries.isFetching
+    return <Shell><LoadError message={en.visit.loadFailed} onRetry={retry} retrying={busy} /></Shell>
   }
   if (!visit.data || !record.data || !entries.data || !period) {
     return <Shell><div className="h-96 rounded-xl bg-sunken" aria-busy="true" /></Shell>

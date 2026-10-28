@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router'
 
 import { api, ApiError } from '../api/client'
 import type { AnswerEntry, PaperFormResult, TickEntry } from '../api/client'
+import { LoadError } from '../app/LoadError'
 import { formatDate } from '../lib/dates'
 import { localIsoDate } from '../lib/localDate'
 import { en, fmt } from '../strings/en'
@@ -81,7 +82,10 @@ export function PaperFormPage() {
     setStep('form')
   }
 
-  if (week.isError || questions.isError) return <Shell><p className="text-ink-2">{en.paperForm.loadFailed}</p></Shell>
+  if (week.isError || questions.isError) {
+    const retry = () => [week, questions].forEach((q) => q.isError && void q.refetch())
+    return <Shell><LoadError message={en.paperForm.loadFailed} onRetry={retry} retrying={week.isFetching || questions.isFetching} /></Shell>
+  }
 
   if (step === 'saved' && save.data) {
     return (

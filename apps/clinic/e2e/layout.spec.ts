@@ -21,7 +21,7 @@ test('the header and every page share one left edge', async ({ page }) => {
     await page.goto(path)
     const heading = page.locator('h1').first()
     await expect(heading).toBeVisible()
-    const brand = (await page.getByRole('banner').getByText('Consultation Readiness').boundingBox())!
+    const brand = (await page.getByTestId('brand').boundingBox())!
     const h1 = (await heading.boundingBox())!
     expect(Math.round(h1.x), path).toBe(Math.round(brand.x))
   }

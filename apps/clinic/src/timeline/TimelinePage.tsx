@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router'
 
 import { api, type RecordDocument } from '../api/client'
 import type { PatientEntry, TickEntry } from '../api/client'
+import { LoadError } from '../app/LoadError'
 import { AnswerRow, GlucoseRow, MealRow } from '../entries/EntryRows'
 import { TicksForDay } from '../entries/TicksForDay'
 import { itemsOn } from '../entries/ticks'
@@ -53,7 +54,8 @@ export function TimelinePage() {
   })
 
   if (record.isError || entries.isError) {
-    return <Shell><p className="text-ink-2">{en.timeline.loadFailed}</p></Shell>
+    const retry = () => [record, entries].forEach((q) => q.isError && void q.refetch())
+    return <Shell><LoadError message={en.timeline.loadFailed} onRetry={retry} retrying={record.isFetching || entries.isFetching} /></Shell>
   }
   if (!record.data || !entries.data) {
     return <Shell><div className="h-96 rounded-xl bg-sunken" aria-busy="true" /></Shell>

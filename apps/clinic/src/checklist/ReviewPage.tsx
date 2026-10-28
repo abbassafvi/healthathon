@@ -4,6 +4,8 @@ import { useCallback, useState, useLayoutEffect } from 'react'
 import { Link, useParams } from 'react-router'
 
 import type { RegimenReview } from '../api/client'
+import { LoadError } from '../app/LoadError'
+import { useTitle } from '../app/useTitle'
 import { formatDate } from '../lib/dates'
 import { hasModifier, isButtonTarget, isTypingTarget } from '../lib/keys'
 import { KeysHelp } from '../app/KeysHelp'
@@ -53,6 +55,7 @@ export function ReviewPage() {
   const busy = confirm.isPending || remove.isPending
 
   const data = query.data
+  useTitle(en.review.title, data?.patient.full_name)
   const items = data?.items ?? []
   const current = items[Math.min(focus, items.length - 1)]
 
@@ -96,7 +99,9 @@ export function ReviewPage() {
         {data ? `${en.review.back}: ${data.patient.full_name}` : en.review.back}
       </Link>
       {query.status === 'pending' && <div className="mt-6 h-96 rounded-xl bg-sunken" aria-busy="true" />}
-      {query.status === 'error' && <p className="mt-6 text-ink-2">{en.review.loadFailed}</p>}
+      {query.status === 'error' && (
+        <LoadError className="mt-6" message={en.review.loadFailed} onRetry={() => void query.refetch()} retrying={query.isFetching} />
+      )}
       {data && (
         <>
           <Header data={data} />

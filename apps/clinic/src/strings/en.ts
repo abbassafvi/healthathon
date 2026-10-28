@@ -13,6 +13,15 @@ export const en = {
     navAudit: 'Audit log',
     keys: 'Keyboard',
     signedInAs: 'Signed in as {name}',
+    retry: 'Try again',
+    retrying: 'Trying again',
+    nav: 'Main',
+    demo: 'Demo: fictional patients',
+    roles: { clinician: 'Clinician', verifier: 'Transcription verifier', admin: 'Administrator' } as Record<string, string>,
+    build: '{name} {version}, build {commit}',
+    boundary: 'Assistive, not diagnostic. Values are shown as printed, with where they came from.',
+    notFoundTitle: 'There is no page at this address',
+    notFoundBody: 'The link may be mistyped, or the page may have moved. These are the places in the app:',
   },
   keys: {
     queue: [

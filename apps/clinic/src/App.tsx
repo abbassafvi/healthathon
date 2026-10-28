@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router'
 
 import { AppShell } from './app/AppShell'
+import { NotFound } from './app/NotFound'
 import { AuditLogPage } from './audit/AuditLogPage'
 import { ChecklistPage } from './checklist/ChecklistPage'
 import { ReviewPage } from './checklist/ReviewPage'
@@ -38,7 +39,7 @@ export function App() {
           </Route>
           <Route path="documents/:documentId/reading" element={<ReadingPage />} />
         </Route>
-        <Route path="*" element={<Navigate to="/today" replace />} />
+        <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
   )

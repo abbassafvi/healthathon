@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router'
 
 import type { ActiveRegimen } from '../api/client'
+import { LoadError } from '../app/LoadError'
 import { formatDate, formatDateTime } from '../lib/dates'
 import { en, fmt } from '../strings/en'
 import { ItemText } from './ItemText'
@@ -15,7 +16,7 @@ export function ChecklistPage() {
   return (
     <main className={`${PAGE} pt-6 pb-16`}>
       {query.status === 'pending' && <div className="h-64 rounded-xl bg-sunken" aria-busy="true" />}
-      {query.status === 'error' && <p className="text-ink-2">{en.checklist.loadFailed}</p>}
+      {query.status === 'error' && <LoadError message={en.checklist.loadFailed} onRetry={() => void query.refetch()} retrying={query.isFetching} />}
       {query.status === 'success' && (
         <div className="flex flex-col gap-12">
           {query.data.awaiting_review.length > 0 && (
