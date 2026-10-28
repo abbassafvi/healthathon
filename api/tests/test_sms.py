@@ -53,6 +53,21 @@ def test_a_message_is_stored_as_the_patients_own_through_sms(
     assert (answer["answer_text"], answer["set"]) == ("सुबह थोड़ा चक्कर आया", "daily")
 
 
+def test_medicine_numbers_are_the_checklist_s_order_as_the_sms_card_prints_them(
+    client: Any, db: psycopg.Connection[Any]
+) -> None:
+    pid = patient_id(db, "DEV-0001")
+    items = client.get(f"/api/patients/{pid}/checklist").json()["active"]["items"]
+    assert len(items) > 1
+    seen: set[str] = set()
+    for n, item in enumerate(items, start=1):
+        assert _sms(client, f"T {n} Y", message_id=f"gw-card-{n}").json()["problems"] == []
+        ticked = {e["regimen_item"]["id"] for e in _today_entries(client, pid)
+                  if e["kind"] == "medication_tick"}  # fmt: skip
+        assert ticked - seen == {item["id"]}, n
+        seen = ticked
+
+
 def test_a_message_sent_again_is_stored_once(client: Any, db: psycopg.Connection[Any]) -> None:
     assert _sms(client, "G 150 A").json()["duplicate"] is False
     assert _sms(client, "G 150 A").json()["duplicate"] is True
