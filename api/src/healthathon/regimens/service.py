@@ -50,6 +50,9 @@ def checklist(conn: Connection[DictRow], patient_id: UUID) -> Checklist:
                 document=_document(r),
                 item_count=len(items.get(r["id"], [])),
                 confirmed_count=sum(1 for i in items.get(r["id"], []) if i.confirmed_at),
+                settled_count=sum(
+                    1 for i in items.get(r["id"], []) if i.confirmed_at or i.accepted_at
+                ),
             )
             for r in regimens
             if not r["activated_at"]
@@ -143,8 +146,9 @@ def remove_item(conn: Connection[DictRow], user: CurrentUser, item_id: UUID) -> 
 def activate(conn: Connection[DictRow], user: CurrentUser, regimen_id: UUID) -> Activated:
     """
     Make a reviewed prescription the patient's checklist. Every line must be
-    confirmed by a person first. The checklist it replaces is superseded, not
-    deleted, so ticks made against it keep their meaning.
+    settled first: either accepted by the five checks or confirmed by a named
+    clinician. The checklist it replaces is superseded, not deleted, so ticks
+    made against it keep their meaning.
     """
     r = repo.regimen(conn, regimen_id)
     if r is None:
@@ -157,7 +161,8 @@ def activate(conn: Connection[DictRow], user: CurrentUser, regimen_id: UUID) -> 
     items = repo.items_of(conn, [regimen_id])
     if not items:
         raise HTTPException(409, "A checklist needs at least one medicine")
-    if any(i["confirmed_at"] is None for i in items):
+    unsettled = [i for i in items if i["confirmed_at"] is None and i["accepted_at"] is None]
+    if unsettled:
         raise HTTPException(409, "Every medicine must be confirmed first")
     current = repo.active_regimen(conn, r["patient_id"])
     if current:
@@ -219,6 +224,10 @@ def _item(row: dict[str, Any]) -> RegimenItem:
         crop_url=f"/api/regimen-items/{row['id']}/crop",
         confirmed_by_name=row["confirmed_by_name"],
         confirmed_at=clinic_time.local(row["confirmed_at"]) if row["confirmed_at"] else None,
+        accepted_at=clinic_time.local(row["accepted_at"]) if row.get("accepted_at") else None,
+        checks_passed=row.get("checks_passed") or 0,
+        checks_ran=row.get("checks_ran") or 0,
+        failed_check=row.get("failed_check"),
     )
 
 

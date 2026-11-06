@@ -19,6 +19,7 @@ from healthathon.reading.routes import router as reading_router
 from healthathon.record.routes import router as record_router
 from healthathon.regimens.routes import router as regimens_router
 from healthathon.sms.routes import router as sms_router
+from healthathon.uploads.routes import router as uploads_router
 from healthathon.visit.routes import router as visit_router
 
 
@@ -46,6 +47,7 @@ app.include_router(sms_router)
 app.include_router(clinic_day_router)
 app.include_router(reading_router)
 app.include_router(audit_log_router)
+app.include_router(uploads_router)
 
 
 @app.get("/api/health", tags=["meta"])

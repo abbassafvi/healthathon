@@ -15,7 +15,17 @@ LEFT JOIN core.document d ON d.id = r.source_document_id
 
 _ITEMS = """
 SELECT ri.id, ri.regimen_id, ri.drug_text, ri.dose_text, ri.schedule_text, ri.confirmed_at,
+       ri.accepted_at,
        u.full_name AS confirmed_by_name,
+       -- What the deterministic layer decided about this line, so the
+       -- review can put a clinician's attention where it is needed.
+       (SELECT count(*) FROM core.check_result c
+         WHERE c.regimen_item_id = ri.id AND c.outcome = 'pass') AS checks_passed,
+       (SELECT count(*) FROM core.check_result c
+         WHERE c.regimen_item_id = ri.id AND c.outcome <> 'not_applicable') AS checks_ran,
+       (SELECT c.check_code::text FROM core.check_result c
+         WHERE c.regimen_item_id = ri.id AND c.outcome = 'fail'
+         ORDER BY c.check_code LIMIT 1) AS failed_check,
        p.bbox_x, p.bbox_y, p.bbox_w, p.bbox_h,
        pg.storage_key AS page_key, pg.width_px, pg.height_px
 FROM core.regimen_item ri
