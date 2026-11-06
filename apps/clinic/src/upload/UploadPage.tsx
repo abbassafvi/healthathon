@@ -2,26 +2,24 @@ import { useQuery } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
 
-import { api } from '../api/client'
-import { pendingApi } from '../api/pendingClient'
+import { api, type UploadDocType } from '../api/client'
+import { CameraCapture, cameraAvailable } from './CameraCapture'
 import { useTitle } from '../app/useTitle'
 import { en, fmt } from '../strings/en'
-import { sha256Hex } from './sha256'
 import { UploadRow, type SessionUpload } from './UploadRow'
 import { PAGE } from '../app/page'
 
 type Picked = { key: string; file: File; preview: string }
-type DocType = 'prescription' | 'lab_report'
+type DocType = UploadDocType
 
-/* Hash the photograph and register the upload. Called from event handlers only. */
+/* Send the photograph to be read. Called from event handlers only. */
 async function uploadOne(p: Picked, pid: string, type: DocType, patientName: string): Promise<SessionUpload> {
-  const first = await pendingApi.upload({
+  const first = await api.upload({
     client_capture_id: p.key,
     patient_id: pid,
     doc_type: type,
-    file_name: p.file.name,
-    sha256: await sha256Hex(p.file),
     captured_at: new Date(p.file.lastModified || Date.now()).toISOString(),
+    file: p.file,
   })
   return { key: p.key, file: p.file, preview: p.preview, patientId: pid, patientName, docType: type, first }
 }
@@ -44,6 +42,7 @@ export function UploadPage() {
   const [busy, setBusy] = useState(false)
   const [failed, setFailed] = useState(false)
   const [over, setOver] = useState(false)
+  const [camera, setCamera] = useState(false)
   const input = useRef<HTMLInputElement>(null)
   const urls = useRef<string[]>([])
 
@@ -86,6 +85,25 @@ export function UploadPage() {
   }
 
   const ready = !!patientId && !!docType && picked.length > 0 && !busy
+
+  /*
+   * What the upload is still waiting for. A disabled control that does
+   * not say why leaves a clinician clicking at a grey button with a
+   * photograph already in front of them.
+   */
+  const missing: string[] = []
+  if (!patientId) missing.push(en.upload.needPatient)
+  if (!docType) missing.push(en.upload.needDocType)
+  if (picked.length === 0) missing.push(en.upload.needPhoto)
+  const stillNeeded =
+    missing.length === 0
+      ? null
+      : fmt(en.upload.stillNeeded, {
+          what:
+            missing.length === 1
+              ? missing[0]!
+              : `${missing.slice(0, -1).join(', ')} and ${missing[missing.length - 1]}`,
+        })
 
   return (
     <main className={`${PAGE} pt-8 pb-16`}>
@@ -137,9 +155,14 @@ export function UploadPage() {
               }}
               className={`flex flex-col items-start gap-2 rounded-xl border-2 border-dashed px-4 py-5 transition-colors duration-150 ${over ? 'border-accent bg-accent-soft' : 'border-line-strong bg-surface'}`}
             >
-              <button type="button" onClick={() => input.current?.click()} aria-describedby="up-photos" className="inline-flex h-9 items-center rounded-lg border border-line-strong bg-bg px-3.5 text-sm font-medium hover:bg-sunken">
-                {en.upload.choose}
-              </button>
+              <div className="flex flex-wrap gap-2">
+                <button type="button" onClick={() => input.current?.click()} aria-describedby="up-photos" className="inline-flex h-9 items-center rounded-lg border border-line-strong bg-bg px-3.5 text-sm font-medium hover:bg-sunken">
+                  {en.upload.choose}
+                </button>
+                <button type="button" onClick={() => setCamera(true)} aria-describedby="up-photos" data-testid="open-camera" className="inline-flex h-9 items-center rounded-lg border border-line-strong bg-bg px-3.5 text-sm font-medium hover:bg-sunken">
+                  {en.upload.photograph}
+                </button>
+              </div>
               <span className="text-sm text-ink-2">{en.upload.dropHint}</span>
               <input ref={input} type="file" accept="image/*" capture="environment" multiple hidden data-testid="file-input"
                 onChange={(e) => {
@@ -147,6 +170,16 @@ export function UploadPage() {
                   e.target.value = ''
                 }} />
             </div>
+            {camera &&
+              (cameraAvailable() ? (
+                <CameraCapture onCapture={(file) => add([file])} onClose={() => setCamera(false)} />
+              ) : (
+                // getUserMedia needs a secure context: this page over plain
+                // http from another machine cannot open a camera at all.
+                <p role="alert" className="rounded-xl border border-line-strong bg-surface p-4 text-sm">
+                  {en.upload.cameraInsecure}
+                </p>
+              ))}
             {rejected.map((n) => <p key={n} role="alert" className="text-sm">{fmt(en.upload.notImage, { name: n })}</p>)}
             {picked.length > 0 && (
               <ul className="grid grid-cols-[repeat(auto-fill,minmax(5.5rem,1fr))] gap-3">
@@ -165,10 +198,15 @@ export function UploadPage() {
           </div>
 
           {failed && <p role="alert" className="text-sm">{en.upload.startFailed}</p>}
-          <button type="submit" disabled={!ready}
-            className="inline-flex h-10 w-fit items-center rounded-lg border border-accent bg-accent px-4 text-sm font-medium text-accent-ink transition-colors duration-150 hover:bg-accent-hover disabled:cursor-not-allowed disabled:border-line disabled:bg-sunken disabled:text-ink-3">
-            {picked.length > 1 ? fmt(en.upload.submitN, { n: picked.length }) : en.upload.submit}
-          </button>
+          <div className="flex flex-col gap-2">
+            <button type="submit" disabled={!ready} aria-describedby={stillNeeded ? 'up-needed' : undefined}
+              className="inline-flex h-10 w-fit items-center rounded-lg border border-accent bg-accent px-4 text-sm font-medium text-accent-ink transition-colors duration-150 hover:bg-accent-hover disabled:cursor-not-allowed disabled:border-line disabled:bg-sunken disabled:text-ink-3">
+              {picked.length > 1 ? fmt(en.upload.submitN, { n: picked.length }) : en.upload.submit}
+            </button>
+            {stillNeeded && (
+              <p id="up-needed" aria-live="polite" className="text-sm text-ink-2">{stillNeeded}</p>
+            )}
+          </div>
         </form>
 
         <section aria-labelledby="up-session">

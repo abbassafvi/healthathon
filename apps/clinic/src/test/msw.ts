@@ -3,7 +3,6 @@ import { afterAll, afterEach, beforeAll } from 'vitest'
 
 import { handlers } from '../mocks/handlers'
 import { resetPaperFormIdempotency } from '../mocks/handlers/paperForm'
-import { resetUploads } from '../mocks/handlers/upload'
 import { setPatientLookup, type PatientRef } from '../mocks/patients'
 import { resetMockState } from '../mocks/state'
 
@@ -25,7 +24,6 @@ export function installMockServer() {
     server.resetHandlers()
     resetMockState(new Date('2026-10-21T09:00:00'))
     resetPaperFormIdempotency()
-    resetUploads()
     setPatientLookup(async () => TEST_PATIENTS)
   })
   afterAll(() => server.close())

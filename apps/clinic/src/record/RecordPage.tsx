@@ -129,7 +129,7 @@ function prescriptions(c: Checklist | undefined): Prescription[] {
   return [
     ...active,
     ...c.awaiting_review.map((a): Prescription => ({
-      ...a.document, state: 'waiting', regimenId: a.regimen_id, lines: a.item_count - a.confirmed_count,
+      ...a.document, state: 'waiting', regimenId: a.regimen_id, lines: a.item_count - a.settled_count,
     })),
   ]
 }

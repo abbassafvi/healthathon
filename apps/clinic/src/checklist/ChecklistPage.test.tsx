@@ -35,7 +35,7 @@ describe('ChecklistPage', () => {
   it('lists a prescription waiting for review with its progress and a link', async () => {
     setup('p-1')
     const waiting = await screen.findByRole('region', { name: 'Waiting for review' })
-    expect(within(waiting).getByText('0 of 4 confirmed')).toBeInTheDocument()
+    expect(within(waiting).getByText('0 of 4 settled')).toBeInTheDocument()
     expect(within(waiting).getByRole('link', { name: 'Review' })).toHaveAttribute(
       'href', '/patients/p-1/checklist/review/rx-0001-b',
     )

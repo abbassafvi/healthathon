@@ -7,11 +7,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { installMockServer, TEST_PATIENTS } from '../test/msw'
 import { UploadPage } from './UploadPage'
+import { programUploads, resetUploadFixture, rxOutcome, uploadFixture } from './uploadFixture'
 
 const server = installMockServer()
 
 function setup() {
-  server.use(http.get('*/api/patients', () => HttpResponse.json(TEST_PATIENTS)))
+  server.use(http.get('*/api/patients', () => HttpResponse.json(TEST_PATIENTS)), ...uploadFixture)
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   render(
     <QueryClientProvider client={client}>
@@ -27,6 +28,7 @@ const photo = (name: string, body = name) => new File([body], name, { type: 'ima
 const submitButton = () => screen.getByRole('button', { name: /^Upload and read/ })
 
 beforeEach(() => {
+  resetUploadFixture()
   vi.stubGlobal('URL', Object.assign(URL, { createObjectURL: () => 'blob:preview', revokeObjectURL: () => {} }))
   vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-10-21T09:00:00') })
 })
@@ -72,8 +74,8 @@ describe('UploadPage', () => {
     await user.click(submitButton())
     const session = screen.getByRole('region', { name: 'Uploaded in this session' })
     const row = await within(session).findByText('lab.jpg')
-    expect(row.closest('li')).toHaveAttribute('data-upload-stage', 'uploading')
-    vi.setSystemTime(new Date('2026-10-21T09:00:10'))
+    // Either in-progress stage: the first poll can land before this runs.
+    expect(row.closest('li')).toHaveAttribute('data-upload-stage', expect.stringMatching(/^(uploading|reading)$/))
     await waitFor(() => expect(within(session).getByText('3 values are in the record.')).toBeInTheDocument(), { timeout: 4000 })
     expect(within(session).getByText('1 sent to the confirm queue: This part of the image is hard to read.')).toBeInTheDocument()
     expect(within(session).getByRole('link', { name: 'Open the record' })).toHaveAttribute('href', '/patients/p-1/documents')
@@ -81,12 +83,12 @@ describe('UploadPage', () => {
 
   it('turns a prescription into a review link', async () => {
     const user = setup()
+    programUploads([{ outcome: rxOutcome('rx-7') }])
     await choose(user, 'Rakesh Yadav (DEV-0004)', 'Prescription')
     await user.upload(screen.getByTestId('file-input'), [photo('rx.jpg')])
     await user.click(submitButton())
-    vi.setSystemTime(new Date('2026-10-21T09:00:10'))
     const link = await screen.findByRole('link', { name: 'Review prescription' }, { timeout: 4000 })
-    expect(link.getAttribute('href')).toMatch(/^\/patients\/p-4\/checklist\/review\/rx-up-/)
+    expect(link.getAttribute('href')).toBe('/patients/p-4/checklist/review/rx-7')
   })
 
   it('keeps the photographs and says so when an upload does not start', async () => {
@@ -101,13 +103,38 @@ describe('UploadPage', () => {
 
   it('recognises the same photograph uploaded twice for the same patient', async () => {
     const user = setup()
+    programUploads([{}, { stage: 'duplicate' }])
     await choose(user)
     await user.upload(screen.getByTestId('file-input'), [photo('same.jpg', 'identical bytes')])
     await user.click(submitButton())
-    vi.setSystemTime(new Date('2026-10-21T09:00:10'))
     await screen.findByText('3 values are in the record.', {}, { timeout: 4000 })
     await user.upload(screen.getByTestId('file-input'), [photo('same-again.jpg', 'identical bytes')])
     await user.click(submitButton())
     expect(await screen.findByText('This photograph is already in this record. Nothing new was added.')).toBeInTheDocument()
+  })
+})
+
+describe('what the upload is still waiting for', () => {
+  it('names what is missing, so a disabled button is never silent', async () => {
+    const user = setup()
+    // Nothing chosen yet.
+    expect(await screen.findByText('Still needed: a patient, a document type and a photograph.')).toBeInTheDocument()
+
+    await user.selectOptions(await screen.findByLabelText('Patient'), await screen.findByRole('option', { name: 'Asha Verma (DEV-0001)' }))
+    expect(screen.getByText('Still needed: a document type and a photograph.')).toBeInTheDocument()
+
+    await user.click(screen.getByText('Laboratory report', { exact: true }))
+    expect(screen.getByText('Still needed: a photograph.')).toBeInTheDocument()
+
+    await user.upload(screen.getByTestId('file-input'), [photo('lab.jpg')])
+    expect(screen.queryByText(/^Still needed/)).not.toBeInTheDocument()
+    expect(submitButton()).toBeEnabled()
+  })
+
+  it('a photograph picked with no patient still says what is missing', async () => {
+    const user = setup()
+    await user.upload(screen.getByTestId('file-input'), [photo('rx.jpg')])
+    expect(submitButton()).toBeDisabled()
+    expect(screen.getByText('Still needed: a patient and a document type.')).toBeInTheDocument()
   })
 })

@@ -15,10 +15,12 @@ type Props = {
 
 /*
  * The one irreversible step. It states exactly what activation changes and
- * stays disabled until every medicine has been confirmed by a person.
+ * stays disabled until every medicine is settled: confirmed by a person,
+ * or accepted because every check on it passed.
  */
 export function ActivationBar({ data, patientId, failed, activating, onActivate }: Props) {
-  const done = data.items.filter((i) => i.confirmed_at).length
+  // Settled means a person confirmed it, or every check on it passed.
+  const done = data.items.filter((i) => i.confirmed_at || i.accepted_at).length
   const total = data.items.length
   const ready = total > 0 && done === total
 

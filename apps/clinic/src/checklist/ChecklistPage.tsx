@@ -30,7 +30,7 @@ export function ChecklistPage() {
                     </span>
                     <span className="text-sm text-ink-3">{a.document.issuing_source}</span>
                     <span className="numerals ml-auto font-mono text-sm text-ink-2">
-                      {fmt(en.checklist.progress, { done: a.confirmed_count, total: a.item_count })}
+                      {fmt(en.checklist.progress, { done: a.settled_count, total: a.item_count })}
                     </span>
                     <Link
                       to={`review/${a.regimen_id}`}

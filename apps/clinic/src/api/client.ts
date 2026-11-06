@@ -57,6 +57,11 @@ export type ReadValue = S['ReadValue']
 export type ReadLine = S['ReadLine']
 export type ReadCheck = S['Check']
 
+/* Photographs in, a document and its values out. */
+export type UploadStatus = S['UploadStatus']
+export type UploadOutcome = S['UploadOutcome']
+export type UploadDocType = 'prescription' | 'lab_report'
+
 /* The audit chain. */
 export type AuditLog = S['AuditLog']
 export type AuditEntry = S['AuditEntry']
@@ -72,10 +77,13 @@ export class ApiError extends Error {
 }
 
 export async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  // Absolute, so the same call works in the browser and under Node in tests.
+  // A multipart body carries its own content type, with the boundary the
+  // browser generated. Setting it by hand would strip that and the server
+  // would not be able to split the parts.
+  const isForm = init?.body instanceof FormData
   const res = await fetch(new URL(path, window.location.origin), {
     ...init,
-    headers: { 'Content-Type': 'application/json', ...init?.headers },
+    headers: isForm ? init?.headers : { 'Content-Type': 'application/json', ...init?.headers },
   })
   if (!res.ok) {
     const body = (await res.json().catch(() => null)) as { detail?: unknown } | null
@@ -118,6 +126,23 @@ export const api = {
     if (query.before) params.set('before', String(query.before))
     return request<AuditLog>(`/api/audit-log${params.size ? `?${params}` : ''}`)
   },
+  /* The photograph itself goes with the fields: the pipeline reads the file. */
+  upload: (fields: {
+    client_capture_id: string
+    patient_id: string
+    doc_type: UploadDocType
+    captured_at: string
+    file: File
+  }) => {
+    const body = new FormData()
+    body.set('client_capture_id', fields.client_capture_id)
+    body.set('patient_id', fields.patient_id)
+    body.set('doc_type', fields.doc_type)
+    body.set('captured_at', fields.captured_at)
+    body.set('file', fields.file, fields.file.name)
+    return request<UploadStatus>('/api/uploads', { method: 'POST', body })
+  },
+  uploadStatus: (id: string) => request<UploadStatus>(`/api/uploads/${id}`),
   // keepalive lets a held decision still reach the server as the page closes.
   decide: (itemId: string, decision: Decision, keepalive = false) =>
     request<DecisionResult>(`/api/confirm-queue/${itemId}/decision`, {

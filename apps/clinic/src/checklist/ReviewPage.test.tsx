@@ -39,7 +39,7 @@ describe('ReviewPage', () => {
     expect(rows().map((r) => within(r).getByText(/^Tab\./).textContent)).toEqual([
       'Tab. Metformin', 'Tab. Glimepiride', 'Tab. Atorvastatin', 'Tab. Telmisartan',
     ])
-    expect(screen.getByText('0 of 4 confirmed')).toBeInTheDocument()
+    expect(screen.getByText('0 of 4 settled')).toBeInTheDocument()
     expect(screen.getByText(/replaces the checklist activated 2 Oct 2026 \(3 medicines\)/i)).toBeInTheDocument()
     expect(activate()).toBeDisabled()
   })
@@ -49,7 +49,7 @@ describe('ReviewPage', () => {
     const [first, second] = await crops()
     expect(confirmIn(row(1))).toBeDisabled()
     await user.keyboard('{Enter}')
-    expect(screen.getByText('0 of 4 confirmed')).toBeInTheDocument()
+    expect(screen.getByText('0 of 4 settled')).toBeInTheDocument()
     fireEvent.load(first)
     await waitFor(() => expect(confirmIn(row(1))).toBeEnabled())
     expect(confirmIn(row(2))).toBeDisabled()
@@ -65,7 +65,7 @@ describe('ReviewPage', () => {
     await user.keyboard('{Enter}')
     expect(await within(row(1)).findByText(/^Confirmed by Dr\. Demo Clinician/)).toBeInTheDocument()
     await waitFor(() => expect(row(2)).toHaveAttribute('aria-current', 'true'))
-    expect(screen.getByText('1 of 4 confirmed')).toBeInTheDocument()
+    expect(screen.getByText('1 of 4 settled')).toBeInTheDocument()
   })
 
   it('shows Correct and Not a medicine only on the line in focus', async () => {
