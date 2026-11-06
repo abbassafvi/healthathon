@@ -32,13 +32,15 @@ icon names the condition on the phone's home screen.
 | Today (the clinic's day, start page) | `apps/clinic/src/today` | Real |
 | How a document was read | `apps/clinic/src/reading` | Real (checks come from the seed until the pipeline writes them) |
 | Audit log | `apps/clinic/src/audit` | Real |
-| Upload | `apps/clinic/src/upload` | Mock (stands in for the reading pipeline) |
+| Upload | `apps/clinic/src/upload` | Real (the reading pipeline, `api/src/healthathon/uploads`) |
 | Patient app, including earlier days | `apps/patient` | Real when `EXPO_PUBLIC_API_URL` is set (`src/data/httpApi.ts`) |
 
-The browser mock layer now serves upload only. The other handlers in
-`apps/clinic/src/mocks/handlers` are fixtures for the Vitest screen tests,
-typed against the generated schema; the API tests in `api/tests` define
-the behaviour.
+The browser mock layer is gone: upload was the last endpoint it served.
+`apps/clinic/src/mocks/handlers` is now fixtures for the Vitest screen
+tests alone, typed against the generated schema; the API tests in
+`api/tests` define the behaviour. `withoutMocks` and `VITE_MOCKS` went
+with it, because there is no service worker left to hide a request from
+Playwright's `page.route`.
 
 The real seed is a stand-in too: `api/dev_seed` writes four fictional
 patients, a lab report each, prescriptions with a box per line (two
@@ -98,17 +100,129 @@ How a document was read lists, for each value, the five checks from
 pipeline should write one per check per value, so the page shows what the
 deterministic layer actually decided.
 
-### Still to build (Track A)
+### The reading pipeline
 
-| Endpoint | Contract | Mock and its tests | Rules the mock enforces |
-| --- | --- | --- | --- |
-| `POST /api/uploads`, `GET /api/uploads/{id}` | `UploadRequest` -> `UploadStatus` in `apps/clinic/src/api/pending.ts` | `src/mocks/handlers/upload.ts` | Idempotent by capture id; duplicate by `(patient, sha256)` only after a successful read; a prescription produces a regimen awaiting review |
+`POST /api/uploads` now carries the photograph itself, as multipart, and
+`GET /api/uploads/{id}` reports the read. Tests: `api/tests/test_uploads.py`
+(through Postgres) and `api/tests/test_uploads_reader.py` (the pure parts).
 
-The reading pipeline behind upload writes what the built endpoints read:
-`core.document` and pages, `extracted_value` with provenance, queue items,
-and for a prescription a `core.regimen` with one `regimen_item` per line,
-each with a `source_document` provenance box. Test orders it reads go to
+A page is read in two steps, which is the whole point of the design:
+
+1. **PaddleOCR, detection only.** Its recogniser is never run. The
+   detector returns one box per region holding writing, in reading order,
+   normalised to the page. The boxes are also drawn onto a `boxes.png`
+   beside the page, so what was looked at can be seen.
+2. **A document agent reads the crops.** One per document type, with its
+   own prompt: `prescription_prompt` and `lab_report_prompt`. Every
+   reading must cite the index of the crop it came from, and
+   `drop_ungrounded` removes anything citing a region that was never
+   shown. The agent never sees the patient's record.
+
+The same five checks then run per laboratory value and per prescription
+line (`uploads/checks.py`) and the share
+the reading passed becomes its confidence, 0 to 1 (`checks.confidence`).
+Grounding gates it: no region, no score. A check that did not apply is
+left out of both sides. The number is built from the checks and never
+from the model, because a reader's own certainty cannot be audited.
+
+At or above `HEALTHATHON_CONFIDENCE_THRESHOLD` (default 1.0, strict on
+purpose until there is a gold set to tune against) the value joins the
+record. Below it the value is written `needs_confirm` and queued with
+its crop, and the queue item still names the check that failed rather
+than only the number. Each value's score and the threshold in force are
+kept in `extraction_run.raw_output`, so a decision can be reread later.
+
+The five `check_result` rows are still written per value. The score is
+derived for routing, not stored in place of them, so per-check ablation
+and the named confirm reason both still work. A prescription line is
+never written as a value: it becomes a `regimen_item` awaiting a
+clinician, with its own `source_document` provenance. Test orders go to
 `core.test_order` with their own box.
+
+The agent runs on a free-tier provider: Gemini through AI Studio by
+default, or anything speaking the OpenAI chat protocol. Without a key the
+API stores the page and fails the read rather than guessing. See the
+README.
+
+A prescription's regions are merged into whole lines before cropping.
+A medicine is written across the line, with the drug on the left and the
+dose further right, and the detector finds each as its own region: asked
+for a medicine with a drug and a dose citing one region, the agent could
+only answer with nothing, which is what it did on the first real
+photograph. A laboratory report is never merged, because a value
+pointing at a whole row points at the wrong number.
+
+### A prescription line is settled the same way
+
+A line is written with its box, then checked. Four of the five apply: a
+medicine has no second document to be compared against. `well_formed`
+becomes `dose_well_formed`, which asks that a quantity is present and
+that any word beside it is a unit a dose is measured in ("500 mg",
+"10/100/1000", "1 tab" pass; "as directed" does not).
+
+Reading the page three times decides the reread check. The line written
+is the one most passes gave; a box they disagreed over is still written
+and fails its reread check, so a clinician confirms it against the crop.
+An earlier version demanded that every pass agree and dropped the line
+otherwise, which on handwriting meant every medicine vanished: three
+independent reads of handwriting differ somewhere nearly every time.
+
+A line that passes every check it ran gets `regimen_item.accepted_at`
+and needs nobody. A line that does not waits for a clinician, who sees
+it beside its crop with the failed check named. Activation now requires
+every line to be settled one way or the other, rather than confirmed by
+a person in every case.
+
+`accepted_at` and `confirmed_by` are separate columns on purpose. The
+audit must never attribute to a person a line nobody looked at, so an
+accepted line carries no clinician's name, and a clinician may still
+confirm one.
+
+**Schema change, needs agreeing (it is a frozen artefact):**
+
+- `core.check_result.extracted_value_id` is nullable, and the table
+  gains `regimen_item_id` with a CHECK that exactly one is set. The five
+  checks now cover both kinds of reading in one table, so per-check
+  ablation still works across both.
+- `core.regimen_item` gains `accepted_at`, and a CHECK that
+  `confirmed_at` and `confirmed_by` are set together.
+- There are no migrations, so an existing database needs these by hand:
+  `ALTER TABLE core.check_result ALTER COLUMN extracted_value_id DROP NOT NULL, ADD COLUMN regimen_item_id uuid; ALTER TABLE core.regimen_item ADD COLUMN accepted_at timestamptz;`
+  plus the two CHECKs, the UNIQUE and the foreign key.
+
+**What it does not do yet:**
+
+- **A region the agent declined to read cannot be queued.** This is
+  schema question 1 below in a second form: `confirm_queue_item` needs an
+  `extracted_value`, which needs an `analyte_code`, and a region nobody
+  could read has no analyte. Those indices are kept in
+  `extraction_run.raw_output` so they are not lost, but no screen shows
+  them. A queue that can hold a bare crop would fix both halves.
+- **No normalise step.** `document_page.sharpness`, `contrast` and
+  `skew_deg` are still never written, and nothing deskews or upscales a
+  photograph before the detector sees it. This bites hardest on a
+  handwritten prescription.
+- **No drug list.** There is no table of drugs to match a read name
+  against, so `drug_text` is whatever the agent read.
+- **Smudging is invisible to the legibility check.** The floor is now
+  measured (1450, see `config.py`), and it separates blur from legible
+  text cleanly. It cannot separate smudging: strokes drawn over writing
+  add edges, and edge variance is what the check counts, so a smudged
+  crop scores 2062 to 3728 against clean text's 2349 to 3486. Catching
+  smudging needs a different signal.
+- **The calibration is on drawn pages, not photographs.** Real documents
+  carry compression and uneven light, which may move the whole scale.
+  Re-measure before the demonstration.
+- **The page is read three times and the passes compared**
+  (`HEALTHATHON_AGENT_READS`, default 3). A laboratory value that changed
+  between passes goes to the queue as `readers_disagree`; a prescription
+  line that changed is not written at all, because no queue stands
+  behind a regimen item. Set 1 to read once, which costs a third as much
+  and makes `reread_agreement` `not_applicable`.
+- **One page per document.** `page_count` is always 1.
+- **The read runs in a thread,** and the job's stage lives in memory. The
+  durable answer is the intake, the document and the extraction run; a
+  restart mid-read loses the stage, not the page.
 
 ### How to wire one endpoint
 
@@ -126,8 +240,10 @@ These came up while building and need a decision from the schema owner.
 1. **Drug names cannot reach the confirm queue.** `confirm_queue_item`
    points at `extracted_value`, which requires an `analyte_code`. A drug read
    from a handwritten prescription has no analyte, and `regimen_item` has no
-   queue link. The UI handles prescriptions through review and activation
-   instead, but "finished" criterion 1 expects drug names with boxes.
+   queue link. Half of this is now answered: a line carries its own
+   `check_result` rows and its own `accepted_at`, so the deterministic
+   layer settles it without a queue. What is still unanswered is where a
+   region nobody could read at all goes, since that has no line either.
 2. **A plain confirm stores its latency only in the audit log.** Corrections
    and discards go to `value_correction`. Decide whether confirms need a
    column or table of their own.
@@ -267,13 +383,16 @@ treatment suggestions). Changing that rule is a team and clinical decision.
 **Track A (Abbas)**
 
 1. Seed script, replacing `api/dev_seed`, with the same four registration numbers.
-2. Answer schema questions 1, 5 and 7, then the reading pipeline behind
-   `POST /api/uploads`, writing regimens and test orders as above.
+2. Answer schema questions 1, 5 and 7. Question 1 now blocks two things:
+   drug names reaching the queue, and regions the agent declined to read.
 3. `pat.compliance_score` migration and the guardrail change, then store the
    score the visit endpoint computes.
+4. Measure the reader against a gold set. Nothing yet says how often the
+   agent is right, only that what it returns is traceable.
 
 **Track B (Saadat)**
 
 1. Get the Hindi and Urdu strings reviewed by speakers.
 2. Run the patient app on an Android phone.
-3. Wire upload once the pipeline lands, then `/impeccable audit`.
+3. `/impeccable audit` the upload screen now that it runs on the real
+   pipeline: a real read takes seconds, not the mock's fixed 3.
