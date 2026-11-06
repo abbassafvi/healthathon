@@ -2,7 +2,6 @@ import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
 
 import { query, reseed } from './db'
-import { withoutMocks } from './mocks'
 
 /* Real API, real database: every test starts from the stand-in seed. */
 test.beforeEach(() => reseed())
@@ -35,12 +34,11 @@ test('the checklist shows the active list as printed and the prescription waitin
   await openChecklist(page)
   const active = page.getByRole('region', { name: 'Active checklist' })
   await expect(active.getByRole('listitem')).toHaveText([/Tab\. Metformin\s*500 mg\s*1-0-1/, /Tab\. Glimepiride/, /Tab\. Atorvastatin/])
-  await expect(page.getByRole('region', { name: 'Waiting for review' })).toContainText('0 of 4 confirmed')
+  await expect(page.getByRole('region', { name: 'Waiting for review' })).toContainText('0 of 4 settled')
   await expectNoViolations(page)
 })
 
 test('each line unlocks only after its crop renders', async ({ page }) => {
-  await withoutMocks(page)
   let release = () => {}
   const held = new Promise<void>((r) => (release = r))
   await page.route('**/api/regimen-items/*/crop', async (route) => {
@@ -51,10 +49,10 @@ test('each line unlocks only after its crop renders', async ({ page }) => {
   await expect(rows(page)).toHaveCount(4)
   for (const b of await page.getByRole('button', { name: /^Confirm$/ }).all()) await expect(b).toBeDisabled()
   await page.keyboard.press('Enter')
-  await expect(page.getByText('0 of 4 confirmed')).toBeVisible()
+  await expect(page.getByText('0 of 4 settled')).toBeVisible()
   release()
   await expect(focusedConfirm(page)).toBeEnabled({ timeout: 10_000 })
-  await expect(page.getByText('0 of 4 confirmed')).toBeVisible()
+  await expect(page.getByText('0 of 4 settled')).toBeVisible()
 })
 
 test('a prescription is confirmed from the keyboard, activated, and replaces the old list', async ({ page }) => {
@@ -64,7 +62,7 @@ test('a prescription is confirmed from the keyboard, activated, and replaces the
   for (let n = 1; n <= 4; n++) {
     await expect(focusedConfirm(page)).toBeEnabled()
     await page.keyboard.press('Enter')
-    await expect(page.getByText(`${n} of 4 confirmed`)).toBeVisible()
+    await expect(page.getByText(`${n} of 4 settled`)).toBeVisible()
   }
   const activate = page.getByRole('button', { name: 'Activate checklist' })
   await expect(activate).toBeEnabled()
@@ -104,7 +102,7 @@ test('a line can be corrected or removed before activation', async ({ page }) =>
   await expect(focusedConfirm(page)).toBeEnabled()
   await page.keyboard.press('x')
   await expect(rows(page)).toHaveCount(3)
-  await expect(page.getByText('1 of 3 confirmed')).toBeVisible()
+  await expect(page.getByText('1 of 3 settled')).toBeVisible()
 })
 
 test('the page outline follows the focused line', async ({ page }) => {

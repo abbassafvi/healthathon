@@ -8,6 +8,15 @@ from tests.helpers import DEMO, decide, patient_id, queue_item_for, verify_audit
 FIVE = ["grounding", "reread_agreement", "cross_document", "well_formed", "legibility"]
 
 
+def _without_ids(value: Any) -> Any:
+    """The response with every identifier dropped, leaving what is rendered."""
+    if isinstance(value, dict):
+        return {k: _without_ids(v) for k, v in value.items() if not k.endswith("id")}
+    if isinstance(value, list):
+        return [_without_ids(v) for v in value]
+    return value
+
+
 def _document(db: psycopg.Connection[Any], registration_no: str, doc_type: str) -> str:
     row = db.execute(
         "SELECT d.id FROM core.document d JOIN core.patient p ON p.id = d.patient_id"
@@ -62,8 +71,10 @@ def test_a_value_sent_to_a_person_names_the_reason_and_the_check_but_is_not_show
     fpg = _value(reading, "Fasting plasma glucose")
     assert (fpg["reason"], fpg["waiting"], fpg["shown"]) == ("region_illegible", True, None)
     assert [c["code"] for c in fpg["checks"] if c["outcome"] == "fail"] == ["legibility"]
-    # The unconfirmed value appears nowhere in the response.
-    assert "162" not in json.dumps(reading)
+    # The unconfirmed value appears nowhere in the response. Identifiers are
+    # left out of the search: a random uuid contains "162" often enough to
+    # fail this on its own.
+    assert "162" not in json.dumps(_without_ids(reading))
 
 
 def test_a_confirmed_value_names_who_settled_it_and_how_long_it_took(

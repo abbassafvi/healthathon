@@ -2,11 +2,9 @@ import { expect, test } from '@playwright/test'
 
 import { expectNoViolations } from './axe'
 import { query, reseed } from './db'
-import { withoutMocks } from './mocks'
 
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async () => {
   reseed()
-  await withoutMocks(page)
 })
 
 test('a decision made in the queue appears in the audit log, with the chain checked', async ({ page }) => {

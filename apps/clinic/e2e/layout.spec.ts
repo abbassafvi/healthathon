@@ -1,11 +1,9 @@
 import { expect, test } from '@playwright/test'
 
 import { query, reseed } from './db'
-import { withoutMocks } from './mocks'
 
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async () => {
   reseed()
-  await withoutMocks(page)
 })
 
 test('the header and every page share one left edge', async ({ page }) => {

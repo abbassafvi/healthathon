@@ -3,11 +3,9 @@ import { expect, test, type APIRequestContext } from '@playwright/test'
 import { expectNoViolations } from './axe'
 import { query, reseed } from './db'
 import { API_PORT } from './env'
-import { withoutMocks } from './mocks'
 
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async () => {
   reseed()
-  await withoutMocks(page)
 })
 
 const idOf = (reg: string) => query<{ id: string }>(`SELECT id FROM core.patient WHERE registration_no = '${reg}'`)[0].id

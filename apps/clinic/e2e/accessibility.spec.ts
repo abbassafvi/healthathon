@@ -2,11 +2,9 @@ import { expect, test, type Page } from '@playwright/test'
 
 import { expectNoViolations } from './axe'
 import { query, reseed } from './db'
-import { withoutMocks } from './mocks'
 
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async () => {
   reseed()
-  await withoutMocks(page)
 })
 
 const unlocked = (page: Page) => expect(page.getByRole('button', { name: /confirm as read/i })).toBeEnabled()

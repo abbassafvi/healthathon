@@ -10,6 +10,11 @@ export const WEB_PORT = 5174
 
 export const E2E_ENV: Record<string, string> = {
   HEALTHATHON_DATABASE_URL: 'postgresql://healthathon:healthathon@127.0.0.1:5434/healthathon_e2e',
+  // The browser tests read with the built-in stand-in: no paddlepaddle to
+  // install and no model provider to reach. What the real reader decides
+  // is settled by the API's own tests.
+  HEALTHATHON_DETECTOR: 'stub',
+  HEALTHATHON_AGENT_PROVIDER: 'stub',
   // Under storage/, which .gitignore excludes.
   HEALTHATHON_STORAGE_DIR: path.join(REPO, 'storage', 'e2e'),
 }
