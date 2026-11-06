@@ -18,6 +18,22 @@ TEST_URL = ADMIN_URL.rsplit("/", 1)[0] + "/" + TEST_DB
 
 os.environ["HEALTHATHON_DATABASE_URL"] = TEST_URL
 
+# A developer's api/.env is read by Settings, so without this the suite
+# would run on whatever model, reader and threshold that file happens to
+# name. Environment variables beat the file, so the tests pin what they
+# depend on and behave the same on every machine.
+os.environ.update(
+    {
+        "HEALTHATHON_DETECTOR": "stub",
+        "HEALTHATHON_AGENT_PROVIDER": "none",
+        "HEALTHATHON_AGENT_API_KEY": "",
+        "HEALTHATHON_AGENT_READS": "3",
+        "HEALTHATHON_AGENT_MAX_CROPS_PER_CALL": "12",
+        "HEALTHATHON_CONFIDENCE_THRESHOLD": "1.0",
+        "HEALTHATHON_LEGIBILITY_MIN_SHARPNESS": "1450.0",
+    }
+)
+
 
 @pytest.fixture(scope="session")
 def storage_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
