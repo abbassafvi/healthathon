@@ -78,7 +78,7 @@ describe('RecordPage', () => {
     const rx = (id: string, date: string) => ({ id, document_date: date, issuing_source: 'Dr. Kavita Rao, MD (fictional)' })
     checklist = {
       active: { id: 'r-1', activated_at: '2026-10-09T10:05:00+05:30', activated_by_name: 'Dr. Demo Clinician', source_document: rx('d-rx1', '2026-10-09'), items: [{}, {}, {}] },
-      awaiting_review: [{ regimen_id: 'r-2', document: rx('d-rx2', '2026-10-27'), item_count: 4, confirmed_count: 1 }],
+      awaiting_review: [{ regimen_id: 'r-2', document: rx('d-rx2', '2026-10-27'), item_count: 4, confirmed_count: 1, settled_count: 1 }],
     }
     setup()
     await screen.findByRole('heading', { name: 'Asha Verma' })
