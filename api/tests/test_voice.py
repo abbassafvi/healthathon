@@ -16,6 +16,11 @@ from healthathon import clinic_time
 from tests.helpers import BANNED_KEYS, patient_id, verify_audit_chain
 
 ASHA = "+91 55500 00001"
+# The seed gives her SMS but not voice, so she is the one who proves a
+# separately refusable item is actually separate.
+MEERA_SMS_ONLY = "+91 55500 00003"
+# Neither SMS nor voice.
+RAKESH_NO_CONSENT = "+91 55500 00004"
 KEY = {"X-Gateway-Key": "dev-only-voice-key"}
 
 
@@ -124,14 +129,13 @@ def test_an_unrecognised_press_is_asked_again_never_guessed(
     assert body["prompt"] == "voice.not_recognised"
 
 
-def test_nothing_is_stored_without_voice_consent(
-    client: Any, db: psycopg.Connection[Any], pid: str
-) -> None:
-    """No voice consent row at all is a no. Processing fails closed."""
-    body = step(client, "reading", digits="142", context="fasting").json()
+def test_nothing_is_stored_without_voice_consent(client: Any, db: psycopg.Connection[Any]) -> None:
+    """No consent row at all is a no. Processing fails closed."""
+    other = patient_id(db, "DEV-0004")
+    body = step(client, "reading", digits="142", context="fasting", sender=RAKESH_NO_CONSENT).json()
     assert body["accepted"] is False
     assert body["prompt"] is None
-    assert not _today_entries(client, pid)
+    assert not _today_entries(client, other)
 
 
 def test_a_withdrawn_voice_consent_stops_the_call(
@@ -145,10 +149,16 @@ def test_a_withdrawn_voice_consent_stops_the_call(
 
 
 def test_sms_consent_alone_does_not_let_a_call_through(
-    client: Any, db: psycopg.Connection[Any], pid: str
+    client: Any, db: psycopg.Connection[Any]
 ) -> None:
-    """The seed grants sms. Voice is a separately refusable item."""
-    assert step(client, "reading", digits="142", context="fasting").json()["accepted"] is False
+    """
+    She agreed to SMS and not to voice. Under the DPDP Act each item is
+    separately refusable, so the one does not imply the other.
+    """
+    her = patient_id(db, "DEV-0003")
+    body = step(client, "reading", digits="142", context="fasting", sender=MEERA_SMS_ONLY).json()
+    assert body["accepted"] is False
+    assert not _today_entries(client, her)
 
 
 def test_a_call_from_an_unknown_number_stores_nothing(client: Any, pid: str, agreed: None) -> None:

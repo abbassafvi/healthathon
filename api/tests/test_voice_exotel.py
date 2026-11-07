@@ -16,6 +16,8 @@ from healthathon import clinic_time
 from tests.helpers import patient_id
 
 ASHA = "+91 55500 00001"
+# The seed gives her SMS but not voice.
+MEERA_SMS_ONLY = "+91 55500 00003"
 SECRET = "dev-only-voice-key"
 
 
@@ -119,16 +121,19 @@ def test_the_same_passthru_delivered_twice_stores_once(
 
 
 def test_a_caller_without_voice_consent_gets_the_other_branch(
-    client: Any, db: psycopg.Connection[Any], pid: str
+    client: Any, db: psycopg.Connection[Any]
 ) -> None:
     """
     302 is the only way to tell Exotel to say something else: a Passthru
     response "cannot be customised". The flow then plays its own prompt
     rather than telling the caller something was kept.
+
+    She agreed to SMS and not to voice, which is the case worth covering.
     """
-    res = hit(client, "/reading/fasting", digits='"142"')
+    her = patient_id(db, "DEV-0003")
+    res = hit(client, "/reading/fasting", digits='"142"', CallFrom=MEERA_SMS_ONLY)
     assert res.status_code == 302
-    assert not _entries(client, pid)
+    assert not _entries(client, her)
 
 
 def test_an_unknown_caller_gets_the_other_branch(client: Any, pid: str, agreed: None) -> None:
