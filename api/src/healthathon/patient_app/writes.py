@@ -7,7 +7,7 @@ from fastapi import HTTPException
 from psycopg import Connection
 from psycopg.rows import DictRow
 
-from healthathon import clinic_time, storage
+from healthathon import clinic_time, storage, transcripts
 from healthathon.audit import record_event
 from healthathon.entries import repository as entries_repo
 from healthathon.entries.models import READING
@@ -159,10 +159,12 @@ def add_recording(
 ) -> AppRecording:
     """
     Keep a spoken answer at the clinic, as recorded, to attach to an answer.
-    It is not transcribed, and it never leaves the clinic boundary. The same
-    capture id keeps the same recording, so a retried upload is stored once.
+    The same capture id keeps the same recording, so a retried upload is
+    stored once. When transcription is switched on, the recording is also
+    written down in the background (see `healthathon.transcripts`); off, it
+    never leaves the clinic.
     """
-    require_patient(conn, patient_id)
+    patient = require_patient(conn, patient_id)
     if len(body) > MAX_RECORDING_BYTES:
         raise HTTPException(413, "The recording is too long")
     ext = next((e for at, magic, e in _AUDIO_TYPES if body[at : at + len(magic)] == magic), None)
@@ -171,6 +173,7 @@ def add_recording(
     key = f"voice/{patient_id}/{capture_id}.{ext}"
     if storage.resolve(key) is None:
         storage.save(key, body)
+        transcripts.transcribe_later(key, patient["preferred_language"])
     return AppRecording(key=key, uri=storage.url_for(key))
 
 

@@ -10,6 +10,7 @@ import type { PastDay } from '../data/types'
 import { isLatin, shownAnswer } from '../i18n'
 import { color, radius, space } from '../theme'
 import { useBackButton } from '../useBackButton'
+import { Transcript } from '../components/Transcript'
 
 /*
  * Earlier days, newest first, each exactly as the patient recorded it:
@@ -130,6 +131,7 @@ function Day({ day }: { day: PastDay }) {
                 <Txt size={16} tone="ink2">{a.question.text[lang] ?? a.question.text.en}</Txt>
                 {answer !== null && <Txt size={18} latin={lang !== 'en' && isLatin(answer)}>{answer}</Txt>}
                 {a.audio_uri && <Playback uri={a.audio_uri} />}
+                {a.audio_uri && a.transcript && <Transcript text={a.transcript} />}
               </View>
             )
           })}

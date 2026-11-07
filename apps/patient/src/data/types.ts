@@ -37,6 +37,8 @@ export type Today = {
   answer: string | null
   /* The recording with today's answer, played as recorded. */
   answer_audio_uri: string | null
+  /* What a speech recogniser heard in that recording, when the clinic has it switched on. */
+  answer_transcript?: string | null
   meals: Meal[]
   survey: { open: boolean; done: boolean }
 }
@@ -52,7 +54,7 @@ export type PastDay = {
   date: string
   ticks: { item: ChecklistItem; ticked: boolean | null }[]
   readings: Reading[]
-  answers: { question: Question; answer_text: string | null; audio_uri: string | null; occurred_at: string }[]
+  answers: { question: Question; answer_text: string | null; audio_uri: string | null; transcript?: string | null; occurred_at: string }[]
   meals: Meal[]
 }
 

@@ -12,6 +12,7 @@ import { cellKey, counts, toSubmission, validate, weekDates, type Draft } from '
 import { GlucoseEditor } from './GlucoseEditor'
 import { TickGrid } from './TickGrid'
 import { PAGE } from '../app/page'
+import { DictateButton } from '../app/DictateButton'
 
 function lastWeekStart(): string {
   const d = new Date()
@@ -32,6 +33,7 @@ export function PaperFormPage() {
   const [step, setStep] = useState<'form' | 'review' | 'saved'>('form')
   const [draft, setDraft] = useState<Draft>(() => ({ weekFrom: lastWeekStart(), language: 'en', cells: {}, glucose: [], answers: {} }))
   const [attempted, setAttempted] = useState(false)
+  const setAnswer = (k: string, v: string) => setDraft((x) => ({ ...x, answers: { ...x.answers, [k]: v } }))
   const [today] = useState(() => localIsoDate(new Date()))
   const dates = weekDates(draft.weekFrom)
 
@@ -228,9 +230,13 @@ export function PaperFormPage() {
                 return (
                   <div key={k} className="contents">
                     <label htmlFor={id} className="self-center text-sm text-ink-2">{formatDate(d)}<span className="sr-only">, {fmt(en.paperForm.answerFor, { date: formatDate(d) })}</span></label>
-                    <input id={id} lang={draft.language} dir={draft.language === 'ur' ? 'rtl' : 'ltr'} value={draft.answers[k] ?? ''}
-                      onChange={(e) => setDraft((x) => ({ ...x, answers: { ...x.answers, [k]: e.target.value } }))}
-                      className="h-10 rounded-lg border border-line-strong bg-surface px-3" />
+                    <div className="flex flex-wrap items-center gap-2">
+                      <input id={id} lang={draft.language} dir={draft.language === 'ur' ? 'rtl' : 'ltr'} value={draft.answers[k] ?? ''}
+                        onChange={(e) => setAnswer(k, e.target.value)}
+                        className="h-10 min-w-0 flex-1 rounded-lg border border-line-strong bg-surface px-3" />
+                      <DictateButton field={fmt(en.paperForm.answerFor, { date: formatDate(d) })} lang={draft.language}
+                        value={draft.answers[k] ?? ''} onChange={(v) => setAnswer(k, v)} className="size-10" />
+                    </div>
                   </div>
                 )
               })}

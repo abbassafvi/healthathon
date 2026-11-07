@@ -8,6 +8,7 @@ import { color, font, lineHeightFactor, radius, space } from '../theme'
 import { Button } from './Button'
 import { Playback, Recorder } from './Recorder'
 import { Section } from './Section'
+import { Transcript } from './Transcript'
 import { Txt } from './Txt'
 
 type Mode = 'choose' | 'write' | 'speak' | 'words' | 'sayWords'
@@ -19,13 +20,15 @@ export type GivenAnswer = { text: string | null; audioUri?: string }
  * The day's question. A patient taps Yes or No, or writes or speaks an
  * answer of their own; after a Yes or No they can add a few words, typed
  * or spoken ("No, I forgot the evening one"). Answers are stored exactly
- * as given, a recording as recorded, never scored or transcribed. A
+ * as given, a recording as recorded, never scored. When the clinic writes
+ * a recording down, the transcript is shown under it, labelled. A
  * mistaken answer can be put right: the newest one is the one kept.
  */
-export function QuestionCard({ question, answer, answerAudio, onAnswer }: {
+export function QuestionCard({ question, answer, answerAudio, answerTranscript, onAnswer }: {
   question: Question
   answer: string | null
   answerAudio: string | null
+  answerTranscript?: string | null
   onAnswer: (a: GivenAnswer) => void
 }) {
   const { t, lang } = useApp()
@@ -47,6 +50,7 @@ export function QuestionCard({ question, answer, answerAudio, onAnswer }: {
             <Txt size={18} tone="ink2" testID="answer-given">{fmt(t.today.answered, { answer: shownAnswer(answer, t) })}</Txt>
           )}
           {answerAudio && <Playback uri={answerAudio} />}
+          {answerAudio && answerTranscript && <Transcript text={answerTranscript} />}
           {tapped && !answerAudio && (
             <>
               <Button kind="quiet" label={t.today.addWords} onPress={() => setMode('words')} testID="add-words" style={styles.inline} />

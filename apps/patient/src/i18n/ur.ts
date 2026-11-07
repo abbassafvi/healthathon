@@ -83,6 +83,7 @@ export const ur: Strings = {
     needContext: 'چنیں کہ آپ نے یہ کب لی۔',
   },
   voice: {
+    heard: 'آپ کی ریکارڈنگ سے لکھا گیا',
     speak: 'اپنا جواب بولیں',
     sayWords: 'کچھ الفاظ بولیں',
     start: 'ریکارڈنگ شروع کریں',

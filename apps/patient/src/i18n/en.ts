@@ -79,6 +79,7 @@ export const en = {
     needContext: 'Choose when you took it.',
   },
   voice: {
+    heard: 'Written down from your recording',
     speak: 'Speak your answer',
     sayWords: 'Say a few words',
     start: 'Start recording',

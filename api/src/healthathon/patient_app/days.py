@@ -27,6 +27,8 @@ class AppPastAnswer(BaseModel):
     answer_text: str | None
     # The patient's own recording, when the answer was spoken.
     audio_uri: str | None
+    # What a speech recogniser heard in it, when transcription is on.
+    transcript: str | None = None
     occurred_at: datetime
 
 
@@ -104,6 +106,7 @@ def _day(
                 question=questions[r["question_key"]],
                 answer_text=r["answer_text"],
                 audio_uri=storage.url_for(r["audio_key"]) if r["audio_key"] else None,
+                transcript=r["transcript_text"],
                 occurred_at=clinic_time.local(r["occurred_at"]),
             )
             for r in on_day

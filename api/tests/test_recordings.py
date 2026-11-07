@@ -49,14 +49,17 @@ def test_only_audio_of_a_bounded_size_is_kept(client: Any, pid: str) -> None:
     assert client.post(f"/api/app/patients/{pid}/recordings", content=M4A).status_code == 422
 
 
-def test_a_spoken_answer_is_kept_without_words_and_not_transcribed(client: Any, pid: str) -> None:
+def test_a_spoken_answer_is_kept_without_words_and_not_transcribed_by_default(
+    client: Any, pid: str
+) -> None:
     key = _record(client, pid).json()["key"]
     assert _answer(client, pid, audio_key=key).status_code == 204
     today = client.get(f"/api/app/patients/{pid}/today").json()
     assert today["answer"] is None and today["answer_audio_uri"] == f"/api/storage/{key}"
     [entry] = [e for e in _today_entries(client, pid) if e["kind"] == "survey_answer"]
     assert (entry["answer_text"], entry["audio_url"]) == (None, f"/api/storage/{key}")
-    assert not [k for k in entry if "transcri" in k]
+    # Transcription is off unless switched on: the voice stays at the clinic.
+    assert entry["audio_transcript"] is None and today["answer_transcript"] is None
 
 
 def test_a_tap_can_carry_a_recording(client: Any, pid: str) -> None:

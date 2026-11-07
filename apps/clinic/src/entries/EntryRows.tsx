@@ -59,7 +59,7 @@ export function AnswerRow({ e }: { e: AnswerEntry }) {
             {e.answer_text}
           </p>
         )}
-        {e.audio_url && <Recording url={e.audio_url} />}
+        {e.audio_url && <Recording url={e.audio_url} transcript={e.audio_transcript} lang={e.language} />}
       </div>
       <span />
       <span className="flex flex-wrap gap-x-2 font-mono text-xs text-ink-3">

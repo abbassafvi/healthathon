@@ -48,6 +48,13 @@ class Settings(BaseSettings):
     # Codes one number may be sent in an hour. Browser tests sign in on the same numbers all day.
     otp_sends_per_hour: int = 5
 
+    # ---- Spoken answers ---------------------------------------------
+    # Write down what a patient said in a spoken answer, using the
+    # document agent's Gemini key. Off by default, because it sends the
+    # patient's voice to the provider: turn it on knowingly. The recording
+    # is kept either way and stays the answer.
+    transcribe_recordings: bool = False
+
     # ---- Reading pipeline -------------------------------------------
     # The document agent's model provider: "gemini" (AI Studio, a free
     # key and no card), "openai" for anything speaking the OpenAI chat

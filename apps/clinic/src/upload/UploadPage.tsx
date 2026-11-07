@@ -6,6 +6,7 @@ import { api, type UploadDocType } from '../api/client'
 import { CameraCapture, cameraAvailable } from './CameraCapture'
 import { useTitle } from '../app/useTitle'
 import { en, fmt } from '../strings/en'
+import { docTypeLabel } from './docTypeLabel'
 import { UploadRow, type SessionUpload } from './UploadRow'
 import { PAGE } from '../app/page'
 
@@ -130,14 +131,15 @@ export function UploadPage() {
 
           <fieldset className="flex flex-col gap-2">
             <legend className="label mb-1.5">{en.upload.docType}</legend>
-            <div className="flex gap-2">
-              {(['prescription', 'lab_report'] as const).map((t) => (
+            <div className="flex flex-wrap gap-2">
+              {(['prescription', 'lab_report', 'survey_form'] as const).map((t) => (
                 <label key={t} className="flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-line-strong bg-surface px-3.5 text-sm has-[:checked]:border-accent has-[:checked]:bg-accent-soft has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-accent">
                   <input type="radio" name="doc-type" value={t} checked={docType === t} onChange={() => setDocType(t)} className="sr-only" />
-                  {t === 'prescription' ? en.upload.prescription : en.upload.labReport}
+                  {docTypeLabel(t)}
                 </label>
               ))}
             </div>
+            {docType === 'survey_form' && <p className="text-sm text-ink-2">{en.upload.surveyFormHint}</p>}
           </fieldset>
 
           <div className="flex flex-col gap-2">
@@ -201,7 +203,9 @@ export function UploadPage() {
           <div className="flex flex-col gap-2">
             <button type="submit" disabled={!ready} aria-describedby={stillNeeded ? 'up-needed' : undefined}
               className="inline-flex h-10 w-fit items-center rounded-lg border border-accent bg-accent px-4 text-sm font-medium text-accent-ink transition-colors duration-150 hover:bg-accent-hover disabled:cursor-not-allowed disabled:border-line disabled:bg-sunken disabled:text-ink-3">
-              {picked.length > 1 ? fmt(en.upload.submitN, { n: picked.length }) : en.upload.submit}
+              {docType === 'survey_form'
+                ? picked.length > 1 ? fmt(en.upload.submitKeepN, { n: picked.length }) : en.upload.submitKeep
+                : picked.length > 1 ? fmt(en.upload.submitN, { n: picked.length }) : en.upload.submit}
             </button>
             {stillNeeded && (
               <p id="up-needed" aria-live="polite" className="text-sm text-ink-2">{stillNeeded}</p>

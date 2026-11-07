@@ -128,7 +128,7 @@ function Answers({ title, answers }: { title: string; answers: AnswerEntry[] }) 
                   <span className="numerals text-ink-2">{formatDate(a.occurred_at)}</span>
                   <span lang={a.language} dir={a.language === 'ur' ? 'rtl' : 'ltr'} className={a.language === 'ur' ? 'text-right' : ''}>
                     {a.answer_text}
-                    {a.audio_url && <Recording url={a.audio_url} />}
+                    {a.audio_url && <Recording url={a.audio_url} transcript={a.audio_transcript} lang={a.language} />}
                   </span>
                 </li>
               ))}

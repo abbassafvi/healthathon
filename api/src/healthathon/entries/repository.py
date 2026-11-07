@@ -17,7 +17,7 @@ SELECT e.id, e.kind::text AS kind, e.channel::text AS channel,
        c.full_name AS caregiver_name, c.relationship AS caregiver_relationship,
        g.value_text, g.context::text AS context, g.insulin_units,
        t.tick_date, t.ticked, ri.id AS item_id, ri.drug_text, ri.dose_text, ri.schedule_text,
-       sa.answer_text, sa.audio_key, sa.set_id, qb.question_key,
+       sa.answer_text, sa.audio_key, rt.transcript_text, sa.set_id, qb.question_key,
        qen.text AS question_text, COALESCE(qshown.text, qen.text) AS question_text_shown,
        m.storage_key, m.meal::text AS meal, m.calories_text
 FROM pat.entry e
@@ -26,6 +26,7 @@ LEFT JOIN pat.glucose_reading g ON g.entry_id = e.id
 LEFT JOIN pat.medication_tick t ON t.entry_id = e.id
 LEFT JOIN core.regimen_item ri ON ri.id = t.regimen_item_id
 LEFT JOIN pat.survey_answer sa ON sa.entry_id = e.id
+LEFT JOIN pat.recording_transcript rt ON rt.audio_key = sa.audio_key
 LEFT JOIN pat.question_bank_item qb ON qb.id = sa.question_id
 LEFT JOIN pat.question_text qen ON qen.question_id = qb.id AND qen.language = 'en'
 LEFT JOIN pat.question_text qshown ON qshown.question_id = qb.id AND qshown.language = e.language

@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router'
 
-import { api, type UploadStatus } from '../api/client'
+import { api, type UploadDocType, type UploadStatus } from '../api/client'
 import { en, fmt } from '../strings/en'
+import { docTypeLabel } from './docTypeLabel'
 
 export type SessionUpload = {
   key: string
@@ -10,7 +11,7 @@ export type SessionUpload = {
   preview: string
   patientId: string
   patientName: string
-  docType: 'prescription' | 'lab_report'
+  docType: UploadDocType
   first: UploadStatus
 }
 
@@ -33,9 +34,9 @@ export function UploadRow({ u, onRetry }: { u: SessionUpload; onRetry: () => voi
       <div className="min-w-0">
         <p className="truncate text-sm font-medium">{u.file.name}</p>
         <p className="text-sm text-ink-2">
-          {u.patientName}, {u.docType === 'prescription' ? en.upload.prescription : en.upload.labReport}
+          {u.patientName}, {docTypeLabel(u.docType)}
         </p>
-        {s.stage !== 'duplicate' && s.stage !== 'failed' && (
+        {s.stage !== 'duplicate' && s.stage !== 'failed' && u.docType !== 'survey_form' && (
           <ol className="mt-2 flex gap-4 text-xs" aria-label={en.upload.stages[s.stage] ?? s.stage}>
             {STAGES.map((stage, i) => (
               <li key={stage} className={`flex items-center gap-1.5 ${i <= reached ? 'text-ink' : 'text-ink-3'}`} aria-current={i === reached ? 'step' : undefined}>
@@ -46,7 +47,15 @@ export function UploadRow({ u, onRetry }: { u: SessionUpload; onRetry: () => voi
           </ol>
         )}
         <div aria-live="polite" className="mt-2 text-sm">
-          {s.stage === 'done' && s.outcome && (
+          {s.stage === 'done' && s.outcome && u.docType === 'survey_form' && (
+            <>
+              <p>{en.upload.surveyDone}</p>
+              <p className="mt-2">
+                <Link className="font-medium text-accent underline-offset-4 hover:underline" to={`/patients/${u.patientId}/documents`}>{en.upload.openSurveys}</Link>
+              </p>
+            </>
+          )}
+          {s.stage === 'done' && s.outcome && u.docType !== 'survey_form' && (
             <>
               {s.outcome.regimen_id ? (
                 <p>{en.upload.rxDone}</p>

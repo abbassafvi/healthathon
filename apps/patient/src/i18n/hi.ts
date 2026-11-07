@@ -83,6 +83,7 @@ export const hi: Strings = {
     needContext: 'चुनिए कि आपने यह कब ली।',
   },
   voice: {
+    heard: 'आपकी रिकॉर्डिंग से लिखा गया',
     speak: 'अपना जवाब बोलिए',
     sayWords: 'कुछ शब्द बोलिए',
     start: 'रिकॉर्ड करना शुरू करें',

@@ -74,6 +74,7 @@ def today(conn: Connection[DictRow], patient_id: UUID) -> Today:
         answer_audio_uri=storage.url_for(daily[-1]["audio_key"])
         if daily and daily[-1]["audio_key"]
         else None,
+        answer_transcript=daily[-1]["transcript_text"] if daily else None,
         meals=meals,
         survey=survey_state(conn, patient_id),
     )

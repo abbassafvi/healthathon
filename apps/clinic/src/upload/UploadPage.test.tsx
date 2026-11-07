@@ -91,6 +91,21 @@ describe('UploadPage', () => {
     expect(link.getAttribute('href')).toBe('/patients/p-4/checklist/review/rx-7')
   })
 
+  it('keeps a paper survey with the record without reading it', async () => {
+    const user = setup()
+    programUploads([{ outcome: { ...rxOutcome(null, 0, 0), document_id: 'doc-sf' } }])
+    await choose(user, 'Asha Verma (DEV-0001)', 'Paper survey')
+    expect(screen.getByText('Kept with the record as a photograph. Nothing on it is read.')).toBeInTheDocument()
+    await user.upload(screen.getByTestId('file-input'), [photo('survey.jpg')])
+    const submit = screen.getByRole('button', { name: 'Upload' })
+    await user.click(submit)
+    const session = screen.getByRole('region', { name: 'Uploaded in this session' })
+    expect(await within(session).findByText('Kept with the record.', {}, { timeout: 4000 })).toBeInTheDocument()
+    expect(within(session).getByText('Asha Verma, Paper survey')).toBeInTheDocument()
+    expect(within(session).queryByText('Reading')).toBeNull()
+    expect(within(session).getByRole('link', { name: 'See it on the Documents tab' })).toHaveAttribute('href', '/patients/p-1/documents')
+  })
+
   it('keeps the photographs and says so when an upload does not start', async () => {
     const user = setup()
     server.use(http.post('*/api/uploads', () => HttpResponse.json({ detail: 'down' }, { status: 503 })))

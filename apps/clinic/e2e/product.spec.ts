@@ -20,7 +20,8 @@ test("the patient list carries each record's facts, and finds a patient", async 
   await expectNoViolations(page)
 
   await page.keyboard.press('/')
-  await expect(page.getByLabel('Find a patient')).toBeFocused()
+  // The search box itself: the microphone beside it is labelled after it too.
+  await expect(page.getByRole('searchbox', { name: 'Find a patient' })).toBeFocused()
   await page.keyboard.type('pillai')
   await expect(page.getByRole('link', { name: 'Meera Pillai' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Asha Verma' })).toHaveCount(0)

@@ -157,6 +157,7 @@ export function TodayScreen({ onOpenSurvey, onOpenPast, onOpenSettings, onOpenDo
           question={today.question}
           answer={today.answer}
           answerAudio={today.answer_audio_uri}
+          answerTranscript={today.answer_transcript}
           onAnswer={(a) => write(sendAnswer(today.question!.key, a))}
         />
       )}

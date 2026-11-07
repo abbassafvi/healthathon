@@ -22,6 +22,7 @@ const record = {
       ],
     },
   ],
+  survey_forms: [] as object[],
 }
 
 function Where() {
@@ -65,9 +66,28 @@ function setup(start = '/patients/p-1/documents', traceStatus = 200) {
 afterEach(() => {
   vi.unstubAllGlobals()
   checklist = { active: null, awaiting_review: [] }
+  record.survey_forms = []
 })
 
 describe('RecordPage', () => {
+  it('shows a paper survey as its photograph, with nothing read from it', async () => {
+    record.survey_forms = [
+      { id: 'sf-1', photographed_at: '2026-11-06T10:15:00+05:30', url: '/api/storage/pages/abc/page-1.png', width_px: 1240, height_px: 1754 },
+    ]
+    setup()
+    expect(await screen.findByRole('heading', { name: 'Paper surveys' })).toBeInTheDocument()
+    const photo = screen.getByRole('img', { name: /^Paper survey photographed / })
+    expect(photo).toHaveAttribute('src', '/api/storage/pages/abc/page-1.png?width=360')
+    expect(photo.closest('a')).toHaveAttribute('href', '/api/storage/pages/abc/page-1.png')
+    expect(screen.getAllByRole('link').filter((l) => l.hasAttribute('data-value-id'))).toHaveLength(2)
+  })
+
+  it('shows no survey section when there are none', async () => {
+    setup()
+    expect(await screen.findByRole('heading', { name: 'Asha Verma' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Paper surveys' })).toBeNull()
+  })
+
   it('lists values exactly as printed, in page order', async () => {
     setup()
     expect(await screen.findByRole('heading', { name: 'Asha Verma' })).toBeInTheDocument()

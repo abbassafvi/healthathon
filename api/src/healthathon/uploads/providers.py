@@ -98,9 +98,18 @@ def _b64(path: Path) -> str:
     return base64.b64encode(path.read_bytes()).decode("ascii")
 
 
+_AUDIO_MIME = {".m4a": "audio/mp4", ".webm": "audio/webm", ".ogg": "audio/ogg", ".wav": "audio/wav"}
+
+
 def _mime(path: Path) -> str:
-    """Crops are PNG, where sharpness matters; the context page is JPEG."""
-    return "image/jpeg" if path.suffix.lower() in (".jpg", ".jpeg") else "image/png"
+    """
+    Crops are PNG, where sharpness matters; the context page is JPEG. A
+    recording, sent to be written down, keeps its own type.
+    """
+    suffix = path.suffix.lower()
+    if suffix in _AUDIO_MIME:
+        return _AUDIO_MIME[suffix]
+    return "image/jpeg" if suffix in (".jpg", ".jpeg") else "image/png"
 
 
 def _parse(text: str) -> dict[str, Any]:

@@ -18,6 +18,7 @@ from healthathon.audit import record_event
 from healthathon.auth import Conn, CurrentUser, User
 from healthathon.uploads.agent import DocType
 from healthathon.uploads.jobs import Job, registry
+from healthathon.uploads.keep import KeptType, keep_page
 from healthathon.uploads.models import QueueReason, UploadOutcome, UploadStatus
 from healthathon.uploads.reader_job import MAX_BYTES, start_read
 from healthathon.uploads.recover import recover
@@ -53,7 +54,7 @@ def create_upload(
     file: Annotated[UploadFile, File(description="The photograph of the page")],
     client_capture_id: Annotated[str, Form()],
     patient_id: Annotated[UUID, Form()],
-    doc_type: Annotated[DocType, Form()],
+    doc_type: Annotated[DocType | KeptType, Form()],
     captured_at: Annotated[datetime, Form()],
 ) -> UploadStatus:
     data = file.file.read()
@@ -77,6 +78,19 @@ def create_upload(
         return _status(jobs.get(job.id) or job)
 
     _record_upload(conn, user, patient_id, file.filename or "page", doc_type)
+    if doc_type == "survey_form":
+        # Kept with the record and shown as it is. Nothing on it is read.
+        document_id = keep_page(
+            conn,
+            capture_id=client_capture_id,
+            patient_id=patient_id,
+            uploaded_by=user.id,
+            doc_type=doc_type,
+            captured_at=captured_at,
+            data=data,
+        )
+        jobs.update(job.id, stage="done", document_id=document_id)
+        return _status(jobs.get(job.id) or job)
     start_read(job.id, client_capture_id, patient_id, user.id, doc_type, captured_at, data)
     return _status(job)
 

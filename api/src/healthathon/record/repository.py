@@ -95,6 +95,22 @@ def record_values(conn: Connection[DictRow], patient_id: UUID) -> list[dict[str,
     ).fetchall()
 
 
+def survey_forms(conn: Connection[DictRow], patient_id: UUID) -> list[dict[str, Any]]:
+    """Paper surveys kept as photographs, newest first."""
+    return conn.execute(
+        """
+        SELECT d.id, i.captured_at AS photographed_at, pg.storage_key,
+               pg.width_px, pg.height_px
+        FROM core.document d
+        JOIN core.intake i ON i.id = d.intake_id
+        JOIN core.document_page pg ON pg.document_id = d.id AND pg.page_no = 1
+        WHERE d.patient_id = %s AND d.doc_type = 'survey_form'
+        ORDER BY i.captured_at DESC, d.id
+        """,
+        (patient_id,),
+    ).fetchall()
+
+
 def trace_row(conn: Connection[DictRow], value_id: UUID) -> dict[str, Any] | None:
     return conn.execute(
         """
