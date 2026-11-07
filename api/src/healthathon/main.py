@@ -6,7 +6,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
-from healthathon import storage, thumbnails
+from healthathon import access_log, storage, thumbnails
 from healthathon.audit_log.routes import router as audit_log_router
 from healthathon.auth import CurrentUser, User
 from healthathon.clinic_day.routes import router as clinic_day_router
@@ -23,6 +23,9 @@ from healthathon.uploads.routes import router as uploads_router
 from healthathon.visit.routes import router as visit_router
 from healthathon.voice.exotel import router as exotel_voice_router
 from healthathon.voice.routes import router as voice_router
+
+# Before any request: the voice secret and the caller's number stay out of the log.
+access_log.install()
 
 
 @asynccontextmanager
