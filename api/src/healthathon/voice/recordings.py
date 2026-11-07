@@ -25,7 +25,7 @@ from uuid import UUID
 
 import httpx
 
-from healthathon import storage
+from healthathon import storage, transcripts
 from healthathon.config import get_settings
 from healthathon.db import open_pool
 from healthathon.voice import service
@@ -125,6 +125,12 @@ def collect(step: VoiceStep, url: str, client: httpx.Client | None = None) -> bo
         if storage.resolve(key) is None:
             storage.save(key, body)
         out = service.handle(conn, step.model_copy(update={"audio_key": key}))
+        if out.stored:
+            # The recording is the answer. A transcript is a machine's
+            # hearing of it, written down beside it so a clinician can
+            # read at a glance, with the audio always one tap away.
+            # Nothing is derived from either into the record.
+            transcripts.transcribe_later(key, _language(conn, patient))
         return bool(out.stored)
 
 
@@ -136,3 +142,11 @@ def _patient(conn: object, step: VoiceStep) -> UUID | None:
     number = phones.normalise(step.from_)
     found = store.patient_for(conn, number) if number else None  # type: ignore[arg-type]
     return UUID(str(found["id"])) if found else None
+
+
+def _language(conn: object, patient_id: UUID) -> str:
+    """The language to write the answer down in: the patient's own."""
+    row = conn.execute(  # type: ignore[attr-defined]
+        "SELECT preferred_language FROM core.patient WHERE id = %s", (patient_id,)
+    ).fetchone()
+    return str(row["preferred_language"]) if row else "en"

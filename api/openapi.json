@@ -2025,6 +2025,136 @@
         }
       }
     },
+    "/api/scheduled-calls": {
+      "post": {
+        "tags": [
+          "calls"
+        ],
+        "summary": "Post Scheduled Call",
+        "description": "Ask the clinic to ring a patient and read them the survey.\n\nA clinician chooses who and when. Nothing picks patients out on its\nown, because choosing whom to telephone would be a judgement about\nthem.",
+        "operationId": "post_scheduled_call_api_scheduled_calls_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduleCall"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduledCall"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/patients/{patient_id}/scheduled-calls": {
+      "get": {
+        "tags": [
+          "calls"
+        ],
+        "summary": "Get Scheduled Calls",
+        "description": "This patient's calls, soonest first.",
+        "operationId": "get_scheduled_calls_api_patients__patient_id__scheduled_calls_get",
+        "parameters": [
+          {
+            "name": "patient_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Patient Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduledCalls"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/scheduled-calls/{call_id}": {
+      "delete": {
+        "tags": [
+          "calls"
+        ],
+        "summary": "Delete Scheduled Call",
+        "description": "Call off a call nobody has placed yet.",
+        "operationId": "delete_scheduled_call_api_scheduled_calls__call_id__delete",
+        "parameters": [
+          {
+            "name": "call_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Call Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduledCall"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/clinic-day": {
       "get": {
         "tags": [
@@ -6186,6 +6316,123 @@
           "full_name"
         ],
         "title": "ReviewPatient"
+      },
+      "ScheduleCall": {
+        "properties": {
+          "patient_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Patient Id"
+          },
+          "scheduled_for": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Scheduled For"
+          }
+        },
+        "type": "object",
+        "required": [
+          "patient_id",
+          "scheduled_for"
+        ],
+        "title": "ScheduleCall"
+      },
+      "ScheduledCall": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "patient_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Patient Id"
+          },
+          "patient_name": {
+            "type": "string",
+            "title": "Patient Name"
+          },
+          "registration_no": {
+            "type": "string",
+            "title": "Registration No"
+          },
+          "scheduled_for": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Scheduled For"
+          },
+          "scheduled_by_name": {
+            "type": "string",
+            "title": "Scheduled By Name"
+          },
+          "placed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Placed At"
+          },
+          "cancelled_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancelled At"
+          },
+          "failure": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failure"
+          },
+          "state": {
+            "type": "string",
+            "title": "State"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "patient_id",
+          "patient_name",
+          "registration_no",
+          "scheduled_for",
+          "scheduled_by_name",
+          "placed_at",
+          "cancelled_at",
+          "failure",
+          "state"
+        ],
+        "title": "ScheduledCall"
+      },
+      "ScheduledCalls": {
+        "properties": {
+          "calls": {
+            "items": {
+              "$ref": "#/components/schemas/ScheduledCall"
+            },
+            "type": "array",
+            "title": "Calls"
+          }
+        },
+        "type": "object",
+        "title": "ScheduledCalls"
       },
       "Settled": {
         "properties": {

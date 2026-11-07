@@ -232,15 +232,29 @@ def seed_contacts(
 
 
 def set_phone(conn: psycopg.Connection[Any], registration_no: str, number: str) -> str:
-    """Give a demo patient this phone instead of their fictional one. Returns its last four."""
+    """
+    Give a demo patient this phone instead of their fictional one.
+
+    Seals the number too when a phone encryption key is set, so the
+    clinic can ring this one patient. Only this one: every other seeded
+    patient keeps a fictional number with nothing sealed, so a mistake
+    can only ever dial the phone whose owner asked for it. Returns its
+    last four.
+    """
     normalised = phones.normalise(number)
     if normalised is None:
         raise SystemExit(f"Not a phone number: {number!r}")
+    # Sealed only when there is a key to seal it under. Without one the
+    # number still works for everything the patient starts, an SMS or a
+    # call they make, because those match on the HMAC. Only ringing them
+    # needs the number back, and a clinic that never rings out should not
+    # be made to hold a key it has no use for.
+    sealed = phones.seal(normalised)
     row = conn.execute(
-        "UPDATE core.patient_phone SET phone_hmac = %s, phone_last4 = %s"
+        "UPDATE core.patient_phone SET phone_hmac = %s, phone_last4 = %s, phone_sealed = %s"
         " WHERE patient_id = (SELECT id FROM core.patient WHERE registration_no = %s)"
         " RETURNING phone_last4",
-        (phones.phone_hmac(normalised), normalised[-4:], registration_no),
+        (phones.phone_hmac(normalised), normalised[-4:], sealed, registration_no),
     ).fetchone()
     if row is None:
         raise SystemExit(f"No demo patient {registration_no!r}")
