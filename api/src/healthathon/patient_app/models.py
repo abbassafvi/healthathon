@@ -107,7 +107,7 @@ class ReadingRequest(BaseModel):
 
 
 # A recording the patient sent, as /recordings stored it.
-RECORDING_KEY = r"^voice/[0-9a-f-]{36}/[A-Za-z0-9_-]{8,64}\.(m4a|webm|ogg|wav)$"
+RECORDING_KEY = r"^voice/[0-9a-f-]{36}/[A-Za-z0-9_-]{8,64}\.(mp3|m4a|webm|ogg|wav)$"
 
 
 class AnswerRequest(BaseModel):

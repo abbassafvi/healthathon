@@ -2601,7 +2601,7 @@
             "anyOf": [
               {
                 "type": "string",
-                "pattern": "^voice/[0-9a-f-]{36}/[A-Za-z0-9_-]{8,64}\\.(m4a|webm|ogg|wav)$"
+                "pattern": "^voice/[0-9a-f-]{36}/[A-Za-z0-9_-]{8,64}\\.(mp3|m4a|webm|ogg|wav)$"
               },
               {
                 "type": "null"
@@ -7334,7 +7334,7 @@
             "anyOf": [
               {
                 "type": "string",
-                "pattern": "^voice/[0-9a-f-]{36}/[A-Za-z0-9_-]{8,64}\\.(m4a|webm|ogg|wav)$"
+                "pattern": "^voice/[0-9a-f-]{36}/[A-Za-z0-9_-]{8,64}\\.(mp3|m4a|webm|ogg|wav)$"
               },
               {
                 "type": "null"

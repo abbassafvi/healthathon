@@ -29,7 +29,7 @@ from fastapi import APIRouter, HTTPException, Query, Response
 
 from healthathon.auth import Conn
 from healthathon.config import get_settings
-from healthathon.voice import service
+from healthathon.voice import recordings, service
 from healthathon.voice.models import VoiceStep
 
 router = APIRouter(prefix="/api/voice/exotel", tags=["voice"])
@@ -144,3 +144,46 @@ def reading(
             }
         ),
     )
+
+
+@router.get("/{secret}/answer", include_in_schema=False)
+def answer(
+    secret: str,
+    conn: Conn,
+    CallSid: Annotated[str, Query()],
+    CallFrom: Annotated[str, Query()],
+    RecordingUrl: Annotated[str | None, Query()] = None,
+) -> Response:
+    """
+    The day's question, spoken into a voicemail and kept as recorded.
+
+    Exotel hands over a URL rather than the audio, and says a recording
+    takes 5 to 20 minutes to become available, so there is nothing to
+    fetch while this request is open. It returns at once and the
+    recording is collected afterwards; nothing is stored until the audio
+    is in hand, because an answer the clinician cannot play is worse than
+    no answer.
+
+    200 therefore means "we will keep this", not "kept". The caller is
+    told their answer was taken, which is true: the call is over and the
+    recording is the provider's to deliver.
+    """
+    _check(secret)
+    if not RecordingUrl or not recordings.host_allowed(RecordingUrl):
+        # Either voicemail was not reached, or the URL is not somewhere a
+        # recording may be fetched from. Neither is the caller's problem
+        # to hear about, and neither stores anything.
+        return Response(status_code=302, headers={"Location": "/"})
+    recordings.store_when_ready(
+        VoiceStep.model_validate(
+            {
+                "call_id": CallSid,
+                "step": 1,
+                "from": CallFrom,
+                "kind": "answer",
+                "provider_ref": "answer",
+            }
+        ),
+        RecordingUrl,
+    )
+    return Response(status_code=200)

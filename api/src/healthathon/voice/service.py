@@ -31,9 +31,7 @@ from healthathon.voice.models import VoiceProblem, VoiceReply, VoiceStep
 # recordings, not text: nothing here is spoken by a machine.
 MENU = "voice.menu"
 ASK_WHICH_MEDICINE = "voice.which_medicine"
-ASK_TAKEN = "voice.taken_or_not"
 ASK_READING = "voice.reading"
-ASK_WHEN = "voice.reading_when"
 ASK_ANSWER = "voice.todays_question"
 DONE = "voice.done"
 NOT_RECOGNISED = "voice.not_recognised"
