@@ -270,5 +270,8 @@ def _item(row: dict[str, Any]) -> RegimenItem:
 
 def _document(r: dict[str, Any]) -> DocumentRef:
     return DocumentRef(
-        id=r["document_id"], document_date=r["document_date"], issuing_source=r["issuing_source"]
+        id=r["document_id"],
+        document_date=r["document_date"],
+        issuing_source=r["issuing_source"],
+        sent_from=r["sent_from"] or "desk_scan",
     )

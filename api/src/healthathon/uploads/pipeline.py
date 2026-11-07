@@ -167,13 +167,14 @@ def run(
     *,
     capture_id: str,
     patient_id: UUID,
-    uploaded_by: UUID,
+    uploaded_by: UUID | None,
     doc_type: DocType,
     captured_at: datetime,
     data: bytes,
     detector: TextDetector,
     agent: DocumentAgent,
     settings: Settings,
+    channel: str = "desk_scan",
 ) -> Outcome:
     """
     Read one page into the record, both phases on one connection.
@@ -196,6 +197,7 @@ def run(
         detector=detector,
         agent=agent,
         settings=settings,
+        channel=channel,
     )
 
 
@@ -205,12 +207,13 @@ def write_reading(
     *,
     capture_id: str,
     patient_id: UUID,
-    uploaded_by: UUID,
+    uploaded_by: UUID | None,
     doc_type: DocType,
     captured_at: datetime,
     detector: TextDetector,
     agent: DocumentAgent,
     settings: Settings,
+    channel: str = "desk_scan",
 ) -> Outcome:
     """
     The intake, the document, the run and everything the checks decided,
@@ -220,7 +223,7 @@ def write_reading(
     reading = agreed.reading
     boxes, crops = read.boxes, read.crops
 
-    intake_id = open_intake(conn, capture_id, patient_id, captured_at, uploaded_by)
+    intake_id = open_intake(conn, capture_id, patient_id, captured_at, uploaded_by, channel)
     page: StoredPage = store_page(
         conn,
         intake_id=intake_id,

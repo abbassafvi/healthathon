@@ -1,4 +1,4 @@
-import type { ChecklistItem, GlucoseContext, Meal, PatientApi, PatientRef, Question, Reading, Today } from './types'
+import type { ChecklistItem, GlucoseContext, Meal, PatientApi, PatientDoc, PatientRef, Question, Reading, Today, UploadStatus } from './types'
 
 /*
  * In-memory stand-in for the patient endpoints, with the four fictional
@@ -67,6 +67,9 @@ export function createMockApi(clock: () => Date = () => new Date()): PatientApi 
   let seen = new Set<string>()
   // Recording key -> the recording on this phone.
   let recordings = new Map<string, string>()
+  // Pages on the record, newest first, and the upload each capture made.
+  let docs: PatientDoc[] = []
+  let uploads = new Map<string, UploadStatus>()
   let n = 0
 
   const day = (pid: string): DayState => {
@@ -94,6 +97,8 @@ export function createMockApi(clock: () => Date = () => new Date()): PatientApi 
       surveys = new Set()
       seen = new Set()
       recordings = new Map()
+      docs = []
+      uploads = new Map()
       n = 0
     },
     // The fictional patients' numbers, as the dev seed gives them; the code is always 123456.
@@ -196,6 +201,46 @@ export function createMockApi(clock: () => Date = () => new Date()): PatientApi 
           meals: [...s.meals],
         }))
       return { days: past, next_before: null }
+    },
+
+    /*
+     * A page sent from the phone. The mock reads it at once, where the
+     * real pipeline takes seconds, and settles nothing: every reading
+     * comes back unchecked, which is what a clinician has not seen yet.
+     */
+    async sendDocument(pid, d, captureId) {
+      patient(pid)
+      const existing = uploads.get(captureId)
+      if (existing) return { ...existing, stage: 'duplicate' }
+      const id = `doc-${docs.length + 1}`
+      docs.unshift({
+        id,
+        doc_type: d.docType,
+        document_date: null,
+        received_at: d.takenAt.toISOString(),
+        sent_from: 'patient_app',
+        page_uri: d.uri,
+        lines: d.docType === 'prescription'
+          ? [{ drug_text: 'Tab. Metformin', dose_text: '500 mg', schedule_text: '1-0-1', checked: false }]
+          : [],
+        values: d.docType === 'lab_report'
+          ? [{ analyte_name: 'HbA1c', value_text: null, unit_text: null, checked: false }]
+          : [],
+        advice: [],
+      })
+      const status: UploadStatus = { id, stage: 'done', document_id: id, failure: null }
+      uploads.set(captureId, status)
+      return status
+    },
+    async uploadStatus(pid, uploadId) {
+      patient(pid)
+      const found = [...uploads.values()].find((u) => u.id === uploadId)
+      if (!found) throw new Error('No such upload')
+      return found
+    },
+    async documents(pid) {
+      patient(pid)
+      return docs.map((d) => ({ ...d }))
     },
   }
 }

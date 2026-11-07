@@ -83,6 +83,9 @@ function DocumentValues({ doc, patientId, selected, hint }: { doc: RecordDocumen
           {doc.document_date ? formatDate(doc.document_date) : en.queue.noDate}
         </span>
         {doc.issuing_source && <span className="text-sm text-ink-3">{doc.issuing_source}</span>}
+        {en.sentFrom[doc.sent_from] && (
+          <span className="text-sm text-ink-3" data-testid={`sent-from-${doc.id}`}>{en.sentFrom[doc.sent_from]}</span>
+        )}
         <Link to={`/patients/${patientId}/documents/${doc.id}/reading`} className="ml-auto text-sm font-normal text-accent underline-offset-4 hover:underline">
           {en.reading.open}
         </Link>

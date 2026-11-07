@@ -136,6 +136,7 @@ def _document(row: dict[str, Any]) -> dict[str, Any]:
         "doc_type": row["doc_type"],
         "document_date": row["document_date"],
         "issuing_source": row["issuing_source"],
+        "sent_from": row["sent_from"],
     }
 
 

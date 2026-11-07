@@ -152,6 +152,36 @@ only answer with nothing, which is what it did on the first real
 photograph. A laboratory report is never merged, because a value
 pointing at a whole row points at the wrong number.
 
+### A page sent from the patient's phone
+
+The same pipeline, a second door. `POST /api/app/patients/{id}/documents`
+takes the photograph as a raw body with `capture_id` and `doc_type`,
+returns at once, and the phone polls
+`GET /api/app/patients/{id}/uploads/{upload_id}`. The intake is opened on
+the `patient_app` channel with `uploaded_by` NULL, because no clinic user
+touched the page and the audit must not say one did. Both values were
+already in the schema; nothing under `db/` changed for this.
+
+The reading therefore lands on the same record. A prescription a patient
+sends appears in that patient's checklist awaiting review, a lab report's
+values go to the confirm queue, and `GET /api/patients/{id}/checklist`,
+`/record` and `/documents/{id}/reading` now all carry `sent_from`, so a
+clinician settling a line knows whether the page was photographed at the
+desk or sent in.
+
+What the patient sees back is `GET /api/app/patients/{id}/documents`: the
+page and the readings as written, each saying whether a clinician has
+settled it. A laboratory number is absent until it is settled, because
+`proj.renderable_value` is the only view a value may be read from and it
+admits nothing in `needs_confirm`. Medicines and advice are not behind
+that view, so those are shown with an explicit "not checked yet" marker
+rather than hidden.
+
+Tests: `api/tests/test_patient_documents.py`, the patient app's
+`DocumentsScreen.test.tsx`, and one end-to-end case in
+`apps/patient/e2e/patient.spec.ts` that photographs a page on the phone
+and then reads the clinician's checklist to find it.
+
 ### A prescription line is settled the same way
 
 A line is written with its box, then checked. Four of the five apply: a

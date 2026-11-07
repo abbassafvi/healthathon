@@ -13,6 +13,9 @@ class DocumentRef(BaseModel):
     id: UUID
     document_date: date | None
     issuing_source: str | None
+    # 'desk_scan' or 'patient_app'. A clinician settling a prescription
+    # should know whether the page was photographed at the desk or sent in.
+    sent_from: str = "desk_scan"
 
 
 class PageRef(BaseModel):

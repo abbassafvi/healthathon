@@ -59,6 +59,46 @@ export type PastDay = {
 /* Newest first. next_before asks for the days before these; null at the first entry. */
 export type PastDays = { days: PastDay[]; next_before: string | null }
 
+export type DocType = 'prescription' | 'lab_report'
+
+/*
+ * A reading taken off one of the patient's own pages. `checked` is false
+ * until a clinician settles it, and the app says so beside the reading:
+ * something nobody has checked is not a fact about a medicine.
+ */
+export type DocLine = { drug_text: string; dose_text: string; schedule_text: string | null; checked: boolean }
+
+/*
+ * A laboratory value off the page. value_text is null until a clinician
+ * settles it: an unsettled number is not shown to anyone, here or in the
+ * clinic, which is a property of the database rather than of this screen.
+ */
+export type DocValue = { analyte_name: string; value_text: string | null; unit_text: string | null; checked: boolean }
+
+export type DocAdvice = { text: string; checked: boolean }
+
+/* A page on the patient's record, and what was read off it. */
+export type PatientDoc = {
+  id: string
+  doc_type: DocType
+  document_date: string | null
+  received_at: string
+  /* 'patient_app' when the patient sent it, 'desk_scan' when the clinic did. */
+  sent_from: string
+  page_uri: string | null
+  lines: DocLine[]
+  values: DocValue[]
+  advice: DocAdvice[]
+}
+
+/* Where a page the patient sent has got to. The phone polls this. */
+export type UploadStatus = {
+  id: string
+  stage: 'uploading' | 'reading' | 'done' | 'duplicate' | 'failed'
+  document_id: string | null
+  failure: string | null
+}
+
 /* A phone signed in: the token its requests carry, and whose phone it is. */
 export type SignedIn = { token: string; patient: PatientRef }
 
@@ -77,4 +117,8 @@ export type PatientApi = {
   surveyQuestions(patientId: string): Promise<SurveyQuestion[]>
   submitSurvey(patientId: string, answers: Record<string, string>, captureId: string, recordings?: Record<string, string>): Promise<void>
   pastDays(patientId: string, before?: string): Promise<PastDays>
+  /* Send a photographed prescription or report. Reading it takes seconds, so poll the upload. */
+  sendDocument(patientId: string, d: { uri: string; docType: DocType; takenAt: Date }, captureId: string): Promise<UploadStatus>
+  uploadStatus(patientId: string, uploadId: string): Promise<UploadStatus>
+  documents(patientId: string): Promise<PatientDoc[]>
 }

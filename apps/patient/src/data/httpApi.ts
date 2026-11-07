@@ -1,6 +1,6 @@
 import type { Lang } from '../theme'
 import { readPhoto } from './readPhoto'
-import type { Meal, PastDays, PatientApi, Reading, Recording, SignedIn, SurveyQuestion, Today } from './types'
+import type { Meal, PastDays, PatientApi, PatientDoc, Reading, Recording, SignedIn, SurveyQuestion, Today, UploadStatus } from './types'
 
 /* A request the API refused or could not answer. `status` is 0 when the network failed. */
 export class ApiError extends Error {
@@ -103,6 +103,25 @@ export function createHttpApi({ baseUrl, language, token = () => null, fetch: f 
         body: photo.body,
       })
       return { ...meal, uri: abs(meal.uri) }
+    },
+    async sendDocument(patientId, d, captureId) {
+      let photo: { body: BodyInit; type: string }
+      try {
+        photo = await read(d.uri)
+      } catch {
+        throw new ApiError(0, 'The photo could not be read')
+      }
+      const q = new URLSearchParams({ capture_id: captureId, doc_type: d.docType, captured_at: d.takenAt.toISOString() })
+      return call<UploadStatus>(`${p(patientId)}/documents?${q}`, {
+        method: 'POST',
+        headers: { 'Content-Type': photo.type || 'image/jpeg' },
+        body: photo.body,
+      })
+    },
+    uploadStatus: (patientId, uploadId) => call<UploadStatus>(`${p(patientId)}/uploads/${uploadId}`),
+    async documents(patientId) {
+      const docs = await call<PatientDoc[]>(`${p(patientId)}/documents`)
+      return docs.map((d) => ({ ...d, page_uri: d.page_uri ? abs(d.page_uri) : null }))
     },
     surveyQuestions: (patientId) => call<SurveyQuestion[]>(`${p(patientId)}/survey`),
     submitSurvey: (patientId, answers, captureId, recordings = {}) =>

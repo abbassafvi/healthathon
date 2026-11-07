@@ -9,9 +9,11 @@ def document(conn: Connection[DictRow], document_id: UUID) -> dict[str, Any] | N
     return conn.execute(
         """
         SELECT d.id, d.doc_type::text AS doc_type, d.document_date, d.issuing_source,
-               d.created_at, d.page_count,
+               d.created_at, d.page_count, i.channel::text AS sent_from,
                p.id AS patient_id, p.registration_no, p.full_name
-        FROM core.document d JOIN core.patient p ON p.id = d.patient_id
+        FROM core.document d
+        JOIN core.patient p ON p.id = d.patient_id
+        JOIN core.intake i ON i.id = d.intake_id
         WHERE d.id = %s
         """,
         (document_id,),

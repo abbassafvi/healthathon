@@ -56,6 +56,7 @@ export function ReadingPage() {
         <span className="numerals">, {doc.document_date ? formatDate(doc.document_date) : en.queue.noDate}</span>
         {doc.issuing_source && <span>, {doc.issuing_source}</span>}
         <span className="numerals">. {fmt(en.reading.received, { when: formatDateTime(doc.received_at) })}</span>
+        {en.sentFrom[doc.sent_from] && <span data-testid="sent-from">. {en.sentFrom[doc.sent_from]}</span>}
       </p>
 
       <Summary r={r} patientId={patientId} />
