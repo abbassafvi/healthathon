@@ -616,6 +616,13 @@ export const en = {
     desk_scan: 'Scanned at the desk',
     patient_app: 'Sent by the patient',
   } as Record<string, string>,
+  dictation: {
+    start: 'Dictate {field}',
+    stop: 'Stop dictating',
+    listening: 'Listening',
+    denied: 'The browser was not allowed to use the microphone. Allow it in the browser, or type instead.',
+    failed: 'Dictation stopped. Type instead, or try again.',
+  },
   docTypes: {
     lab_report: 'Lab report',
     prescription: 'Prescription',

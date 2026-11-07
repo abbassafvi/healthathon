@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 
 import { api, type PatientListItem } from '../api/client'
+import { DictateButton } from '../app/DictateButton'
 import { LoadError } from '../app/LoadError'
 import { BUTTON, PAGE } from '../app/page'
 import { useTitle } from '../app/useTitle'
@@ -54,7 +55,8 @@ export function PatientsPage() {
         {query.status === 'success' && all.length > 0 && (
           <div className="flex w-full flex-col gap-1.5 sm:w-80">
             <label htmlFor="find-patient" className="label">{en.patients.find}</label>
-            <div className="relative">
+            <div className="flex flex-wrap items-center gap-2">
+            <div className="relative min-w-0 flex-1">
               <input
                 id="find-patient"
                 ref={find}
@@ -67,6 +69,8 @@ export function PatientsPage() {
                 className="h-9 w-full rounded-lg border border-line-strong bg-surface pr-9 pl-3 text-sm placeholder:text-ink-3"
               />
               {!q && <kbd aria-hidden title={en.patients.findKey} className="kbd pointer-events-none absolute top-1/2 right-2 -translate-y-1/2">/</kbd>}
+            </div>
+            <DictateButton field={en.patients.find} value={q} onChange={setQ} />
             </div>
           </div>
         )}
