@@ -7,7 +7,7 @@ clinician's side as soon as it is read.
 
 What comes back here is the page and the readings, as written. Nothing
 is added up, compared or judged: no range, no target, no trend, no
-colour. Each reading says whether a clinician has settled it, because a
+colour. Each reading says whether a clinician has checked it, because a
 reading nobody has checked is not a fact about a medicine, and the app
 says so beside it rather than quietly presenting it as one.
 
@@ -38,30 +38,40 @@ def _page_uri(patient_id: UUID, document_id: UUID, pages: list[dict[str, Any]]) 
     return f"/api/app/patients/{patient_id}/documents/{document_id}/page"
 
 
+# The phone tells the patient "Your doctor has checked this". Only a
+# person's confirmation earns that: a reading the checks accepted with
+# nobody looking is in the record, but no doctor has checked it.
+
+
 def _lines(conn: Connection[DictRow], document_id: UUID) -> list[AppDocumentLine]:
     return [
         AppDocumentLine(
             drug_text=str(r["drug_text"]),
             dose_text=str(r["dose_text"]),
             schedule_text=r["schedule_text"],
-            checked=r["confirmed_at"] is not None or r["accepted_at"] is not None,
+            checked=r["confirmed_at"] is not None,
         )
         for r in reading_repo.lines(conn, document_id)
     ]
 
 
 def _values(conn: Connection[DictRow], document_id: UUID) -> list[AppDocumentValue]:
-    rows = reading_repo.read_values(conn, document_id)
-    shown = reading_repo.renderable(conn, [r["id"] for r in rows])
+    """
+    A reading a clinician discarded is not a value, so it is left out. One
+    a clinician corrected is shown as corrected: the correction is a new
+    row, reached through superseded_by, as the clinician's own page does.
+    """
+    rows = [r for r in reading_repo.read_values(conn, document_id) if r["state"] != "discarded"]
+    shown = reading_repo.renderable(conn, [r["superseded_by"] or r["id"] for r in rows])
     out: list[AppDocumentValue] = []
     for r in rows:
-        text = shown.get(r["id"])
+        text = shown.get(r["superseded_by"] or r["id"])
         out.append(
             AppDocumentValue(
                 analyte_name=str(r["analyte_name"]),
                 value_text=str(text["value_text"]) if text else None,
                 unit_text=text["unit_text"] if text else None,
-                checked=text is not None,
+                checked=text is not None and text["state"] == "confirmed",
             )
         )
     return out
@@ -77,7 +87,7 @@ def _advice(conn: Connection[DictRow], document_id: UUID) -> list[AppDocumentAdv
     return [
         AppDocumentAdvice(
             text=str(r["advice_text"]),
-            checked=r["confirmed_at"] is not None or r["accepted_at"] is not None,
+            checked=r["confirmed_at"] is not None,
         )
         for r in rows
     ]
