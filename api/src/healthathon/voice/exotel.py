@@ -166,6 +166,42 @@ def reading(
     return _reply(conn, step)
 
 
+@router.get("/{secret}/keyed-answer", include_in_schema=False)
+def keyed_answer(
+    secret: str,
+    conn: Conn,
+    CallSid: Annotated[str, Query()],
+    CallFrom: Annotated[str, Query()],
+    digits: Annotated[str | None, Query()] = None,
+) -> Response:
+    """
+    The day's question, answered on the keypad instead of spoken.
+
+    This provider's account has no voicemail applet, so there is no way
+    to record a caller. The question is a yes or no, so one key carries
+    it. The answer is stored as the word in the patient's own language,
+    the same as a typed one, and a clinician reads the two side by side
+    without being told which arrived how.
+
+    A press that is neither key is asked again, never read as a no: not
+    answering and answering no are different reports.
+    """
+    _check(secret)
+    step = _step(
+        {
+            "call_id": CallSid,
+            "step": 1,
+            "from": CallFrom,
+            "kind": "keyed_answer",
+            "digits": _digits(digits),
+            "provider_ref": f"keyed-answer-{_digits(digits)}",
+        }
+    )
+    if step is None:
+        return Response(status_code=302, headers={"Location": "/"})
+    return _reply(conn, step)
+
+
 @router.get("/{secret}/answer", include_in_schema=False)
 def answer(
     secret: str,
