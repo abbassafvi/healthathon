@@ -60,24 +60,13 @@ class Settings(BaseSettings):
     # The ExoPhone calls come from, and the flow that answers them.
     exotel_from: str | None = None
     exotel_flow_id: str | None = None
-    # Patient sign-in by a code sent by SMS. With all three Twilio values set,
-    # codes go through Twilio Verify; with the Exotel values below, through
-    # Exotel. Without either, sign-in is in test mode: the
-    # code is shown on the sign-in screen and written to the log, which is for
+    # Patient sign-in by a code sent by SMS. With all three values set, codes
+    # go through Twilio Verify. Without them sign-in is in test mode: the code
+    # is shown on the sign-in screen and written to the log, which is for
     # development and the demonstration only. Set them outside git, never in it.
     twilio_account_sid: str | None = None
     twilio_auth_token: str | None = None
     twilio_verify_sid: str | None = None
-    # Or Exotel, on the account settings above: the API makes the code, keeps
-    # its hash and sends it as an SMS. India requires every business SMS to
-    # come from a DLT-registered sender and match a DLT-registered template,
-    # so these three are needed too before a code is sent this way.
-    exotel_sms_from: str | None = None
-    exotel_dlt_entity_id: str | None = None
-    exotel_dlt_template_id: str | None = None
-    # The registered template's wording, with {code} where the code goes. It
-    # must match the template exactly, or the operator drops the message.
-    exotel_otp_template: str = "{code} is your cliniConnect sign-in code. It expires in 10 minutes."
     # Test mode only: a fixed code instead of a random one, for automated tests.
     otp_test_code: str | None = None
     # Signs the patient app's session tokens. Set a long random value outside development.
