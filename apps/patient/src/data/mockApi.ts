@@ -238,6 +238,9 @@ export function createMockApi(clock: () => Date = () => new Date()): PatientApi 
       if (!found) throw new Error('No such upload')
       return found
     },
+    async pageImage(pageUri) {
+      return pageUri
+    },
     async documents(pid) {
       patient(pid)
       return docs.map((d) => ({ ...d }))

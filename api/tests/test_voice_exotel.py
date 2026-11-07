@@ -169,3 +169,28 @@ def test_a_medicine_the_patient_is_not_on_takes_the_other_branch(
     client: Any, pid: str, agreed: None
 ) -> None:
     assert hit(client, "/tick/yes", digits='"99"').status_code == 302
+
+
+def test_a_medicine_number_out_of_range_takes_the_other_branch(
+    client: Any, pid: str, agreed: None
+) -> None:
+    """It was a 500: the model refused 0 and 100 inside the handler."""
+    assert hit(client, "/tick/yes", digits='"0"').status_code == 302
+    assert hit(client, "/tick/no", digits='"100"').status_code == 302
+
+
+def test_a_reading_too_long_to_be_one_takes_the_other_branch(
+    client: Any, pid: str, agreed: None
+) -> None:
+    assert hit(client, "/reading/fasting", digits='"1234567890123"').status_code == 302
+    assert [e for e in _entries(client, pid) if e["channel"] == "voice_call"] == []
+
+
+def test_a_secret_with_non_ascii_text_is_not_found(client: Any, pid: str, agreed: None) -> None:
+    """compare_digest raises on non-ASCII str, which was a 500."""
+    res = client.get(
+        "/api/voice/exotel/\u0938\u0940\u0915\u094d\u0930\u0947\u091f/reading/fasting",
+        params={"CallSid": "exo-0001", "CallFrom": ASHA, "digits": '"142"'},
+        follow_redirects=False,
+    )
+    assert res.status_code == 404

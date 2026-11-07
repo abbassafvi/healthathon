@@ -64,7 +64,8 @@ def read_values(conn: Connection[DictRow], document_id: UUID) -> list[dict[str, 
 def renderable(conn: Connection[DictRow], value_ids: list[UUID]) -> dict[UUID, dict[str, Any]]:
     """Value text only through proj.renderable_value, the one view that may be shown."""
     rows = conn.execute(
-        "SELECT id, value_text, unit_text FROM proj.renderable_value WHERE id = ANY(%s)",
+        "SELECT id, value_text, unit_text, state::text AS state FROM proj.renderable_value"
+        " WHERE id = ANY(%s)",
         (value_ids,),
     ).fetchall()
     return {r["id"]: r for r in rows}

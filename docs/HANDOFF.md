@@ -171,7 +171,13 @@ desk or sent in.
 
 What the patient sees back is `GET /api/app/patients/{id}/documents`: the
 page and the readings as written, each saying whether a clinician has
-settled it. A laboratory number is absent until it is settled, because
+checked it. Checked means a person confirmed it: a reading the checks
+accepted with nobody looking is in the record but is not called checked,
+because the phone says "Your doctor has checked this". A value a
+clinician corrected shows the correction, and one a clinician discarded
+is not listed. The page itself is fetched with the phone's token and
+shown as data, because an image request carries no token on the web and
+the page route answers 401 without one. A laboratory number is absent until it is settled, because
 `proj.renderable_value` is the only view a value may be read from and it
 admits nothing in `needs_confirm`. Medicines and advice are not behind
 that view, so those are shown with an explicit "not checked yet" marker
@@ -181,6 +187,33 @@ Tests: `api/tests/test_patient_documents.py`, the patient app's
 `DocumentsScreen.test.tsx`, and one end-to-end case in
 `apps/patient/e2e/patient.spec.ts` that photographs a page on the phone
 and then reads the clinician's checklist to find it.
+
+Advice is its own table, `core.regimen_advice`, and `core.check_result`
+gained a third subject. A database made before this needs (checked
+against a fresh build of the schema):
+
+```sql
+CREATE TABLE core.regimen_advice (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    regimen_id uuid NOT NULL REFERENCES core.regimen(id) ON DELETE CASCADE,
+    advice_text text NOT NULL,
+    provenance_id uuid NOT NULL REFERENCES core.provenance(id),
+    confirmed_by uuid REFERENCES core.clinic_user(id),
+    confirmed_at timestamptz,
+    accepted_at timestamptz,
+    CONSTRAINT advice_confirmed_by_a_person CHECK ((confirmed_at IS NULL) = (confirmed_by IS NULL)));
+ALTER TABLE core.check_result
+    ADD COLUMN regimen_advice_id uuid,
+    DROP CONSTRAINT check_result_one_subject,
+    ADD CONSTRAINT check_result_one_subject CHECK ((extracted_value_id IS NOT NULL)::int
+        + (regimen_item_id IS NOT NULL)::int + (regimen_advice_id IS NOT NULL)::int = 1),
+    ADD UNIQUE (regimen_advice_id, check_code),
+    ADD CONSTRAINT check_result_regimen_advice_fk FOREIGN KEY (regimen_advice_id)
+        REFERENCES core.regimen_advice(id) ON DELETE CASCADE;
+```
+
+Without it the checklist, the patient's documents and every prescription
+read answer 500.
 
 ### A prescription line is settled the same way
 
@@ -541,9 +574,14 @@ shape, and all three are in its own documentation:
 - Exotel documents no custom HTTP headers, so the shared secret travels
   in the URL path. That is weaker than `X-Gateway-Key`, because a URL is
   logged by the provider and by anything in between. Rotate it, and
-  prefer the header route for any provider that supports one. A wrong
-  secret gets 404 rather than 401, so an unguessed URL does not confirm
-  it exists.
+  prefer the header route for any provider that supports one. Our own
+  access log replaces these paths before writing them (`access_log.py`),
+  so neither the secret nor a caller's number is kept here. A wrong
+  secret gets 404 rather than 401, so a guess learns nothing about the
+  secret. The route itself is not hidden: a request without `CallSid`
+  gets 422, and 503 while voice is not configured. Keys the flow cannot
+  store (medicine 0 or 100, a reading over twelve digits) take the 302
+  branch.
 - A Passthru response "cannot be customised" and carries only a binary
   decision: 200 one path through the flow, 302 the other. So this
   endpoint cannot tell Exotel what to say. The prompts, the menu and the

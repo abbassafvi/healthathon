@@ -123,4 +123,10 @@ export type PatientApi = {
   sendDocument(patientId: string, d: { uri: string; docType: DocType; takenAt: Date }, captureId: string): Promise<UploadStatus>
   uploadStatus(patientId: string, uploadId: string): Promise<UploadStatus>
   documents(patientId: string): Promise<PatientDoc[]>
+  /*
+   * A document's page as something an Image can show. The page route
+   * needs the phone's token, and an image request cannot carry one on
+   * the web, so the page is fetched here and handed over as data.
+   */
+  pageImage(pageUri: string): Promise<string>
 }

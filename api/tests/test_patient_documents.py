@@ -19,7 +19,7 @@ from healthathon.uploads.detector import Box
 from healthathon.uploads.factory import set_agent, set_detector
 from healthathon.uploads.jobs import registry
 from tests.fakes import FakeAgent, FakeDetector, page_image
-from tests.helpers import BANNED_KEYS, patient_id
+from tests.helpers import BANNED_KEYS, decide, patient_id
 
 BOXES = [
     Box(0.10, 0.08, 0.60, 0.03),
@@ -206,3 +206,77 @@ def test_an_empty_photograph_is_refused(client: Any, pid: str) -> None:
         headers={"Content-Type": "image/png"},
     )
     assert res.status_code == 422, res.text
+
+
+def _queued(db: psycopg.Connection[Any], document_id: str) -> str:
+    """The confirm queue item for the one value a document sent to a person."""
+    row = db.execute(
+        "SELECT q.id FROM core.confirm_queue_item q"
+        " JOIN core.extracted_value v ON v.id = q.extracted_value_id"
+        " WHERE v.document_id = %s",
+        (document_id,),
+    ).fetchone()
+    assert row is not None
+    return str(row["id"])
+
+
+def _one_value(client: Any, pid: str, document_id: str) -> list[dict[str, Any]]:
+    return list(client.get(f"/api/app/patients/{pid}/documents/{document_id}").json()["values"])
+
+
+def test_a_value_the_checks_accepted_is_not_called_checked_by_the_doctor(
+    client: Any, pid: str
+) -> None:
+    """
+    Every check passed and nobody looked. The value is in the record, so
+    the patient sees it, but "Your doctor has checked this" would be false.
+    """
+    reading = DocumentReading(values=[LabValue(0, "hba1c", "7.4", "%")])
+    body = send(client, pid, reading, doc_type="lab_report", capture="phone-cap-ok")
+    [value] = _one_value(client, pid, body["document_id"])
+    assert (value["value_text"], value["checked"]) == ("7.4", False)
+
+
+def test_a_value_a_clinician_confirmed_is_checked(
+    client: Any, db: psycopg.Connection[Any], pid: str
+) -> None:
+    reading = DocumentReading(values=[LabValue(0, "hba1c", "7.4", "%")], ungrounded=[0])
+    body = send(client, pid, reading, doc_type="lab_report", capture="phone-cap-c")
+    decide(client, _queued(db, body["document_id"]), action="confirm")
+    [value] = _one_value(client, pid, body["document_id"])
+    assert (value["value_text"], value["checked"]) == ("7.4", True)
+
+
+def test_a_value_a_clinician_corrected_shows_the_correction(
+    client: Any, db: psycopg.Connection[Any], pid: str
+) -> None:
+    """It used to say "Your doctor is checking this" for ever."""
+    reading = DocumentReading(values=[LabValue(0, "hba1c", "74", "%")], ungrounded=[0])
+    body = send(client, pid, reading, doc_type="lab_report", capture="phone-cap-x")
+    decide(
+        client, _queued(db, body["document_id"]), action="correct", value_text="7.4", unit_text="%"
+    )
+    [value] = _one_value(client, pid, body["document_id"])
+    assert (value["value_text"], value["unit_text"], value["checked"]) == ("7.4", "%", True)
+
+
+def test_a_reading_a_clinician_discarded_is_not_shown_as_waiting(
+    client: Any, db: psycopg.Connection[Any], pid: str
+) -> None:
+    reading = DocumentReading(values=[LabValue(0, "hba1c", "7.4", "%")], ungrounded=[0])
+    body = send(client, pid, reading, doc_type="lab_report", capture="phone-cap-d")
+    decide(client, _queued(db, body["document_id"]), action="discard")
+    assert _one_value(client, pid, body["document_id"]) == []
+
+
+def test_a_line_accepted_by_its_checks_alone_is_not_called_checked(
+    client: Any, db: psycopg.Connection[Any], pid: str
+) -> None:
+    body = send(client, pid, RX)
+    db.execute(
+        "UPDATE core.regimen_item SET accepted_at = now() WHERE regimen_id IN"
+        " (SELECT id FROM core.regimen WHERE source_document_id = %s)",
+        (body["document_id"],),
+    )
+    doc = client.get(f"/api/app/patients/{pid}/documents/{body['document_id']}").json()
+    assert [line["checked"] for line in doc["lines"]] == [False]

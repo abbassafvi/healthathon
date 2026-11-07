@@ -23,9 +23,10 @@ address it calls. Nothing is held between requests.
 """
 
 import hmac
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, HTTPException, Query, Response
+from pydantic import ValidationError
 
 from healthathon.auth import Conn
 from healthathon.config import get_settings
@@ -58,7 +59,8 @@ def _check(secret: str) -> None:
     expected = get_settings().voice_gateway_key
     if not expected:
         raise HTTPException(503, "Inbound voice is not configured")
-    if not hmac.compare_digest(secret, expected):
+    # Bytes, not str: compare_digest raises TypeError on non-ASCII text.
+    if not hmac.compare_digest(secret.encode(), expected.encode()):
         raise HTTPException(404, "Not found")
 
 
@@ -75,6 +77,19 @@ def _reply(conn: Conn, step: VoiceStep) -> Response:
     if out.accepted and (out.stored or out.duplicate):
         return Response(status_code=200)
     return Response(status_code=302, headers={"Location": "/"})
+
+
+def _step(fields: dict[str, Any]) -> VoiceStep | None:
+    """
+    The step, or None when what was keyed in is not something we store:
+    medicine 0 or 100, or a reading longer than twelve digits. The caller
+    then takes the other branch and hears that nothing was kept; raised
+    here, the validation error was a 500, which the flow does not handle.
+    """
+    try:
+        return VoiceStep.model_validate(fields)
+    except ValidationError:
+        return None
 
 
 @router.get("/{secret}/tick/{taken}", include_in_schema=False)
@@ -95,22 +110,22 @@ def tick(
     pressed = _digits(digits)
     if not pressed.isdigit():
         return Response(status_code=302, headers={"Location": "/"})
-    return _reply(
-        conn,
-        VoiceStep.model_validate(
-            {
-                "call_id": CallSid,
-                # One instruction per request, and the capture id below is
-                # what makes a redelivery store once, so the step is 1.
-                "step": 1,
-                "from": CallFrom,
-                "kind": "tick",
-                "digits": "1" if taken == "yes" else "2",
-                "item_number": int(pressed),
-                "provider_ref": f"tick-{taken}-{pressed}",
-            }
-        ),
+    step = _step(
+        {
+            "call_id": CallSid,
+            # One instruction per request, and the capture id below is
+            # what makes a redelivery store once, so the step is 1.
+            "step": 1,
+            "from": CallFrom,
+            "kind": "tick",
+            "digits": "1" if taken == "yes" else "2",
+            "item_number": int(pressed),
+            "provider_ref": f"tick-{taken}-{pressed}",
+        }
     )
+    if step is None:
+        return Response(status_code=302, headers={"Location": "/"})
+    return _reply(conn, step)
 
 
 @router.get("/{secret}/reading/{context}", include_in_schema=False)
@@ -130,20 +145,20 @@ def reading(
     pressed = _digits(digits)
     if not pressed.isdigit():
         return Response(status_code=302, headers={"Location": "/"})
-    return _reply(
-        conn,
-        VoiceStep.model_validate(
-            {
-                "call_id": CallSid,
-                "step": 1,
-                "from": CallFrom,
-                "kind": "reading",
-                "digits": pressed,
-                "context": context,
-                "provider_ref": f"reading-{context}-{pressed}",
-            }
-        ),
+    step = _step(
+        {
+            "call_id": CallSid,
+            "step": 1,
+            "from": CallFrom,
+            "kind": "reading",
+            "digits": pressed,
+            "context": context,
+            "provider_ref": f"reading-{context}-{pressed}",
+        }
     )
+    if step is None:
+        return Response(status_code=302, headers={"Location": "/"})
+    return _reply(conn, step)
 
 
 @router.get("/{secret}/answer", include_in_schema=False)
@@ -174,16 +189,16 @@ def answer(
         # recording may be fetched from. Neither is the caller's problem
         # to hear about, and neither stores anything.
         return Response(status_code=302, headers={"Location": "/"})
-    recordings.store_when_ready(
-        VoiceStep.model_validate(
-            {
-                "call_id": CallSid,
-                "step": 1,
-                "from": CallFrom,
-                "kind": "answer",
-                "provider_ref": "answer",
-            }
-        ),
-        RecordingUrl,
+    step = _step(
+        {
+            "call_id": CallSid,
+            "step": 1,
+            "from": CallFrom,
+            "kind": "answer",
+            "provider_ref": "answer",
+        }
     )
+    if step is None:
+        return Response(status_code=302, headers={"Location": "/"})
+    recordings.store_when_ready(step, RecordingUrl)
     return Response(status_code=200)

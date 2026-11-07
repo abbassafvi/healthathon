@@ -207,3 +207,18 @@ def test_a_caller_who_agreed_to_sms_but_not_voice_has_no_answer_stored(
     assert not db.execute(
         "SELECT 1 FROM pat.entry WHERE client_capture_id = 'voice-exo-ans-2:answer:1'"
     ).fetchall()
+
+
+def test_the_webhook_takes_the_other_branch_for_a_caller_id_it_cannot_store(
+    client: Any, pid: str, agreed: None, allowed_host: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A caller ID over 32 characters failed validation inside the handler: a 500."""
+    asked: list[str] = []
+    monkeypatch.setattr(recordings, "store_when_ready", lambda step, url: asked.append(url))
+    res = client.get(
+        f"/api/voice/exotel/{SECRET}/answer",
+        params={"CallSid": "exo-ans-7", "CallFrom": "+91" + "5" * 40, "RecordingUrl": URL},
+        follow_redirects=False,
+    )
+    assert res.status_code == 302
+    assert asked == []
