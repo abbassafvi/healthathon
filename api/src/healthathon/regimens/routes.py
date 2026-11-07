@@ -43,6 +43,13 @@ def post_activate(regimen_id: UUID, conn: Conn, user: User) -> Activated:
     return service.activate(conn, user, regimen_id)
 
 
+@router.get("/regimen-advice/{advice_id}/crop", response_class=FileResponse)
+def get_advice_crop(advice_id: UUID, conn: Conn, _user: User) -> FileResponse:
+    path = storage.resolve(service.advice_crop_path(conn, advice_id))
+    assert path is not None
+    return FileResponse(path, headers={"Cache-Control": "private, max-age=3600"})
+
+
 @router.get("/regimen-items/{item_id}/crop", response_class=FileResponse)
 def get_crop(item_id: UUID, conn: Conn, _user: User) -> FileResponse:
     path = storage.resolve(service.crop_path(conn, item_id))

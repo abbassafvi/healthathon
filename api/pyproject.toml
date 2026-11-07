@@ -60,7 +60,7 @@ mypy_path = "src"
 # "ocr" extra the import is missing entirely, with it the module is
 # untyped. One override covers both, where an inline ignore cannot.
 [[tool.mypy.overrides]]
-module = ["paddleocr.*"]
+module = ["paddleocr.*", "cv2.*", "numpy.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

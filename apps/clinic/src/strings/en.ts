@@ -154,6 +154,9 @@ export const en = {
     itemCrop: 'Where {drug} is written on the prescription',
     loadFailed: 'The checklist could not be loaded.',
     patientSees: 'This is the list the patient ticks in the app, exactly as printed.',
+    adviceTitle: 'Also on this prescription',
+    adviceNote: 'Written as given. None of this counts towards the compliance score, which comes from medicines alone.',
+    adviceCrop: 'Where this is written on the prescription',
   },
   smsCard: {
     title: 'SMS card',

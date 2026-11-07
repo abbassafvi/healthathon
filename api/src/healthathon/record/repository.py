@@ -37,7 +37,8 @@ def list_patients(conn: Connection[DictRow]) -> list[dict[str, Any]]:
                (SELECT count(*) FROM core.regimen pr
                  JOIN core.regimen_item ri ON ri.regimen_id = pr.id
                  WHERE pr.patient_id = p.id AND pr.activated_at IS NULL
-                   AND ri.confirmed_at IS NULL) AS waiting_lines,
+                   AND ri.confirmed_at IS NULL
+                   AND ri.accepted_at IS NULL) AS waiting_lines,
                (SELECT count(*) FROM core.document d WHERE d.patient_id = p.id) AS documents,
                (SELECT max(e.occurred_at) FROM pat.entry e
                  WHERE e.patient_id = p.id) AS last_entry_at,

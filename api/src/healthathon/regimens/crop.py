@@ -3,10 +3,7 @@ from typing import Any
 from PIL import Image
 
 from healthathon import storage
-
-# Context around the line, as a share of the page, so the reviewer sees the
-# line in its place and not a lone word.
-_PAD_X, _PAD_Y = 0.03, 0.012
+from healthathon.uploads.detector import Box
 
 
 def crop_key(item_id: Any) -> str:
@@ -27,14 +24,15 @@ def ensure_crop(item: dict[str, Any]) -> str | None:
         return None
     with Image.open(page) as img:
         w, h = img.size
-        x, y = float(item["bbox_x"]), float(item["bbox_y"])
-        bw, bh = float(item["bbox_w"]), float(item["bbox_h"])
-        region = (
-            int(max(0.0, x - _PAD_X) * w),
-            int(max(0.0, y - _PAD_Y) * h),
-            int(min(1.0, x + bw + _PAD_X) * w),
-            int(min(1.0, y + bh + _PAD_Y) * h),
+        # The pipeline's padding, not a second one. The crop hash stored
+        # on the line is documented as the crop a human was shown, and
+        # a different padding here made that untrue.
+        box = Box(
+            float(item["bbox_x"]),
+            float(item["bbox_y"]),
+            float(item["bbox_w"]),
+            float(item["bbox_h"]),
         )
-        out = img.crop(region)
+        out = img.crop(box.padded(w, h))
         storage.save_image(key, out)
     return key

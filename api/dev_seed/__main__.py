@@ -50,6 +50,12 @@ ANALYTES = [
     ("ldl", "LDL cholesterol", "mg/dL", 0),
     ("tg", "Triglycerides", "mg/dL", 0),
     ("uacr", "Urine albumin/creatinine ratio", "mg/g", 1),
+    # Written on a consultation card beside the prescribing. Blood
+    # pressure is one reading of two numbers, so it is kept as the one
+    # string the clinician wrote ("108/74") rather than split into two
+    # values that were never written separately.
+    ("weight", "Weight", "kg", 1),
+    ("bp", "Blood pressure", "mmHg", 0),
 ]
 
 # (registration_no, name, year_of_birth, sex, language)

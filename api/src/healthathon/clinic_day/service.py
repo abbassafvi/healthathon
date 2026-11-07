@@ -48,7 +48,9 @@ def _visit(conn: Connection[DictRow], v: dict[str, Any], day: date) -> DayVisit:
     entries = entries_repo.entries_between(conn, pid, first, day, start, end)
     kinds = Counter(e["kind"] for e in entries)
     checklist = regimens.checklist(conn, pid)
-    waiting = [r for r in checklist.awaiting_review if r.confirmed_count < r.item_count]
+    # Settled, not confirmed: a line every check passed needs nobody,
+    # and counting it as waiting put today's list one ahead of itself.
+    waiting = [r for r in checklist.awaiting_review if r.settled_count < r.item_count]
     return DayVisit(
         visit_id=v["id"],
         scheduled_for=clinic_time.local(v["scheduled_for"]),
@@ -68,7 +70,7 @@ def _visit(conn: Connection[DictRow], v: dict[str, Any], day: date) -> DayVisit:
         ),
         waiting=Waiting(
             values=repo.open_queue_items(conn, pid),
-            prescription_lines=sum(r.item_count - r.confirmed_count for r in waiting),
+            prescription_lines=sum(r.item_count - r.settled_count for r in waiting),
             review_regimen_id=waiting[0].regimen_id if waiting else None,
         ),
         checklist=ChecklistState(

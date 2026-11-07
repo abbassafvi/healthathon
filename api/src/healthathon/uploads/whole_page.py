@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from healthathon.uploads.agent import (
+    Advice,
     Crop,
     DocType,
     DocumentReading,
@@ -102,11 +103,18 @@ def snap(raw: Any, regions: list[Box]) -> Snapped | None:
 # medicine.
 #
 # Names this alike with the same dose are taken as one medicine wherever
-# they sit. Names only loosely alike have to be neighbours as well,
-# which is what lets a misread spelling fold without letting two real
-# drugs that happen to share a dose fold with them.
-SAME_MEDICINE_NAME = 0.5
-SURELY_SAME_NAME = 0.85
+# they sit. Names only loosely alike have to be neighbours as well.
+# Two different drugs can be alike to a string comparison: telmisartan
+# and olmesartan share three quarters of their letters and often share
+# a dose. What separates them from a misread spelling is where the
+# names part. Handwriting is misread at the tail, so a misreading keeps
+# the opening letters; two sartans differ from the first letter on.
+# A name only loosely alike therefore has to open with the same letters
+# and sit on a neighbouring line. A schedule that differs keeps any two
+# lines apart: one drug prescribed morning and night is two lines.
+SURELY_SAME_NAME = 0.9
+SAME_MEDICINE_NAME = 0.6
+SAME_MEDICINE_STEM = 4
 SAME_MEDICINE_GAP = 0.06
 
 _FORMS = ("tab.", "tab", "cap.", "cap", "tub.", "tub", "inj.", "inj", "syp.", "syp")
@@ -127,16 +135,33 @@ def _bare_dose(dose: str) -> str:
     return "".join(c for c in dose if c.isalnum() or c == "/")
 
 
+def _shared_stem(a: str, b: str) -> int:
+    """How many letters the two names open with in common."""
+    shared = 0
+    for here, there in zip(a, b, strict=False):
+        if here != there:
+            break
+        shared += 1
+    return shared
+
+
 def _same_medicine(a: RegimenLine, b: RegimenLine, regions: list[Box], at: list[int]) -> bool:
     if _bare_dose(a.dose_text) != _bare_dose(b.dose_text):
         return False
-    alike = SequenceMatcher(None, _bare_name(a.drug_text), _bare_name(b.drug_text)).ratio()
+    # Morning and night is two lines of one drug, not one line read
+    # twice. Only an unwritten schedule on one side is treated as the
+    # same instruction written once.
+    here_when, there_when = (a.schedule_text or "").casefold(), (b.schedule_text or "").casefold()
+    if here_when and there_when and here_when != there_when:
+        return False
+    here_name, there_name = _bare_name(a.drug_text), _bare_name(b.drug_text)
+    alike = SequenceMatcher(None, here_name, there_name).ratio()
     if alike >= SURELY_SAME_NAME:
-        # The same drug at the same dose is one medicine, wherever the
+        # The same drug at the same dose is one medicine wherever the
         # two readings landed. Rybelsus came back twice, on lines a
         # hair too far apart for a distance rule to join them.
         return True
-    if alike < SAME_MEDICINE_NAME:
+    if alike < SAME_MEDICINE_NAME or _shared_stem(here_name, there_name) < SAME_MEDICINE_STEM:
         return False
     here, there = regions[at.index(a.box_index)], regions[at.index(b.box_index)]
     return abs(here.y - there.y) <= SAME_MEDICINE_GAP
@@ -150,24 +175,31 @@ def fold_near_duplicates(
     clinician: the readings disagreed about its name, which is exactly
     what a person should settle against the crop.
 
-    A reading joins a group if it matches any member, not just the
-    first. Three spellings down three lines chain from neighbour to
-    neighbour, and comparing only against the first left the furthest
-    one stranded.
+    Every pair is compared, and two groups merge when one reading
+    matches both. Walking the list once and comparing each reading
+    against the groups built so far left the middle spelling stranded:
+    "Cilashort" matches "Cilacarst", which had not been read yet.
     """
-    groups: list[list[RegimenLine]] = []
-    for line in lines:
-        joined = next(
-            (g for g in groups if any(_same_medicine(m, line, regions, at) for m in g)), None
-        )
-        if joined is None:
-            groups.append([line])
-        else:
-            joined.append(line)
+    parent = list(range(len(lines)))
+
+    def root(i: int) -> int:
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    for i in range(len(lines)):
+        for j in range(i + 1, len(lines)):
+            if root(i) != root(j) and _same_medicine(lines[i], lines[j], regions, at):
+                parent[root(j)] = root(i)
+
+    groups: dict[int, list[RegimenLine]] = {}
+    for i, line in enumerate(lines):
+        groups.setdefault(root(i), []).append(line)
 
     kept: list[RegimenLine] = []
     argued: set[int] = set()
-    for group in groups:
+    for group in groups.values():
         first = group[0]
         if len(group) > 1:
             argued.add(first.box_index)
@@ -207,7 +239,7 @@ class WholePageAgent:
         unsure: set[int] = set()
 
         lines: list[RegimenLine] = []
-        seen: set[tuple[str, str]] = set()
+        seen: set[tuple[str, str, str]] = set()
         for item in payload.get("medicines") or []:
             where = snap(item.get("box"), regions)
             drug, dose = _text(item.get("drug")), _text(item.get("dose"))
@@ -221,8 +253,13 @@ class WholePageAgent:
                 dose = ""
             # One medicine read twice is one medicine. A page listing
             # three drugs came back with the first written down again
-            # against the second one's line.
-            key = (drug.casefold(), dose.casefold())
+            # against the second one's line. The schedule is part of
+            # the identity: morning and night is two lines of one drug.
+            key = (
+                drug.casefold(),
+                dose.casefold(),
+                (item.get("schedule") or "").strip().casefold(),
+            )
             if key in seen:
                 continue
             seen.add(key)
@@ -265,10 +302,23 @@ class WholePageAgent:
                 continue
             orders.append(RequestedTest(box_index=at[where.index], analyte_code=code))
 
+        advice: list[Advice] = []
+        said: set[str] = set()
+        for item in payload.get("advice") or []:
+            where = snap(item.get("box"), regions)
+            text = _text(item.get("text"))
+            if where is None or text is None or text.casefold() in said:
+                continue
+            said.add(text.casefold())
+            if not where.sure:
+                unsure.add(at[where.index])
+            advice.append(Advice(box_index=at[where.index], text=text))
+
         return DocumentReading(
             values=values,
             lines=lines,
             orders=orders,
+            advice=advice,
             document_date=_parse_date(payload.get("document_date")),
             issuing_source=_text(payload.get("issuing_source")),
             # A reading whose region was not clear goes to a clinician:

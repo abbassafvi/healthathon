@@ -11,7 +11,7 @@ those rows, so a restart mid-read does not strand the screen.
 import threading
 from dataclasses import dataclass, field
 from typing import Literal
-from uuid import UUID, uuid4
+from uuid import UUID
 
 Stage = Literal["uploading", "reading", "done", "duplicate", "failed"]
 
@@ -49,7 +49,10 @@ class Registry:
             existing = self._by_capture.get(capture_id)
             if existing is not None:
                 return self._jobs[existing], False
-            job = Job(id=str(uuid4()), capture_id=capture_id, patient_id=patient_id)
+            # The capture id is the upload id. It is the only name for
+            # this read that survives the process, so a job this
+            # registry has forgotten can still be found in the database.
+            job = Job(id=capture_id, capture_id=capture_id, patient_id=patient_id)
             self._jobs[job.id] = job
             self._by_capture[capture_id] = job.id
             return job, True

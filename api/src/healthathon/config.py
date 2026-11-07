@@ -99,11 +99,14 @@ class Settings(BaseSettings):
     agent_strategy: str = "whole_page"
     # Only for "crops".
     agent_max_crops_per_call: int = 18
-    # The whole page goes with every call as context, and the prompt
-    # forbids reading a value off it. At full size that is the same
-    # megabytes uploaded six times over for a picture nothing is read
-    # from, so it is sent no wider than this.
-    agent_context_page_px: int = 1024
+    # Under "whole_page" this image IS the page the model reads, so its
+    # width is the resolution the reading is made at. 1024 was chosen
+    # when the page was context the prompt forbade reading from, and a
+    # review pointed out it had stopped being that: a decimal point on a
+    # photographed card does not survive the shrink, while the legibility
+    # check still measures the full-size crop and passes it. 2048 keeps
+    # the upload bounded without throwing away the stroke detail.
+    agent_context_page_px: int = 2048
     # How many times the agent reads the page. The passes are compared,
     # and a reading that changes between them is not trusted: it goes to
     # a person. Three is the deterministic layer's "ask again". Set 1 to
@@ -136,6 +139,12 @@ class Settings(BaseSettings):
     # passed, 0 to 1. At or above this the reading joins the record;
     # below it a clinician reads that region themselves.
     #
+    # Let the checks settle a prescription line without a clinician.
+    # Off until there is a gold set: no check reads the drug name, the
+    # reader has been seen dropping a medicine, and the scope says a
+    # prescription a clinician confirmed is what reaches the patient.
+    # The checks still run, and still say which lines look doubtful.
+    auto_accept_lines: bool = False
     # 1.0 means every check that applied has to pass. That is the strict
     # default on purpose: the number is only as good as the gold set it
     # was tuned against, and there is no gold set yet. Lower it once

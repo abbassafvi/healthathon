@@ -26,6 +26,7 @@ from healthathon.uploads.factory import build_agent, build_detector
 from healthathon.uploads.jobs import Job, registry
 from healthathon.uploads.models import QueueReason, UploadOutcome, UploadStatus
 from healthathon.uploads.providers import ModelUnavailable
+from healthathon.uploads.recover import recover
 from healthathon.uploads.writer import existing_document
 
 router = APIRouter(prefix="/api/uploads", tags=["uploads"])
@@ -66,24 +67,39 @@ def _read_in_background(
     data: bytes,
 ) -> None:
     """
-    The read itself, off the request. Its own connection and its own
+    The read itself, off the request. Its own connections and its own
     transaction: the request that started it has already committed.
+
+    Three phases, and the long one holds no connection. Detection and
+    the model calls take seconds to minutes, and a pooled connection
+    held across them sat idle in a transaction against a pool of
+    sixteen, so a slow provider could starve every other request.
     """
     jobs = registry()
     jobs.update(upload_id, stage="reading")
     settings = get_settings()
+    detector = build_detector()
     try:
         with open_pool().connection() as conn:
-            outcome = pipeline.run(
+            agent = build_agent(conn, settings)
+        read = pipeline.read_page(
+            doc_type=doc_type,
+            data=data,
+            detector=detector,
+            agent=agent,
+            settings=settings,
+        )
+        with open_pool().connection() as conn:
+            outcome = pipeline.write_reading(
                 conn,
+                read,
                 capture_id=capture_id,
                 patient_id=patient_id,
                 uploaded_by=uploaded_by,
                 doc_type=doc_type,
                 captured_at=captured_at,
-                data=data,
-                detector=build_detector(),
-                agent=build_agent(conn, settings),
+                detector=detector,
+                agent=agent,
                 settings=settings,
             )
             record_event(
@@ -177,8 +193,13 @@ def _record_upload(
 
 
 @router.get("/{upload_id}", response_model=UploadStatus)
-def get_upload(upload_id: str, _user: User) -> UploadStatus:
-    job = registry().get(upload_id)
+def get_upload(conn: Conn, upload_id: str, _user: User) -> UploadStatus:
+    """
+    Where this upload got to. The registry answers while the process
+    that started the read is still running; after a restart, or from a
+    second worker, the database does.
+    """
+    job = registry().get(upload_id) or recover(conn, upload_id)
     if job is None:
         raise HTTPException(404, "No such upload")
     return _status(job)
