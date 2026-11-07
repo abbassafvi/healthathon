@@ -17,7 +17,8 @@ function itemOwner(itemId: string): MockRegimen | undefined {
   return mockState().regimens.find((r) => r.items.some((i) => i.id === itemId))
 }
 
-const docRef = (r: MockRegimen) => ({ ...r.document })
+/* The browser mock scans everything at the desk; the real API says which door. */
+const docRef = (r: MockRegimen) => ({ sent_from: 'desk_scan', ...r.document })
 
 export const checklistHandlers = [
   http.get('/api/patients/:patientId/checklist', async ({ params }) => {

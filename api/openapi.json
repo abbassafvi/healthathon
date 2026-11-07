@@ -1181,6 +1181,397 @@
         }
       }
     },
+    "/api/app/patients/{patient_id}/documents": {
+      "post": {
+        "tags": [
+          "patient-app"
+        ],
+        "summary": "Post Document",
+        "description": "Reading takes seconds, so this returns at once and the phone polls\nthe upload. The photograph is stored before anything is read, so a\nfailed read never loses the page.",
+        "operationId": "post_document_api_app_patients__patient_id__documents_post",
+        "parameters": [
+          {
+            "name": "patient_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Patient Id"
+            }
+          },
+          {
+            "name": "capture_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9-]{8,64}$",
+              "title": "Capture Id"
+            }
+          },
+          {
+            "name": "doc_type",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "enum": [
+                "prescription",
+                "lab_report"
+              ],
+              "type": "string",
+              "description": "What the page is",
+              "title": "Doc Type"
+            },
+            "description": "What the page is"
+          },
+          {
+            "name": "captured_at",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "When the photograph was taken; now by default",
+              "title": "Captured At"
+            },
+            "description": "When the photograph was taken; now by default"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "contentMediaType": "application/octet-stream",
+                "title": "Body"
+              }
+            },
+            "image/jpeg": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "image/png": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppUploadStatus"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "patient-app"
+        ],
+        "summary": "Get Documents",
+        "description": "Every document on this patient's record, whoever sent it.",
+        "operationId": "get_documents_api_app_patients__patient_id__documents_get",
+        "parameters": [
+          {
+            "name": "patient_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Patient Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AppDocument"
+                  },
+                  "title": "Response Get Documents Api App Patients  Patient Id  Documents Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/app/patients/{patient_id}/uploads/{upload_id}": {
+      "get": {
+        "tags": [
+          "patient-app"
+        ],
+        "summary": "Get Upload",
+        "description": "Where a page has got to. The database answers after a restart.",
+        "operationId": "get_upload_api_app_patients__patient_id__uploads__upload_id__get",
+        "parameters": [
+          {
+            "name": "patient_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Patient Id"
+            }
+          },
+          {
+            "name": "upload_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Upload Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppUploadStatus"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/app/patients/{patient_id}/documents/{document_id}": {
+      "get": {
+        "tags": [
+          "patient-app"
+        ],
+        "summary": "Get Document",
+        "operationId": "get_document_api_app_patients__patient_id__documents__document_id__get",
+        "parameters": [
+          {
+            "name": "patient_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Patient Id"
+            }
+          },
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppDocument"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/app/patients/{patient_id}/documents/{document_id}/page": {
+      "get": {
+        "tags": [
+          "patient-app"
+        ],
+        "summary": "Get Document Page",
+        "description": "The photograph itself, only ever this patient's own.",
+        "operationId": "get_document_page_api_app_patients__patient_id__documents__document_id__page_get",
+        "parameters": [
+          {
+            "name": "patient_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Patient Id"
+            }
+          },
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/patients/{patient_id}/checklist": {
       "get": {
         "tags": [
@@ -2259,6 +2650,184 @@
         ],
         "title": "AppDay"
       },
+      "AppDocument": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "doc_type": {
+            "type": "string",
+            "title": "Doc Type"
+          },
+          "document_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Date"
+          },
+          "received_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Received At"
+          },
+          "sent_from": {
+            "type": "string",
+            "title": "Sent From"
+          },
+          "page_uri": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page Uri"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/AppDocumentLine"
+            },
+            "type": "array",
+            "title": "Lines"
+          },
+          "values": {
+            "items": {
+              "$ref": "#/components/schemas/AppDocumentValue"
+            },
+            "type": "array",
+            "title": "Values"
+          },
+          "advice": {
+            "items": {
+              "$ref": "#/components/schemas/AppDocumentAdvice"
+            },
+            "type": "array",
+            "title": "Advice"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "doc_type",
+          "document_date",
+          "received_at",
+          "sent_from",
+          "page_uri",
+          "lines",
+          "values",
+          "advice"
+        ],
+        "title": "AppDocument",
+        "description": "One page the patient sent or the clinic scanned, and what was read off it."
+      },
+      "AppDocumentAdvice": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "checked": {
+            "type": "boolean",
+            "title": "Checked"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text",
+          "checked"
+        ],
+        "title": "AppDocumentAdvice",
+        "description": "What the prescription asks for that is not a medicine, as written."
+      },
+      "AppDocumentLine": {
+        "properties": {
+          "drug_text": {
+            "type": "string",
+            "title": "Drug Text"
+          },
+          "dose_text": {
+            "type": "string",
+            "title": "Dose Text"
+          },
+          "schedule_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Schedule Text"
+          },
+          "checked": {
+            "type": "boolean",
+            "title": "Checked"
+          }
+        },
+        "type": "object",
+        "required": [
+          "drug_text",
+          "dose_text",
+          "schedule_text",
+          "checked"
+        ],
+        "title": "AppDocumentLine",
+        "description": "A medicine as read off the patient's own page, exactly as written."
+      },
+      "AppDocumentValue": {
+        "properties": {
+          "analyte_name": {
+            "type": "string",
+            "title": "Analyte Name"
+          },
+          "value_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value Text"
+          },
+          "unit_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Text"
+          },
+          "checked": {
+            "type": "boolean",
+            "title": "Checked"
+          }
+        },
+        "type": "object",
+        "required": [
+          "analyte_name",
+          "value_text",
+          "unit_text",
+          "checked"
+        ],
+        "title": "AppDocumentValue",
+        "description": "A laboratory value off the patient's own page.\n\n`value_text` is null until the value is renderable. `proj.renderable_value`\nadmits only accepted and confirmed values, and it is the only view a value\nmay be read from, so a number nobody has settled has no text to show."
+      },
       "AppMeal": {
         "properties": {
           "id": {
@@ -2487,6 +3056,57 @@
         ],
         "title": "AppRecording",
         "description": "A recording kept at the clinic, to attach to an answer."
+      },
+      "AppUploadStatus": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "stage": {
+            "type": "string",
+            "enum": [
+              "uploading",
+              "reading",
+              "done",
+              "duplicate",
+              "failed"
+            ],
+            "title": "Stage"
+          },
+          "document_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Id"
+          },
+          "failure": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failure"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "stage",
+          "document_id",
+          "failure"
+        ],
+        "title": "AppUploadStatus",
+        "description": "Where a page the patient sent has got to. The phone polls this."
       },
       "AuditEntry": {
         "properties": {
@@ -3314,6 +3934,11 @@
               }
             ],
             "title": "Issuing Source"
+          },
+          "sent_from": {
+            "type": "string",
+            "title": "Sent From",
+            "default": "desk_scan"
           }
         },
         "type": "object",
@@ -3405,6 +4030,11 @@
               }
             ],
             "title": "Issuing Source"
+          },
+          "sent_from": {
+            "type": "string",
+            "title": "Sent From",
+            "default": "desk_scan"
           }
         },
         "type": "object",
@@ -4858,6 +5488,11 @@
           "page_count": {
             "type": "integer",
             "title": "Page Count"
+          },
+          "sent_from": {
+            "type": "string",
+            "title": "Sent From",
+            "default": "desk_scan"
           }
         },
         "type": "object",
@@ -5005,6 +5640,11 @@
               }
             ],
             "title": "Issuing Source"
+          },
+          "sent_from": {
+            "type": "string",
+            "title": "Sent From",
+            "default": "desk_scan"
           },
           "values": {
             "items": {

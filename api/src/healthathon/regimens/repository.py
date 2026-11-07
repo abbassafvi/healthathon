@@ -7,10 +7,12 @@ from psycopg.rows import DictRow
 _REGIMEN = """
 SELECT r.id, r.patient_id, r.activated_at, r.superseded_at,
        u.full_name AS activated_by_name,
-       d.id AS document_id, d.document_date, d.issuing_source
+       d.id AS document_id, d.document_date, d.issuing_source,
+       i.channel::text AS sent_from
 FROM core.regimen r
 LEFT JOIN core.clinic_user u ON u.id = r.activated_by
 LEFT JOIN core.document d ON d.id = r.source_document_id
+LEFT JOIN core.intake i ON i.id = d.intake_id
 """
 
 _ITEMS = """

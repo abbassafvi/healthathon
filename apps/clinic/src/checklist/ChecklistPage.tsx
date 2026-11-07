@@ -29,6 +29,9 @@ export function ChecklistPage() {
                       {fmt(en.checklist.awaitingRow, { date: a.document.document_date ? formatDate(a.document.document_date) : en.queue.noDate })}
                     </span>
                     <span className="text-sm text-ink-3">{a.document.issuing_source}</span>
+                    {en.sentFrom[a.document.sent_from] && (
+                      <span className="text-sm text-ink-3" data-testid={`awaiting-sent-from-${a.regimen_id}`}>{en.sentFrom[a.document.sent_from]}</span>
+                    )}
                     <span className="numerals ml-auto font-mono text-sm text-ink-2">
                       {fmt(en.checklist.progress, { done: a.settled_count, total: a.item_count })}
                     </span>

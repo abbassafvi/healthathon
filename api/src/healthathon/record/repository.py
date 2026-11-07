@@ -79,10 +79,12 @@ def record_values(conn: Connection[DictRow], patient_id: UUID) -> list[dict[str,
     return conn.execute(
         """
         SELECT d.id AS document_id, d.doc_type::text AS doc_type, d.document_date,
-               d.issuing_source, rv.id, rv.analyte_code, a.display_name AS analyte_name,
+               d.issuing_source, i.channel::text AS sent_from,
+               rv.id, rv.analyte_code, a.display_name AS analyte_name,
                rv.value_text, rv.unit_text, rv.observed_at
         FROM proj.renderable_value rv
         JOIN core.document d ON d.id = rv.document_id
+        JOIN core.intake i ON i.id = d.intake_id
         JOIN core.analyte a ON a.code = rv.analyte_code
         JOIN core.provenance p ON p.id = rv.provenance_id
         WHERE rv.patient_id = %s
@@ -99,7 +101,7 @@ def trace_row(conn: Connection[DictRow], value_id: UUID) -> dict[str, Any] | Non
         SELECT rv.id, rv.analyte_code, a.display_name AS analyte_name, rv.value_text,
                rv.unit_text, rv.observed_at, rv.patient_id, rv.state::text AS state,
                d.id AS document_id, d.doc_type::text AS doc_type, d.document_date,
-               d.issuing_source, d.page_count,
+               d.issuing_source, d.page_count, i.channel::text AS sent_from,
                p.kind::text AS provenance_kind, p.bbox_x, p.bbox_y, p.bbox_w, p.bbox_h,
                p.char_start, eu.full_name AS entered_by_name,
                pg.storage_key AS page_key, pg.page_no, pg.width_px, pg.height_px,
@@ -107,6 +109,7 @@ def trace_row(conn: Connection[DictRow], value_id: UUID) -> dict[str, Any] | Non
         FROM proj.renderable_value rv
         JOIN core.analyte a ON a.code = rv.analyte_code
         JOIN core.document d ON d.id = rv.document_id
+        JOIN core.intake i ON i.id = d.intake_id
         JOIN core.provenance p ON p.id = rv.provenance_id
         LEFT JOIN core.document_page pg ON pg.id = p.page_id
         LEFT JOIN core.clinic_user eu ON eu.id = p.entered_by_id

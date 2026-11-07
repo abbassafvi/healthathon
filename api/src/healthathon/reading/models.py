@@ -26,6 +26,9 @@ class ReadingDocument(BaseModel):
     issuing_source: str | None
     received_at: datetime
     page_count: int
+    # 'desk_scan' or 'patient_app'. A clinician settling a line should
+    # know whether the page was photographed at the desk or sent in.
+    sent_from: str = "desk_scan"
 
 
 class ReadingPage(BaseModel):

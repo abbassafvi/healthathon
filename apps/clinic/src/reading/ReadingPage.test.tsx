@@ -24,7 +24,7 @@ const value = (over: Partial<ReadValue>): ReadValue => ({
 })
 
 const base: Omit<DocumentReading, 'values' | 'lines'> = {
-  document: { id: 'd-1', doc_type: 'lab_report', document_date: '2026-10-18', issuing_source: 'Sunrise Diagnostics (fictional)', received_at: '2026-10-21T09:12:00+05:30', page_count: 1 },
+  document: { id: 'd-1', doc_type: 'lab_report', document_date: '2026-10-18', issuing_source: 'Sunrise Diagnostics (fictional)', received_at: '2026-10-21T09:12:00+05:30', page_count: 1, sent_from: 'desk_scan' },
   patient: { id: 'p-1', registration_no: 'DEV-0001', full_name: 'Asha Verma' },
   pages: [{ page_no: 1, url: '/api/storage/dev/pages/a.png', width_px: 1240, height_px: 1754 }],
   run: { reader_name: 'dev-seed', reader_version: '0', profile_version: 'dev', code_commit: 'abc123', started_at: '2026-10-21T09:12:00+05:30', finished_at: null },
