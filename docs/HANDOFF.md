@@ -528,9 +528,25 @@ says to trim, and the adapter does. Exotel's `CallSid` plus which branch
 and which digits make the capture id, so a redelivered Passthru stores
 once while two instructions in one call both store.
 
-A spoken answer is **not** wired to Exotel. Their Voicemail applet hands
-back a `RecordingUrl` to fetch and store, which nothing here does yet.
-The generic endpoint takes a spoken answer through `audio_key`.
+A spoken answer goes through `/answer` after a Voicemail applet. Two
+things about it are not obvious:
+
+**Nothing is stored until the audio is in hand.** Exotel hands over a
+`RecordingUrl`, not the audio, and says a recording takes 5 to 20
+minutes to become available depending on its length. So the webhook
+returns 200 at once, meaning "we will keep this", and `voice/recordings.py`
+fetches afterwards, waiting and trying again. If the recording never
+arrives, no entry is written at all. A half-stored answer would show the
+clinician that the patient spoke and leave them unable to hear it, which
+is worse than no answer.
+
+**The recording host is checked against a list.** Fetching a URL that
+arrived in a query parameter is how a service is talked into reaching
+inside its own network, so `HEALTHATHON_VOICE_RECORDING_HOSTS` names the
+exact hosts allowed, https only, with no suffix matching. It is empty by
+default, which turns spoken answers by phone off: no real call has yet
+shown what Exotel's recording host is. Set it once one has, and watch
+that it is the host and not a redirect target.
 
 ### What a different provider's adapter has to do
 

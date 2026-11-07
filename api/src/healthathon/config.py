@@ -33,6 +33,18 @@ class Settings(BaseSettings):
     # Empty means inbound voice is off, and the endpoint refuses everything,
     # which is the shipped default because no provider is chosen yet.
     voice_gateway_key: str = ""
+    # Hosts a call recording may be fetched from. The provider hands over
+    # a URL in a query parameter, and anything that fetches a URL a
+    # caller supplied can be pointed at the inside of the network, so the
+    # host is checked against this list and nothing else is fetched.
+    # Empty means spoken answers by phone are off, which is the default
+    # until a real call shows what Exotel's recording host actually is.
+    voice_recording_hosts: list[str] = []
+    # Exotel says a recording takes 5 to 20 minutes to become available,
+    # depending on its length, so the fetch waits and tries again rather
+    # than giving up on the first 404.
+    voice_recording_tries: int = 8
+    voice_recording_wait_s: int = 150
     # Patient sign-in by a code sent by SMS. With all three Twilio values set,
     # codes go through Twilio Verify. Without them sign-in is in test mode: the
     # code is shown on the sign-in screen and written to the log, which is for
