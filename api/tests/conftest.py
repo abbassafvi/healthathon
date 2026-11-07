@@ -48,6 +48,11 @@ os.environ.update(
         "HEALTHATHON_EXOTEL_FROM": "",
         "HEALTHATHON_EXOTEL_FLOW_ID": "",
         "HEALTHATHON_PHONE_ENCRYPTION_KEY": "",
+        # Sign-in codes stay in test mode: no test may reach a real SMS
+        # provider, whatever keys a developer's .env holds.
+        "HEALTHATHON_TWILIO_ACCOUNT_SID": "",
+        "HEALTHATHON_TWILIO_AUTH_TOKEN": "",
+        "HEALTHATHON_TWILIO_VERIFY_SID": "",
     }
 )
 
