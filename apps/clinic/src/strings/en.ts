@@ -600,6 +600,12 @@ export const en = {
     reread_agreement: 'Two readings of this line disagree.',
     cross_document: 'Another document disagrees with this line.',
   },
+  // Which door a page came in by. A clinician settling a reading should
+  // know whether it was photographed at the desk or sent by the patient.
+  sentFrom: {
+    desk_scan: 'Scanned at the desk',
+    patient_app: 'Sent by the patient',
+  } as Record<string, string>,
   docTypes: {
     lab_report: 'Lab report',
     prescription: 'Prescription',

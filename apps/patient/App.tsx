@@ -17,6 +17,7 @@ import { useState } from 'react'
 import { View } from 'react-native'
 
 import { AppStateProvider, useApp } from './src/AppState'
+import { DocumentsScreen } from './src/screens/DocumentsScreen'
 import { PastDaysScreen } from './src/screens/PastDaysScreen'
 import { SettingsScreen } from './src/screens/SettingsScreen'
 import { SurveyScreen } from './src/screens/SurveyScreen'
@@ -26,17 +27,19 @@ import { color } from './src/theme'
 
 function Screens() {
   const { ready, patientId } = useApp()
-  const [screen, setScreen] = useState<'today' | 'survey' | 'past' | 'settings'>('today')
+  const [screen, setScreen] = useState<'today' | 'survey' | 'past' | 'settings' | 'docs'>('today')
   if (!ready) return <View style={{ flex: 1, backgroundColor: color.bg }} />
   if (!patientId) return <WelcomeScreen />
   if (screen === 'survey') return <SurveyScreen onDone={() => setScreen('today')} />
   if (screen === 'past') return <PastDaysScreen onBack={() => setScreen('today')} />
   if (screen === 'settings') return <SettingsScreen onBack={() => setScreen('today')} />
+  if (screen === 'docs') return <DocumentsScreen onBack={() => setScreen('today')} />
   return (
     <TodayScreen
       onOpenSurvey={() => setScreen('survey')}
       onOpenPast={() => setScreen('past')}
       onOpenSettings={() => setScreen('settings')}
+      onOpenDocs={() => setScreen('docs')}
     />
   )
 }

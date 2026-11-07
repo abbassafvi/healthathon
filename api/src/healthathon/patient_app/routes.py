@@ -8,7 +8,7 @@ from healthathon import phones
 from healthathon.audit import record_event
 from healthathon.auth import Conn
 from healthathon.entries.models import CALORIES, CAPTURE_ID, MealName
-from healthathon.patient_app import days, service, signin, writes
+from healthathon.patient_app import days, document_routes, service, signin, writes
 from healthathon.patient_app import repository as repo
 from healthathon.patient_app.models import (
     AnswerRequest,
@@ -166,4 +166,5 @@ def get_past_days(
     return days.past_days(conn, patient_id, before, count)
 
 
+patient_router.include_router(document_routes.router)
 router.include_router(patient_router)

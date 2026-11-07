@@ -182,6 +182,52 @@ test('a meal photo goes as it is, with its meal and any calories typed, and noth
   expect(Object.keys(meals[0]).filter((k) => /portion|carb|protein|estimate|nutri/i.test(k))).toEqual([])
 })
 
+/*
+ * A page the patient photographs goes through the clinic's reading
+ * pipeline and lands on the clinician's record for that patient. The
+ * stand-in reader runs here, so the medicines are the same every run.
+ */
+test('a prescription photographed on the phone is read and reaches the clinician', async ({ page, request }) => {
+  await start(page, 'English', 'Meera Pillai')
+  // Two bands of ink, made here: no real page is ever committed.
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAPAAAACMCAIAAADN17N/AAABrklEQVR4nO3dMQrDMBAAwVzw/7+stK5lgcMy0wuuWK4S0qy1PlDxfXsAOEnQpAiaFEGTImhSBE2KoEkRNCmCJkXQpAiaFEGTImhSBE2KoEkRNCmCJkXQpAiaFEGTImhSBE2KoEm5nhyemVNzwN32czE2NCmCJkXQpAiaFEGTImhSBE2KoEkRNCmCJkXQpAiaFEGTImhSBE2KoEkZH29SYkOTImhSBE2KoEkRNCmCJkXQpAiaFEGTImhSBE2KoEkRNCmCJkXQpAiaFEGTImhSBE2KoEkRNCmCJkXQpAiaFEGTImhSBE2KoEkRNCmCJkXQpAiaFEGTImhSBE2KoEkRNCmCJkXQpAiaFEGTImhSrieHZ+bUHHC3/WO3DU2KoEkRNCmCJkXQpAiaFEGTImhSBE2KoEkRNCmCJkXQpAiaFEGTImhSZvsmNfwhG5oUQZMiaFIETYqgSRE0KYImRdCkCJoUQZMiaFIETYqgSRE0KYImRdCkCJoUQZMiaFIETYqgSRE0KYImRdCkCJoUQZMiaFIETYqgSRE0KYImRdCkCJoUQZMiaFIETYqgSRE0KT+5jxARR1RPbgAAAABJRU5ErkJggg==', 'base64')
+  await page.getByTestId('open-docs').click()
+  // The seed already gives her pages the clinic scanned, and the screen
+  // says so: both halves of the record are in one list.
+  await expect(page.getByText('Your clinic added this').first()).toBeVisible()
+  await expectNoViolations(page)
+
+  const chooser = page.waitForEvent('filechooser')
+  await page.getByTestId('docs-add').click()
+  await (await chooser).setFiles({ name: 'rx.png', mimeType: 'image/png', buffer: png })
+  await expect(page.getByText('What is this page?')).toBeVisible()
+  await page.getByTestId('doc-kind-prescription').click()
+  await page.getByTestId('doc-send').click()
+
+  // The medicines the stand-in reader finds, shown as written.
+  await expect(page.getByText('Tab. Metformin')).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByText('Tab. Vildagliptin')).toBeVisible()
+  // Nobody has checked them, and the app says so rather than presenting
+  // a machine reading as the patient's prescription.
+  await expect(page.getByText('Your doctor has not checked this yet').first()).toBeVisible()
+  await expect(page.getByText('You sent this')).toBeVisible()
+  await expectNoViolations(page)
+
+  // The other half of the point: it is on the clinician's record.
+  const patients = (await (await request.get(`${API_URL}/api/patients`)).json()) as { id: string; registration_no: string; documents: number }[]
+  const her = patients.find((p) => p.registration_no === 'DEV-0003')!
+  expect(her.documents).toBeGreaterThan(0)
+  expect(await page.getByText('You sent this').count()).toBe(1)
+  // A prescription reaches the clinician through the checklist, where it
+  // waits for review, carrying which door it came in by.
+  const checklist = (await (await request.get(`${API_URL}/api/patients/${her.id}/checklist`)).json()) as {
+    awaiting_review: { document: { sent_from: string }; item_count: number }[]
+  }
+  const fromPhone = checklist.awaiting_review.filter((r) => r.document.sent_from === 'patient_app')
+  expect(fromPhone).toHaveLength(1)
+  expect(fromPhone[0].item_count).toBe(2)
+})
+
 test('a spoken answer reaches the clinic as recorded, and is not transcribed', async ({ page, request }) => {
   await start(page, 'English', 'Asha Verma')
   await page.getByRole('button', { name: 'Speak your answer' }).click()

@@ -131,3 +131,60 @@ class AppRecording(BaseModel):
 
     key: str
     uri: str
+
+
+class AppDocumentLine(BaseModel):
+    """A medicine as read off the patient's own page, exactly as written."""
+
+    drug_text: str
+    dose_text: str
+    schedule_text: str | None
+    # False until a clinician settles the line. The app says so beside it,
+    # because a reading nobody has checked is not a fact about a medicine.
+    checked: bool
+
+
+class AppDocumentValue(BaseModel):
+    """
+    A laboratory value off the patient's own page.
+
+    `value_text` is null until the value is renderable. `proj.renderable_value`
+    admits only accepted and confirmed values, and it is the only view a value
+    may be read from, so a number nobody has settled has no text to show.
+    """
+
+    analyte_name: str
+    value_text: str | None
+    unit_text: str | None
+    checked: bool
+
+
+class AppDocumentAdvice(BaseModel):
+    """What the prescription asks for that is not a medicine, as written."""
+
+    text: str
+    checked: bool
+
+
+class AppDocument(BaseModel):
+    """One page the patient sent or the clinic scanned, and what was read off it."""
+
+    id: UUID
+    doc_type: str
+    document_date: date | None
+    received_at: datetime
+    # 'patient_app' when the patient photographed it, 'desk_scan' at the clinic.
+    sent_from: str
+    page_uri: str | None
+    lines: list[AppDocumentLine]
+    values: list[AppDocumentValue]
+    advice: list[AppDocumentAdvice]
+
+
+class AppUploadStatus(BaseModel):
+    """Where a page the patient sent has got to. The phone polls this."""
+
+    id: str
+    stage: Literal["uploading", "reading", "done", "duplicate", "failed"]
+    document_id: UUID | None
+    failure: str | None

@@ -54,12 +54,20 @@ def open_intake(
     capture_id: str,
     patient_id: UUID,
     captured_at: datetime,
-    uploaded_by: UUID,
+    uploaded_by: UUID | None,
+    channel: str = "desk_scan",
 ) -> UUID:
+    """
+    One intake per capture, naming where the page came from.
+
+    A page the patient photographed arrives on the "patient_app" channel
+    with no uploader: `uploaded_by` names a clinic user, and the audit
+    must not name one for a page no clinic user touched.
+    """
     row = conn.execute(
         "INSERT INTO core.intake (client_capture_id, channel, patient_id, captured_at,"
-        " uploaded_by) VALUES (%s, 'desk_scan', %s, %s, %s) RETURNING id",
-        (capture_id, patient_id, captured_at, uploaded_by),
+        " uploaded_by) VALUES (%s, %s, %s, %s, %s) RETURNING id",
+        (capture_id, channel, patient_id, captured_at, uploaded_by),
     ).fetchone()
     assert row is not None
     return UUID(str(row["id"]))

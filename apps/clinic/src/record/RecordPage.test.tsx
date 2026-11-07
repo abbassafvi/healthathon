@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { en } from '../strings/en'
 import { patientListItem, trace } from '../test/fixtures'
 import { controlImages } from '../test/images'
 import { PatientLayout } from '../patient/PatientLayout'
@@ -14,7 +15,7 @@ const record = {
   patient: { id: 'p-1', registration_no: 'DEV-0001', full_name: 'Asha Verma', year_of_birth: 1968, sex: 'F' },
   documents: [
     {
-      id: 'd-1', doc_type: 'lab_report', document_date: '2026-10-12', issuing_source: 'Sunrise Diagnostics (fictional)',
+      id: 'd-1', doc_type: 'lab_report', document_date: '2026-10-12', issuing_source: 'Sunrise Diagnostics (fictional)', sent_from: 'desk_scan',
       values: [
         { id: 'v-1', analyte_code: 'hba1c', analyte_name: 'HbA1c', value_text: '8.4', unit_text: '%', observed_at: '2026-10-12' },
         { id: 'v-2', analyte_code: 'ldl', analyte_name: 'LDL cholesterol', value_text: '118', unit_text: 'mg/dL', observed_at: '2026-10-12' },
@@ -119,6 +120,21 @@ describe('RecordPage', () => {
     const user = setup('/patients/p-1/documents/values/v-1')
     await user.click(await screen.findByRole('button', { name: /close/i }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('says which door each page came in by', async () => {
+    setup()
+    expect(await screen.findByTestId('sent-from-d-1')).toHaveTextContent(en.sentFrom.desk_scan)
+  })
+
+  it('marks a page the patient photographed, so the reviewer knows who held the camera', async () => {
+    record.documents[0].sent_from = 'patient_app'
+    try {
+      setup()
+      expect(await screen.findByTestId('sent-from-d-1')).toHaveTextContent(en.sentFrom.patient_app)
+    } finally {
+      record.documents[0].sent_from = 'desk_scan'
+    }
   })
 
   it('explains a value that is not in the record', async () => {

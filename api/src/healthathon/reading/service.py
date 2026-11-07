@@ -58,6 +58,7 @@ def reading(conn: Connection[DictRow], user: CurrentUser, document_id: UUID) -> 
             issuing_source=doc["issuing_source"],
             received_at=clinic_time.local(doc["created_at"]),
             page_count=doc["page_count"],
+            sent_from=doc["sent_from"],
         ),
         patient=ReadingPatient(
             id=doc["patient_id"], registration_no=doc["registration_no"], full_name=doc["full_name"]

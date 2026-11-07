@@ -22,10 +22,11 @@ import { color, radius, space } from '../theme'
  * their own screen, shown the same way. There is no chart, average, score
  * or colour that says good or bad.
  */
-export function TodayScreen({ onOpenSurvey, onOpenPast, onOpenSettings }: {
+export function TodayScreen({ onOpenSurvey, onOpenPast, onOpenSettings, onOpenDocs }: {
   onOpenSurvey: () => void
   onOpenPast: () => void
   onOpenSettings: () => void
+  onOpenDocs: () => void
 }) {
   const { api, patientId, t, rtl, signOut } = useApp()
   const [today, setToday] = useState<Today | null>(null)
@@ -172,6 +173,7 @@ export function TodayScreen({ onOpenSurvey, onOpenPast, onOpenSettings }: {
         </Section>
       )}
 
+      <Button label={t.docs.open} onPress={onOpenDocs} testID="open-docs" />
       <Button label={t.past.open} onPress={onOpenPast} testID="open-past" />
 
       <GlucoseSheet

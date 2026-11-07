@@ -15,4 +15,10 @@ export const E2E_ENV: Record<string, string> = {
   HEALTHATHON_CORS_ORIGINS: JSON.stringify([`http://127.0.0.1:${WEB_PORT}`]),
   // Every test signs in again on the same few numbers.
   HEALTHATHON_OTP_SENDS_PER_HOUR: '1000',
+  // A page sent from the phone is read by the stand-in reader: no
+  // paddlepaddle, no network and no key, and the same answer every run.
+  HEALTHATHON_DETECTOR: 'stub',
+  HEALTHATHON_AGENT_PROVIDER: 'stub',
+  // The stand-in reads the page once; three passes would say the same thing.
+  HEALTHATHON_AGENT_READS: '1',
 }

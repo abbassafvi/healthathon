@@ -59,6 +59,10 @@ class DocumentInfo(BaseModel):
     doc_type: str
     document_date: date | None
     issuing_source: str | None
+    # Which door the page came in by: 'desk_scan' at the clinic,
+    # 'patient_app' from the patient's own phone. A clinician reviewing a
+    # reading should know who held the camera.
+    sent_from: str = "desk_scan"
 
 
 class RecordDocument(DocumentInfo):
