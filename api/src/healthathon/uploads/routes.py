@@ -25,6 +25,7 @@ from healthathon.uploads.writer import existing_document
 
 router = APIRouter(prefix="/api/uploads", tags=["uploads"])
 
+
 def _status(job: Job) -> UploadStatus:
     outcome = None
     if job.stage == "done" and job.document_id is not None:

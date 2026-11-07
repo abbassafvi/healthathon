@@ -83,9 +83,7 @@ def test_a_page_from_the_phone_lands_on_the_clinicians_record(
     client: Any, db: psycopg.Connection[Any], pid: str
 ) -> None:
     """The point of the feature: one record, not a second place to look."""
-    before = next(
-        p["documents"] for p in client.get("/api/patients").json() if p["id"] == pid
-    )
+    before = next(p["documents"] for p in client.get("/api/patients").json() if p["id"] == pid)
     send(client, pid, RX)
     after = next(p for p in client.get("/api/patients").json() if p["id"] == pid)
     assert after["documents"] == before + 1
@@ -114,9 +112,7 @@ def test_the_medicines_read_off_the_phone_reach_the_clinics_review(
     assert reading.status_code == 200, reading.text
 
 
-def test_the_patient_sees_the_medicines_read_off_their_own_page(
-    client: Any, pid: str
-) -> None:
+def test_the_patient_sees_the_medicines_read_off_their_own_page(client: Any, pid: str) -> None:
     body = send(client, pid, RX)
     doc = client.get(f"/api/app/patients/{pid}/documents/{body['document_id']}").json()
     assert [line["drug_text"] for line in doc["lines"]] == ["Tab. Metformin"]
@@ -136,9 +132,7 @@ def test_a_line_no_clinician_settled_is_marked_unchecked(client: Any, pid: str) 
     assert doc["lines"][0]["checked"] is False
 
 
-def test_an_unsettled_laboratory_number_has_no_text_for_the_patient(
-    client: Any, pid: str
-) -> None:
+def test_an_unsettled_laboratory_number_has_no_text_for_the_patient(client: Any, pid: str) -> None:
     """
     proj.renderable_value admits only accepted and confirmed values and is
     the only view a value may be read from. An unsettled number therefore
