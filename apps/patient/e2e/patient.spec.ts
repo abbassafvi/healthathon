@@ -38,6 +38,10 @@ async function start(page: Page, lang: 'English' | 'हिन्दी' | 'ار�
 }
 
 async function expectNoViolations(page: Page) {
+  // A sheet slides in, and React Native Web gives it the dialog role only
+  // once the slide has finished. Check the page as it settles, as the
+  // clinic suite does, not halfway through an animation.
+  await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running'))
   const { violations } = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
     .analyze()
