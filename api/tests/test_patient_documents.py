@@ -19,7 +19,7 @@ from healthathon.uploads.detector import Box
 from healthathon.uploads.factory import set_agent, set_detector
 from healthathon.uploads.jobs import registry
 from tests.fakes import FakeAgent, FakeDetector, page_image
-from tests.helpers import patient_id
+from tests.helpers import BANNED_KEYS, patient_id
 
 BOXES = [
     Box(0.10, 0.08, 0.60, 0.03),
@@ -155,6 +155,20 @@ def test_a_page_the_clinic_scanned_is_listed_for_the_patient_too(
     wait_for(client, sent.json()["id"])
     listed = client.get(f"/api/app/patients/{pid}/documents").json()
     assert any(d["sent_from"] == "desk_scan" for d in listed), listed
+
+
+def test_a_document_returns_nothing_interpretive(client: Any, pid: str) -> None:
+    """
+    The same guard the rest of the patient app is held to. Nothing here
+    may name a range, a target, a score, a trend or a total: the patient
+    sees what the page says and whether a clinician has checked it.
+    """
+    body = send(client, pid, RX)
+    doc = client.get(f"/api/app/patients/{pid}/documents/{body['document_id']}").json()
+    keys = set(doc)
+    for group in ("lines", "values", "advice"):
+        keys |= {k for row in doc[group] for k in row}
+    assert not [k for k in keys if any(b in k for b in BANNED_KEYS)], sorted(keys)
 
 
 def test_the_clinician_sees_which_door_the_page_came_in_by(client: Any, pid: str) -> None:
