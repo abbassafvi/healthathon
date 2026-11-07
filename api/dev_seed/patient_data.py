@@ -202,12 +202,16 @@ def _insert(
 # can belong to anyone. Rakesh Yadav has not agreed to SMS.
 PHONES = {f"DEV-000{n}": f"+91 55500 0000{n}" for n in range(1, 5)}
 SMS_CONSENT = ("DEV-0001", "DEV-0002", "DEV-0003")
+# Separately refusable, so separately seeded: one patient who agreed to be
+# heard by phone and one who did not, which is what makes the refusal path
+# testable by hand rather than only in the suite.
+VOICE_CONSENT = ("DEV-0001", "DEV-0002")
 
 
 def seed_contacts(
     conn: psycopg.Connection[Any], clinician: UUID, patients: dict[str, UUID]
 ) -> None:
-    """A phone per patient, stored only as its HMAC, and who has agreed to SMS."""
+    """A phone per patient, stored only as its HMAC, and what each agreed to."""
     for reg, number in PHONES.items():
         normalised = phones.normalise(number)
         assert normalised is not None
@@ -215,14 +219,16 @@ def seed_contacts(
             "patient_id": patients[reg], "phone_hmac": phones.phone_hmac(normalised),
             "phone_last4": normalised[-4:], "is_primary": True,
         })  # fmt: skip
-        if reg in SMS_CONSENT:
+        agreed = [i for i, regs in (("sms", SMS_CONSENT), ("voice", VOICE_CONSENT)) if reg in regs]
+        if agreed:
             lang = conn.execute(
                 "SELECT preferred_language FROM core.patient WHERE id = %s", (patients[reg],)
             ).fetchone()["preferred_language"]
-            _insert(conn, "core.consent", {
-                "patient_id": patients[reg], "item": "sms", "granted": True,
-                "language": lang, "captured_by": clinician,
-            })  # fmt: skip
+            for item in agreed:
+                _insert(conn, "core.consent", {
+                    "patient_id": patients[reg], "item": item, "granted": True,
+                    "language": lang, "captured_by": clinician,
+                })  # fmt: skip
 
 
 def set_phone(conn: psycopg.Connection[Any], registration_no: str, number: str) -> str:

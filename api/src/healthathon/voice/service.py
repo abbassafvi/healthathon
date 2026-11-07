@@ -41,15 +41,6 @@ NOT_RECOGNISED = "voice.not_recognised"
 # The main menu, as the recording reads it out.
 _MENU_CHOICES = {"1": ASK_WHICH_MEDICINE, "2": ASK_READING, "3": ASK_ANSWER}
 
-# Time of day for a reading, by key press. The same contexts the app uses.
-_WHEN = {
-    "1": "fasting",
-    "2": "before_meal",
-    "3": "after_meal",
-    "4": "bedtime",
-    "5": "random",
-}
-
 
 def handle(conn: Connection[DictRow], step: VoiceStep) -> VoiceReply:
     """
@@ -59,7 +50,11 @@ def handle(conn: Connection[DictRow], step: VoiceStep) -> VoiceReply:
     not a granted unwithdrawn yes, is told nothing and has nothing
     stored. That is the DPDP position and it fails closed.
     """
-    base = f"{store.VOICE.capture_prefix}-{step.call_id}:{step.step}"
+    # The provider's own name for the instruction when it gave one, the
+    # step number otherwise. Either way a redelivery lands on the same
+    # capture id and stores once.
+    within = step.provider_ref or str(step.step)
+    base = f"{store.VOICE.capture_prefix}-{step.call_id}:{within}"
     entries_repo.lock_capture_id(conn, base)
     if entries_repo.count_with_capture_prefix(conn, base):
         # The provider delivered this step twice. Say the same thing again
@@ -140,10 +135,9 @@ def _instruction(step: VoiceStep) -> tuple[Instruction | None, str | None]:
         taken = digits == "1"
         return Tick(item_number=step.item_number, ticked=taken), f"{step.item_number} {digits}"
     if step.kind == "reading":
-        when = _WHEN.get(step.context or "")
-        if not digits or when is None:
+        if not digits or step.context is None:
             return None, None
-        return Reading(value_text=digits, context=when), digits
+        return Reading(value_text=digits, context=step.context), digits
     if step.kind == "answer":
         if not step.audio_key:
             return None, None

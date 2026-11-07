@@ -3,6 +3,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from healthathon.entries.models import GlucoseContext
+
 # What the caller is being asked for at this step of the call. The provider
 # posts one request per step, so the step says how to read `digits`.
 StepKind = Literal["menu", "tick", "reading", "answer"]
@@ -34,8 +36,14 @@ class VoiceStep(BaseModel):
     audio_key: str | None = Field(default=None, pattern=RECORDING_KEY)
     # Which medicine the caller chose at an earlier step, by card number.
     item_number: int | None = Field(default=None, ge=1, le=99)
-    # Which time of day a reading is for, as a key press the adapter mapped.
-    context: str | None = Field(default=None, max_length=20)
+    # Which time of day a reading is for. The adapter maps its provider's
+    # key presses onto these names, so nothing provider-shaped gets this
+    # far and the core never has to know what "press 1" meant.
+    context: GlucoseContext | None = None
+    # The provider's own name for this instruction within the call, when
+    # it has one. It joins the capture id, so a redelivered webhook stores
+    # once while two different instructions in one call both store.
+    provider_ref: str | None = Field(default=None, pattern=r"^[A-Za-z0-9_-]{1,64}$")
     occurred_at: datetime | None = None
 
 

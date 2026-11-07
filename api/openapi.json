@@ -7274,13 +7274,32 @@
             "anyOf": [
               {
                 "type": "string",
-                "maxLength": 20
+                "enum": [
+                  "fasting",
+                  "before_meal",
+                  "after_meal",
+                  "bedtime",
+                  "overnight",
+                  "random"
+                ]
               },
               {
                 "type": "null"
               }
             ],
             "title": "Context"
+          },
+          "provider_ref": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]{1,64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Ref"
           },
           "occurred_at": {
             "anyOf": [

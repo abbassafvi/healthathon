@@ -16,6 +16,11 @@ from healthathon import clinic_time
 from tests.helpers import BANNED_KEYS, patient_id, verify_audit_chain
 
 ASHA = "+91 55500 00001"
+# The seed gives her SMS but not voice, so she is the one who proves a
+# separately refusable item is actually separate.
+MEERA_SMS_ONLY = "+91 55500 00003"
+# Neither SMS nor voice.
+RAKESH_NO_CONSENT = "+91 55500 00004"
 KEY = {"X-Gateway-Key": "dev-only-voice-key"}
 
 
@@ -53,7 +58,7 @@ def _today_entries(client: Any, pid: str) -> list[dict[str, Any]]:
 def test_a_reading_entered_on_the_keypad_reaches_the_record(
     client: Any, db: psycopg.Connection[Any], pid: str, agreed: None
 ) -> None:
-    res = step(client, "reading", digits="142", context="1")
+    res = step(client, "reading", digits="142", context="fasting")
     assert res.status_code == 200, res.text
     assert res.json()["accepted"] is True
     glucose = [e for e in _today_entries(client, pid) if e["kind"] == "glucose_reading"]
@@ -69,7 +74,7 @@ def test_the_call_repeats_the_digits_and_says_nothing_else_about_them(
     "142 recorded" and no more. A reading is never called high, low, or
     anything else by voice, which is the same rule the app is held to.
     """
-    body = step(client, "reading", digits="142", context="1").json()
+    body = step(client, "reading", digits="142", context="fasting").json()
     assert body["confirm"] == "142"
     keys = set(body)
     assert not [k for k in keys if any(b in k for b in BANNED_KEYS)], sorted(keys)
@@ -124,14 +129,13 @@ def test_an_unrecognised_press_is_asked_again_never_guessed(
     assert body["prompt"] == "voice.not_recognised"
 
 
-def test_nothing_is_stored_without_voice_consent(
-    client: Any, db: psycopg.Connection[Any], pid: str
-) -> None:
-    """No voice consent row at all is a no. Processing fails closed."""
-    body = step(client, "reading", digits="142", context="1").json()
+def test_nothing_is_stored_without_voice_consent(client: Any, db: psycopg.Connection[Any]) -> None:
+    """No consent row at all is a no. Processing fails closed."""
+    other = patient_id(db, "DEV-0004")
+    body = step(client, "reading", digits="142", context="fasting", sender=RAKESH_NO_CONSENT).json()
     assert body["accepted"] is False
     assert body["prompt"] is None
-    assert not _today_entries(client, pid)
+    assert not _today_entries(client, other)
 
 
 def test_a_withdrawn_voice_consent_stops_the_call(
@@ -141,26 +145,32 @@ def test_a_withdrawn_voice_consent_stops_the_call(
         "UPDATE core.consent SET withdrawn_at = now() WHERE item = 'voice' AND patient_id = %s",
         (pid,),
     )
-    assert step(client, "reading", digits="142", context="1").json()["accepted"] is False
+    assert step(client, "reading", digits="142", context="fasting").json()["accepted"] is False
 
 
 def test_sms_consent_alone_does_not_let_a_call_through(
-    client: Any, db: psycopg.Connection[Any], pid: str
+    client: Any, db: psycopg.Connection[Any]
 ) -> None:
-    """The seed grants sms. Voice is a separately refusable item."""
-    assert step(client, "reading", digits="142", context="1").json()["accepted"] is False
+    """
+    She agreed to SMS and not to voice. Under the DPDP Act each item is
+    separately refusable, so the one does not imply the other.
+    """
+    her = patient_id(db, "DEV-0003")
+    body = step(client, "reading", digits="142", context="fasting", sender=MEERA_SMS_ONLY).json()
+    assert body["accepted"] is False
+    assert not _today_entries(client, her)
 
 
 def test_a_call_from_an_unknown_number_stores_nothing(client: Any, pid: str, agreed: None) -> None:
-    body = step(client, "reading", digits="142", context="1", sender="+91 99999 99999").json()
+    body = step(client, "reading", digits="142", context="fasting", sender="+91 99999 99999").json()
     assert body["accepted"] is False
 
 
 def test_a_step_delivered_twice_is_stored_once(
     client: Any, db: psycopg.Connection[Any], pid: str, agreed: None
 ) -> None:
-    step(client, "reading", digits="142", context="1")
-    again = step(client, "reading", digits="142", context="1").json()
+    step(client, "reading", digits="142", context="fasting")
+    again = step(client, "reading", digits="142", context="fasting").json()
     assert again["duplicate"] is True
     glucose = [e for e in _today_entries(client, pid) if e["kind"] == "glucose_reading"]
     assert len(glucose) == 1
@@ -169,7 +179,7 @@ def test_a_step_delivered_twice_is_stored_once(
 def test_two_steps_of_one_call_are_both_stored(
     client: Any, db: psycopg.Connection[Any], pid: str, agreed: None
 ) -> None:
-    step(client, "reading", n=1, digits="142", context="1")
+    step(client, "reading", n=1, digits="142", context="fasting")
     step(client, "tick", n=2, item_number=1, digits="1")
     kinds = sorted(e["kind"] for e in _today_entries(client, pid))
     assert kinds == ["glucose_reading", "medication_tick"]
@@ -207,7 +217,7 @@ def test_the_sms_key_does_not_open_the_voice_endpoint(client: Any) -> None:
 def test_a_call_is_audited(
     client: Any, db: psycopg.Connection[Any], pid: str, agreed: None
 ) -> None:
-    step(client, "reading", digits="142", context="1")
+    step(client, "reading", digits="142", context="fasting")
     # verify_audit_chain asserts every hash links to the one before it and
     # hands back the events, so a broken chain raises inside it.
     actions = [r["action"] for r in verify_audit_chain(db)]
