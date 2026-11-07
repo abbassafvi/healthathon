@@ -35,6 +35,19 @@ os.environ.update(
         # The tests that cover it set the key, so the refusal is covered too.
         "HEALTHATHON_VOICE_GATEWAY_KEY": "dev-only-voice-key",
         "HEALTHATHON_TRANSCRIBE_RECORDINGS": "false",
+        # Pinned for the same reason as the rest: a developer's own .env
+        # must not change what the suite tests. Each door gets its own.
+        "HEALTHATHON_SMS_GATEWAY_KEY": "dev-only-gateway-key",
+        # The clinic cannot ring out unless a test asks for it. A developer
+        # with real Exotel credentials in their .env must not turn the
+        # suite's "outbound is off" cases into something else, and must
+        # never have a test reach a telephone provider.
+        "HEALTHATHON_EXOTEL_ACCOUNT_SID": "",
+        "HEALTHATHON_EXOTEL_API_KEY": "",
+        "HEALTHATHON_EXOTEL_API_TOKEN": "",
+        "HEALTHATHON_EXOTEL_FROM": "",
+        "HEALTHATHON_EXOTEL_FLOW_ID": "",
+        "HEALTHATHON_PHONE_ENCRYPTION_KEY": "",
     }
 )
 

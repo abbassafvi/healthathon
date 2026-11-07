@@ -45,6 +45,21 @@ class Settings(BaseSettings):
     # than giving up on the first 404.
     voice_recording_tries: int = 8
     voice_recording_wait_s: int = 150
+    # The key a patient's phone number is sealed under so the clinic can
+    # ring them. 32 bytes, base64. Empty means no number is sealed and the
+    # clinic cannot ring anybody, which is the default: a database that
+    # never dials should not hold readable numbers. Never in git.
+    phone_encryption_key: str = ""
+
+    # Exotel's call API, for ringing a patient. Without all of these,
+    # outbound is off and a scheduled call is never placed.
+    exotel_account_sid: str | None = None
+    exotel_api_key: str | None = None
+    exotel_api_token: str | None = None
+    exotel_subdomain: str = "api.exotel.com"
+    # The ExoPhone calls come from, and the flow that answers them.
+    exotel_from: str | None = None
+    exotel_flow_id: str | None = None
     # Patient sign-in by a code sent by SMS. With all three Twilio values set,
     # codes go through Twilio Verify. Without them sign-in is in test mode: the
     # code is shown on the sign-in screen and written to the log, which is for

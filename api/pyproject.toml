@@ -15,6 +15,10 @@ dependencies = [
     "httpx>=0.27",
     # Multipart form parsing: an upload carries its photograph.
     "python-multipart>=0.0.9",
+    # Seals a patient's phone number so the clinic can ring them without
+    # the database holding a readable number. Present transitively before
+    # this, and now depended on directly.
+    "cryptography>=43",
 ]
 
 [project.optional-dependencies]

@@ -172,9 +172,19 @@ CREATE TABLE core.patient_phone (
     patient_id   uuid NOT NULL REFERENCES core.patient(id) ON DELETE CASCADE,
     phone_hmac   bytea NOT NULL,
     phone_last4  char(4) NOT NULL,
+    -- The number itself, sealed under a key held outside the database,
+    -- so a dump of this table still yields no phone numbers. NULL unless
+    -- the clinic rings this patient, which is the only thing it is for:
+    -- every lookup is still by phone_hmac and nothing searches on this.
+    phone_sealed bytea,
     is_primary   boolean NOT NULL DEFAULT false,
     UNIQUE (phone_hmac)
 );
+COMMENT ON COLUMN core.patient_phone.phone_sealed IS
+  'AES-GCM under core.config phone_encryption_key, nonce first. Present '
+  'only for a patient the clinic may call: a number it never dials is '
+  'never stored in a form anything can read. Losing the key loses the '
+  'ability to dial, and nothing else.';
 
 CREATE TABLE core.caregiver (
     id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -377,6 +387,36 @@ CREATE TABLE core.value_conflict (
     noted_at   timestamptz NOT NULL DEFAULT now(),
     CHECK (value_a_id <> value_b_id)
 );
+
+-- A survey call a clinician asked for. The clinic rings the patient at
+-- the time chosen, an automated voice reads the survey, and the answers
+-- arrive through the same inbound path a call the patient made uses.
+--
+-- Nothing here ranks or judges a patient: the only ordering is the time a
+-- clinician picked. A call that failed says so in words, so whoever looks
+-- sees what happened rather than a code.
+CREATE TABLE core.scheduled_call (
+    id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    patient_id       uuid NOT NULL REFERENCES core.patient(id) ON DELETE CASCADE,
+    scheduled_for    timestamptz NOT NULL,
+    scheduled_by     uuid NOT NULL REFERENCES core.clinic_user(id),
+    created_at       timestamptz NOT NULL DEFAULT now(),
+    -- Set when the provider accepted the call, with the id it gave it,
+    -- which is how the answers that come back are tied to this row.
+    placed_at        timestamptz,
+    provider_call_id text UNIQUE,
+    -- Why it was not placed, as a sentence. NULL while it may still go.
+    failure          text,
+    cancelled_at     timestamptz,
+    cancelled_by     uuid REFERENCES core.clinic_user(id),
+    CONSTRAINT scheduled_call_cancelled_by_a_person CHECK (
+        (cancelled_at IS NULL) = (cancelled_by IS NULL)),
+    CONSTRAINT scheduled_call_placed_has_an_id CHECK (
+        (placed_at IS NULL) = (provider_call_id IS NULL))
+);
+-- The runner asks for calls that are due and not yet dealt with.
+CREATE INDEX scheduled_call_due_idx ON core.scheduled_call (scheduled_for)
+    WHERE placed_at IS NULL AND cancelled_at IS NULL AND failure IS NULL;
 
 -- =====================================================================
 --  5 · THE HUMAN IN THE LOOP

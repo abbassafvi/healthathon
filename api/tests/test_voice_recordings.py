@@ -82,6 +82,50 @@ def test_a_recording_is_fetched_and_the_answer_stored(
     assert row["audio_key"] == f"voice/{pid}/exo-ans-1-answer.mp3"
 
 
+def test_a_spoken_answer_is_written_down_beside_the_recording(
+    client: Any, db: psycopg.Connection[Any], pid: str, agreed: None, allowed_host: None
+) -> None:
+    """
+    The recording is the answer; the transcript is a machine's hearing of
+    it, stored beside it. Nothing is derived from either into the record.
+    """
+    from healthathon import transcripts
+    from healthathon.config import get_settings
+
+    class Heard:
+        name = "stub-transcriber"
+
+        def transcribe(self, recording: Any, language: str) -> str:
+            return "thoda chakkar aaya"
+
+    settings = get_settings()
+    was = settings.transcribe_recordings
+    settings.transcribe_recordings = True
+    transcripts.set_transcriber(Heard())
+    try:
+        assert recordings.collect(a_step(), URL, serving(MP3)) is True
+        row = db.execute(
+            "SELECT t.transcript_text, t.transcriber FROM pat.recording_transcript t"
+            " JOIN pat.survey_answer sa ON sa.audio_key = t.audio_key"
+            " JOIN pat.entry e ON e.id = sa.entry_id"
+            " WHERE e.client_capture_id = 'voice-exo-ans-1:answer:1'"
+        ).fetchone()
+        assert row is not None
+        assert (row["transcript_text"], row["transcriber"]) == (
+            "thoda chakkar aaya",
+            "stub-transcriber",
+        )
+        # The answer itself is still the recording, with no text of its own.
+        answer = db.execute(
+            "SELECT sa.answer_text FROM pat.survey_answer sa JOIN pat.entry e"
+            " ON e.id = sa.entry_id WHERE e.client_capture_id = 'voice-exo-ans-1:answer:1'"
+        ).fetchone()
+        assert answer is not None and answer["answer_text"] is None
+    finally:
+        settings.transcribe_recordings = was
+        transcripts.set_transcriber(None)
+
+
 def test_the_entry_is_marked_as_coming_from_a_call(
     client: Any, db: psycopg.Connection[Any], pid: str, agreed: None, allowed_host: None
 ) -> None:

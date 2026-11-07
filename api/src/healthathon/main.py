@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse
 from healthathon import storage, thumbnails
 from healthathon.audit_log.routes import router as audit_log_router
 from healthathon.auth import CurrentUser, User
+from healthathon.calls.routes import router as calls_router
 from healthathon.clinic_day.routes import router as clinic_day_router
 from healthathon.config import get_settings
 from healthathon.confirm_queue.routes import router as confirm_queue_router
@@ -18,6 +19,7 @@ from healthathon.patient_app.routes import router as patient_app_router
 from healthathon.reading.routes import router as reading_router
 from healthathon.record.routes import router as record_router
 from healthathon.regimens.routes import router as regimens_router
+from healthathon.sms.exotel import router as exotel_sms_router
 from healthathon.sms.routes import router as sms_router
 from healthathon.uploads.routes import router as uploads_router
 from healthathon.visit.routes import router as visit_router
@@ -46,8 +48,10 @@ app.include_router(patient_app_router)
 app.include_router(regimens_router)
 app.include_router(visit_router)
 app.include_router(sms_router)
+app.include_router(exotel_sms_router)
 app.include_router(voice_router)
 app.include_router(exotel_voice_router)
+app.include_router(calls_router)
 app.include_router(clinic_day_router)
 app.include_router(reading_router)
 app.include_router(audit_log_router)
