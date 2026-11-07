@@ -17,12 +17,13 @@ export const E2E_ENV: Record<string, string> = {
   HEALTHATHON_AGENT_PROVIDER: 'stub',
   // Under storage/, which .gitignore excludes.
   HEALTHATHON_STORAGE_DIR: path.join(REPO, 'storage', 'e2e'),
-  // Sign-in stays in test mode, whatever SMS provider keys api/.env holds:
+  // The gateway secrets the suite sends, not whatever a developer's
+  // api/.env holds. Rotating a real key must not turn these tests red.
+  HEALTHATHON_SMS_GATEWAY_KEY: 'dev-only-gateway-key',
+  HEALTHATHON_VOICE_GATEWAY_KEY: 'dev-only-voice-key',
+  // Sign-in stays in test mode, whatever Twilio keys api/.env holds:
   // the visit tests sign a patient in, and no browser test may text a phone.
   HEALTHATHON_TWILIO_ACCOUNT_SID: '',
   HEALTHATHON_TWILIO_AUTH_TOKEN: '',
   HEALTHATHON_TWILIO_VERIFY_SID: '',
-  HEALTHATHON_EXOTEL_API_KEY: '',
-  HEALTHATHON_EXOTEL_API_TOKEN: '',
-  HEALTHATHON_EXOTEL_ACCOUNT_SID: '',
 }
