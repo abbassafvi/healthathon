@@ -278,3 +278,32 @@ def test_an_exotel_key_alone_leaves_sign_in_in_test_mode(
     partial = get_settings().model_copy(update={"exotel_api_key": "key-only"})
     monkeypatch.setattr(signin, "get_settings", lambda: partial)
     assert _start(unsigned_client).json()["demo_code"]
+
+
+def test_a_provider_refusal_is_logged_with_its_reason(
+    unsigned_client: Any, twilio: Any, caplog: Any
+) -> None:
+    """ "HTTP Error 403" alone did not say a trial number was unverified."""
+
+    def refuse(req: Any, timeout: float) -> Any:
+        body = json.dumps({"code": 21608, "message": "the recipient must be a verified tester"})
+        raise urllib.error.HTTPError(req.full_url, 403, "Forbidden", {}, io.BytesIO(body.encode()))  # type: ignore[arg-type]
+
+    twilio(refuse)
+    assert _start(unsigned_client).status_code == 503
+    assert "code 21608: the recipient must be a verified tester" in caplog.text
+
+
+def test_an_exotel_refusal_is_logged_with_its_reason(
+    unsigned_client: Any, exotel: Any, monkeypatch: Any, caplog: Any
+) -> None:
+    exotel(_Exotel())
+
+    def refuse(req: Any, timeout: float) -> Any:
+        kyc = {"Status": 403, "Code": 340030, "Message": "Your account is not yet KYC compliant"}
+        body = json.dumps({"RestException": kyc})
+        raise urllib.error.HTTPError(req.full_url, 403, "Forbidden", {}, io.BytesIO(body.encode()))  # type: ignore[arg-type]
+
+    monkeypatch.setattr(signin.urllib.request, "urlopen", refuse)
+    assert _start(unsigned_client).status_code == 503
+    assert "code 340030: Your account is not yet KYC compliant" in caplog.text

@@ -153,7 +153,7 @@ def _twilio(path: str, data: dict[str, str]) -> dict[str, Any]:
             body: dict[str, Any] = json.loads(res.read())
             return body
     except (urllib.error.URLError, TimeoutError, ValueError) as e:
-        log.error("Twilio Verify %s failed: %s", path, e)
+        log.error("Twilio Verify %s failed: %s", path, _reason(e))
         raise HTTPException(503, "Codes cannot be sent right now. Try again shortly.") from e
 
 
@@ -180,8 +180,27 @@ def _exotel_sms(phone: str, body: str) -> None:
         with urllib.request.urlopen(req, timeout=10) as res:  # noqa: S310 (a fixed https URL)
             res.read()
     except (urllib.error.URLError, TimeoutError, ValueError) as e:
-        log.error("Exotel SMS to the number ending %s failed: %s", phone[-4:], e)
+        log.error("Exotel SMS to the number ending %s failed: %s", phone[-4:], _reason(e))
         raise HTTPException(503, "Codes cannot be sent right now. Try again shortly.") from e
+
+
+def _reason(e: Exception) -> str:
+    """
+    What a provider said when it refused, for the log. "HTTP Error 403" alone
+    does not say whether a key is wrong, a trial number is unverified or the
+    account needs KYC; the provider's own code and message do.
+    """
+    if not isinstance(e, urllib.error.HTTPError):
+        return str(e)
+    try:
+        body = json.loads(e.read() or b"{}")
+    except ValueError:
+        return str(e)
+    # Twilio answers {"code", "message"}; Exotel {"RestException": {"Code", "Message"}}.
+    err = body.get("RestException", body) if isinstance(body, dict) else {}
+    code = err.get("code") or err.get("Code")
+    message = err.get("message") or err.get("Message")
+    return f"{e} (code {code}: {message})" if code or message else str(e)
 
 
 def _sign(payload: str) -> bytes:
