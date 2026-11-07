@@ -408,6 +408,79 @@ real code on a demo patient: `uv run python -m dev_seed --phone DEV-0001=+91...`
 breaks the project's first rule (nothing interpretive to the patient, no
 treatment suggestions). Changing that rule is a team and clinical decision.
 
+## Designed, not built: automated voice calls
+
+Written 7 November 2026. None of this exists in the code. The scope excludes
+automated voice calls, because they need a telephony provider, an account and
+a budget, and the SMS endpoint already proves the data path. Say so at the
+demonstration. Building it needs both tracks to change the scope, and the
+feature freeze has passed.
+
+The design starts inbound: the patient rings a clinic number and answers by
+keypad. Outbound can be added later on the same call flow.
+
+### The call flow
+
+1. The provider sends each step of the call to a new webhook, authenticated
+   like `POST /api/sms/inbound`.
+2. The caller ID is matched through `core.patient_phone.phone_hmac`. Without a
+   granted, unwithdrawn `voice` consent, the call ends and nothing is stored.
+3. Key presses become the instructions an SMS carries, and the same rules
+   apply, such as one tick per medicine per day.
+4. The call repeats what was entered ("142 recorded") and says nothing else
+   about it. Nothing interpretive reaches the patient by voice either.
+
+| Caller does | SMS equivalent |
+| --- | --- |
+| Chooses medicine 2, presses 1 for taken | `T 2 Y` |
+| Enters 142#, then a key for the time of day | `G 142 F` |
+| Speaks the day's answer | None: stored as a recording through `audio_key`, not transcribed |
+
+Medicines go by the number on the patient's SMS card, so text-to-speech never
+has to say a drug name.
+
+### What changes in the code
+
+`receive` in `api/src/healthathon/sms/service.py` hard-codes `sms` as the
+channel, the consent item and the capture id prefix. Move the storing into a
+function that takes those, and call it from both routes. Build capture ids
+from the provider's call id and the step, so a repeated webhook stores once.
+
+Inbound needs no schema change. `pat.entry.channel` and
+`core.message_log.channel` are both `core.intake_channel`, which already has
+`voice_call`, and `core.consent.item` already names `voice`. The OpenAPI spec
+and the English strings do change, so both need agreeing.
+
+### What outbound adds
+
+- **A dialable number.** `core.patient_phone` stores only an HMAC and the last
+  four digits. Outbound needs an encrypted number, which changes the frozen
+  schema and reverses that privacy choice.
+- **A scheduler.** It decides who to ring and when, how often to retry, and
+  which hours are off limits.
+- **A second scope change.** The system ringing a patient is a notification,
+  and the scope excludes those separately.
+- **A provider that can ring Indian numbers.** See below.
+
+An unanswered call writes nothing. The compliance score counts a medicine with
+no tick as not ticked, so a call nobody picked up reads the same as a dose not
+taken. Whoever builds outbound decides how the clinician is told.
+
+### Open before building
+
+- **Provider.** Twilio already sends the sign-in codes, but calls from a +91
+  caller ID to +91 numbers reportedly stopped working in August 2024. Confirm
+  that on its India voice guidelines. Exotel documents keypad menus that post
+  to a server. Neither has been tried, and the TRAI rules for this kind of
+  number have not been checked.
+- **Prompts.** Hindi and Urdu need recording by people, and those strings are
+  still unreviewed drafts.
+- **Who is calling.** Caller ID identifies the phone, not the person, the same
+  weakness SMS has. `core.caregiver.phone_hmac` exists but the SMS path does
+  not read it, so decide whether a caregiver can answer by phone.
+- **Consent wording.** A provider carries the call, so the `voice` consent has
+  to say so.
+
 ## Next steps
 
 **Track A (Abbas)**
