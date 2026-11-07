@@ -34,7 +34,8 @@ CREATE SCHEMA IF NOT EXISTS eval;    -- gold set and measurement
 
 CREATE TYPE core.doc_type AS ENUM (
     'lab_report', 'prescription', 'discharge_summary',
-    'imaging_report', 'referral_letter', 'register_sheet', 'other');
+    'imaging_report', 'referral_letter', 'register_sheet', 'other',
+    'survey_form');              -- a paper survey, kept as a photograph and never read
 
 CREATE TYPE core.intake_channel AS ENUM (
     'desk_scan', 'patient_app', 'whatsapp_forward', 'email_drop',

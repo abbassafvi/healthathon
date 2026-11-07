@@ -3369,10 +3369,18 @@
             "title": "Patient Id"
           },
           "doc_type": {
-            "type": "string",
-            "enum": [
-              "prescription",
-              "lab_report"
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "prescription",
+                  "lab_report"
+                ]
+              },
+              {
+                "type": "string",
+                "const": "survey_form"
+              }
             ],
             "title": "Doc Type"
           },
@@ -4959,6 +4967,14 @@
             },
             "type": "array",
             "title": "Documents"
+          },
+          "survey_forms": {
+            "items": {
+              "$ref": "#/components/schemas/SurveyForm"
+            },
+            "type": "array",
+            "title": "Survey Forms",
+            "default": []
           }
         },
         "type": "object",
@@ -6404,6 +6420,42 @@
           "entry_id"
         ],
         "title": "StoredItem"
+      },
+      "SurveyForm": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "photographed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Photographed At"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "width_px": {
+            "type": "integer",
+            "title": "Width Px"
+          },
+          "height_px": {
+            "type": "integer",
+            "title": "Height Px"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "photographed_at",
+          "url",
+          "width_px",
+          "height_px"
+        ],
+        "title": "SurveyForm",
+        "description": "A paper survey photographed at the desk. Kept as it is, never read."
       },
       "SurveyRequest": {
         "properties": {

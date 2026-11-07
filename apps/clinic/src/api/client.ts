@@ -8,6 +8,7 @@ export type CurrentUser = components['schemas']['CurrentUser']
 export type PatientSummary = components['schemas']['PatientSummary']
 export type PatientListItem = components['schemas']['PatientListItem']
 export type PatientRecord = components['schemas']['PatientRecord']
+export type SurveyForm = components['schemas']['SurveyForm']
 export type RecordDocument = components['schemas']['RecordDocument']
 export type RecordValue = components['schemas']['RecordValue']
 export type Trace = components['schemas']['Trace']
@@ -60,7 +61,7 @@ export type ReadCheck = S['Check']
 /* Photographs in, a document and its values out. */
 export type UploadStatus = S['UploadStatus']
 export type UploadOutcome = S['UploadOutcome']
-export type UploadDocType = 'prescription' | 'lab_report'
+export type UploadDocType = 'prescription' | 'lab_report' | 'survey_form'
 
 /* The audit chain. */
 export type AuditLog = S['AuditLog']

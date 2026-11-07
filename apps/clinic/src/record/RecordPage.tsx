@@ -7,13 +7,14 @@ import { LoadError } from '../app/LoadError'
 import { formatDate } from '../lib/dates'
 import { en, fmt } from '../strings/en'
 import { PAGE } from '../app/page'
+import { SurveyForms } from './SurveyForms'
 
 /*
  * The Documents tab of a patient's record, newest document first. A lab
  * report shows its values exactly as printed, in page order, and every
  * value opens its trace. A prescription says where it stands: the
  * checklist in force, or lines waiting for review. Patient entries join
- * this page with the timeline.
+ * this page with the timeline. Paper surveys sit above, as photographs.
  */
 export function RecordPage() {
   const { patientId, valueId } = useParams() as { patientId: string; valueId?: string }
@@ -42,11 +43,12 @@ export function RecordPage() {
         ))}
         {query.status === 'success' && (
           <>
-            {query.data.documents.length === 0 && prescriptions(checklist.data).length === 0 ? (
+            {query.data.documents.length === 0 && prescriptions(checklist.data).length === 0 && query.data.survey_forms.length === 0 ? (
               <p className="text-ink-2">{en.record.empty}</p>
             ) : (
               <>
                 <div className="flex flex-col gap-10">
+                  <SurveyForms forms={query.data.survey_forms} />
                   {newestFirst(query.data.documents, prescriptions(checklist.data)).map((d) =>
                     'values' in d ? (
                       <DocumentValues

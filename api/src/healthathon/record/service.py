@@ -20,6 +20,7 @@ from healthathon.record.models import (
     PatientSummary,
     RecordDocument,
     RecordValue,
+    SurveyForm,
     Trace,
     TraceHistory,
     TracePage,
@@ -71,7 +72,19 @@ def patient_record(conn: Connection[DictRow], user: CurrentUser, patient_id: UUI
     ]
     # Reads are audited: on a shared terminal this is the access evidence.
     record_event(conn, user, "record.read", "core.patient", patient_id)
-    return PatientRecord(patient=PatientSummary(**patient), documents=documents)
+    survey_forms = [
+        SurveyForm(
+            id=r["id"],
+            photographed_at=clinic_time.local(r["photographed_at"]),
+            url=storage.url_for(r["storage_key"]),
+            width_px=r["width_px"],
+            height_px=r["height_px"],
+        )
+        for r in repo.survey_forms(conn, patient_id)
+    ]
+    return PatientRecord(
+        patient=PatientSummary(**patient), documents=documents, survey_forms=survey_forms
+    )
 
 
 def trace(conn: Connection[DictRow], user: CurrentUser, value_id: UUID) -> Trace:

@@ -10,7 +10,7 @@ test.beforeEach(() => {
   reseed()
 })
 
-async function start(page: Page, patient: string, type: 'Prescription' | 'Laboratory report') {
+async function start(page: Page, patient: string, type: 'Prescription' | 'Laboratory report' | 'Paper survey') {
   await page.goto('/')
   await page.getByRole('link', { name: 'Upload' }).click()
   await page.getByLabel('Patient').selectOption({ label: patient })
@@ -91,4 +91,32 @@ test('several photographs upload together, and a repeat is recognised', async ({
   await page.getByTestId('file-input').setInputFiles([doc('p1', 'p1-again.png')])
   await page.getByRole('button', { name: 'Upload and read' }).click()
   await expect(page.getByText('This photograph is already in this record. Nothing new was added.')).toBeVisible()
+})
+
+test('a paper survey photograph is kept with the record without being read', async ({ page }) => {
+  await start(page, 'Asha Verma (DEV-0001)', 'Paper survey')
+  await expect(page.getByText('Kept with the record as a photograph. Nothing on it is read.')).toBeVisible()
+  await page.getByTestId('file-input').setInputFiles([doc('p2', 'survey.png')])
+  await page.getByRole('button', { name: 'Upload', exact: true }).click()
+
+  const row = page.locator('[data-upload-stage]').first()
+  await expect(row).toHaveAttribute('data-upload-stage', 'done', { timeout: 30000 })
+  await expect(row).toContainText('Kept with the record.')
+  await expect(row).not.toContainText('Reading')
+  // Nothing was read from it: no values, no extraction run.
+  const runs = query<{ n: string }>(
+    `SELECT count(*) AS n FROM core.extraction_run r JOIN core.document d ON d.id = r.document_id
+     WHERE d.doc_type = 'survey_form'`,
+  )
+  expect(Number(runs[0]!.n)).toBe(0)
+
+  await row.getByRole('link', { name: 'See it on the Documents tab' }).click()
+  await expect(page.getByRole('heading', { name: 'Paper surveys' })).toBeVisible()
+  const photo = page.getByRole('img', { name: /^Paper survey photographed / })
+  await expect(photo).toBeVisible()
+  await expect.poll(() => photo.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true)
+
+  await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running'))
+  const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze()
+  expect(violations.map((v) => v.id)).toEqual([])
 })

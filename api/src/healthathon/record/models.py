@@ -70,10 +70,22 @@ class RecordDocument(DocumentInfo):
     values: list[RecordValue]
 
 
+class SurveyForm(BaseModel):
+    """A paper survey photographed at the desk. Kept as it is, never read."""
+
+    id: UUID
+    photographed_at: datetime
+    url: str
+    width_px: int
+    height_px: int
+
+
 class PatientRecord(BaseModel):
     patient: PatientSummary
     # Date order, newest first. Never ranked by anything else.
     documents: list[RecordDocument]
+    # Newest first.
+    survey_forms: list[SurveyForm] = []
 
 
 class Box(BaseModel):
