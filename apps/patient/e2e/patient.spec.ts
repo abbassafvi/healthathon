@@ -215,6 +215,9 @@ test('a prescription photographed on the phone is read and reaches the clinician
   // a machine reading as the patient's prescription.
   await expect(page.getByText('Your doctor has not checked this yet').first()).toBeVisible()
   await expect(page.getByText('You sent this')).toBeVisible()
+  // The photograph itself loads: the page route needs the phone's token.
+  const photo = page.locator('[data-testid^="doc-page-"] img').first()
+  await expect.poll(() => photo.evaluate((img: HTMLImageElement) => img.naturalWidth), { timeout: 10_000 }).toBeGreaterThan(0)
   await expectNoViolations(page)
 
   // The other half of the point: it is on the clinician's record.

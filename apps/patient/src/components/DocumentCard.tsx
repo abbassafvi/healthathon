@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Image, StyleSheet, View } from 'react-native'
 
 import { useApp } from '../AppState'
@@ -19,8 +20,20 @@ import { Txt } from './Txt'
  * value may be read from, and it admits nothing unsettled.
  */
 export function DocumentCard({ doc }: { doc: PatientDoc }) {
-  const { t } = useApp()
+  const { t, api } = useApp()
+  const [page, setPage] = useState<string | null>(null)
   const when = new Date(doc.received_at)
+
+  // Fetched with the phone's token: a plain image request has none, and
+  // the page route answers 401 without it.
+  useEffect(() => {
+    if (!doc.page_uri) return
+    let live = true
+    api.pageImage(doc.page_uri).then((uri) => live && setPage(uri), () => live && setPage(null))
+    return () => {
+      live = false
+    }
+  }, [api, doc.page_uri])
   const nothingRead = !doc.lines.length && !doc.values.length && !doc.advice.length
 
   return (
@@ -37,9 +50,9 @@ export function DocumentCard({ doc }: { doc: PatientDoc }) {
         {doc.sent_from === 'patient_app' ? t.docs.sentByYou : t.docs.sentByClinic}
       </Txt>
 
-      {doc.page_uri && (
+      {page && (
         <Image
-          source={{ uri: doc.page_uri }}
+          source={{ uri: page }}
           style={styles.page}
           accessibilityIgnoresInvertColors
           testID={`doc-page-${doc.id}`}

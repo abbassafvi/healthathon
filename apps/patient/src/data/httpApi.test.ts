@@ -35,6 +35,27 @@ function api(...answers: (Response | Error)[]) {
 }
 
 describe('the HTTP patient API', () => {
+  it('fetches a document page with the token, so the page route lets it through', async () => {
+    const { f, calls } = fakeFetch(new Response(new Blob([jpeg], { type: 'image/jpeg' }), { status: 200 }))
+    const client = createHttpApi({ baseUrl: 'http://clinic.test:8000/', language: () => 'en', token: () => 'tok-1', fetch: f })
+    const uri = await client.pageImage('http://clinic.test:8000/api/app/patients/p1/documents/d1/page')
+    expect(new Headers(calls[0]!.init?.headers).get('Authorization')).toBe('Bearer tok-1')
+    expect(uri.startsWith('data:image/jpeg;base64,')).toBe(true)
+  })
+
+  it('never sends the token for a page on another host', async () => {
+    const { f, calls } = fakeFetch(new Response(new Blob([jpeg], { type: 'image/jpeg' }), { status: 200 }))
+    const client = createHttpApi({ baseUrl: 'http://clinic.test:8000/', language: () => 'en', token: () => 'tok-1', fetch: f })
+    await client.pageImage('http://elsewhere.test/api/app/patients/p1/documents/d1/page')
+    expect(calls[0]!.init?.headers).toBeUndefined()
+  })
+
+  it('reports a page the server refuses', async () => {
+    const { f } = fakeFetch(new Response(null, { status: 401, statusText: 'Unauthorized' }))
+    const client = createHttpApi({ baseUrl: 'http://clinic.test:8000/', language: () => 'en', token: () => null, fetch: f })
+    await expect(client.pageImage('http://clinic.test:8000/api/app/patients/p1/documents/d1/page')).rejects.toMatchObject({ status: 401 })
+  })
+
   it('reads today and makes meal photo links absolute', async () => {
     const { client, calls } = api(
       json({ date: '2026-10-27', meals: [{ id: 'm1', uri: '/api/storage/meals/p/m1.jpg', occurred_at: 'x' }] }),

@@ -123,6 +123,18 @@ export function createHttpApi({ baseUrl, language, token = () => null, fetch: f 
       const docs = await call<PatientDoc[]>(`${p(patientId)}/documents`)
       return docs.map((d) => ({ ...d, page_uri: d.page_uri ? abs(d.page_uri) : null }))
     },
+    async pageImage(pageUri) {
+      // The token goes only to the clinic's own server, never to another host.
+      const t = pageUri.startsWith(`${root}/api/app/patients/`) ? token() : null
+      let res: Response
+      try {
+        res = await f(pageUri, t ? { headers: { Authorization: `Bearer ${t}` } } : undefined)
+      } catch {
+        throw new ApiError(0, 'The server could not be reached')
+      }
+      if (!res.ok) throw new ApiError(res.status, res.statusText)
+      return dataUri(res)
+    },
     surveyQuestions: (patientId) => call<SurveyQuestion[]>(`${p(patientId)}/survey`),
     submitSurvey: (patientId, answers, captureId, recordings = {}) =>
       send<void>('POST', `${p(patientId)}/survey`, { answers, recordings, capture_id: captureId, language: language() }),
@@ -138,4 +150,13 @@ export function createHttpApi({ baseUrl, language, token = () => null, fetch: f 
       }
     },
   }
+}
+
+/* A page as a data: URI, which an Image shows on Android and on the web alike. */
+async function dataUri(res: Response): Promise<string> {
+  const type = (res.headers.get('Content-Type') ?? 'image/png').split(';')[0]
+  const bytes = new Uint8Array(await res.arrayBuffer())
+  let binary = ''
+  for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
+  return `data:${type};base64,${btoa(binary)}`
 }
