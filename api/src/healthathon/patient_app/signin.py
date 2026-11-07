@@ -1,10 +1,9 @@
 """
 Patient sign-in: a code sent by SMS to the phone the clinic has on record.
 
-Codes go through Twilio Verify when its keys are set, or by Exotel SMS when
-its keys are, in which case the code is made and checked here. Without
-either, sign-in runs in test mode, for development and the demonstration:
-the code is returned to the sign-in screen and written to the log. Either way a code is
+Codes go through Twilio Verify when its keys are set. Without them sign-in
+runs in test mode, for development and the demonstration: the code is
+returned to the sign-in screen and written to the log. Either way a code is
 sent only to a number already on a patient's record, so the endpoint cannot
 be used to text strangers, and it answers the same whether or not the
 number is known.
@@ -48,18 +47,6 @@ def twilio_configured() -> bool:
     return bool(s.twilio_account_sid and s.twilio_auth_token and s.twilio_verify_sid)
 
 
-def exotel_configured() -> bool:
-    s = get_settings()
-    return bool(
-        s.exotel_api_key
-        and s.exotel_api_token
-        and s.exotel_account_sid
-        and s.exotel_sms_from
-        and s.exotel_dlt_entity_id
-        and s.exotel_dlt_template_id
-    )
-
-
 def send_code(phone: str) -> str | None:
     """
     Send a sign-in code to a normalised number on a patient's record. Returns
@@ -75,21 +62,9 @@ def send_code(phone: str) -> str | None:
     if twilio_configured():
         _twilio("Verifications", {"To": f"+{phone}", "Channel": "sms"})
         return None
-    by_sms = exotel_configured()
-    # A fixed code is for automated tests in test mode; a real SMS gets a random one.
-    fixed = None if by_sms else get_settings().otp_test_code
-    code = fixed or f"{secrets.randbelow(10**6):06d}"
+    code = get_settings().otp_test_code or f"{secrets.randbelow(10**6):06d}"
     with _lock:
         _codes[phone] = (hashlib.sha256(code.encode()).digest(), now + CODE_SECONDS, MAX_TRIES)
-    if by_sms:
-        try:
-            _exotel_sms(phone, get_settings().exotel_otp_template.replace("{code}", code))
-        except HTTPException:
-            # Never sent, so it must not work either.
-            with _lock:
-                _codes.pop(phone, None)
-            raise
-        return None
     log.warning("Sign-in is in test mode. Code for the number ending %s: %s", phone[-4:], code)
     return code
 
@@ -157,33 +132,6 @@ def _twilio(path: str, data: dict[str, str]) -> dict[str, Any]:
         raise HTTPException(503, "Codes cannot be sent right now. Try again shortly.") from e
 
 
-def _exotel_sms(phone: str, body: str) -> None:
-    """
-    One SMS through Exotel. The credentials go in the Authorization header,
-    not in the URL as Exotel's examples put them, so no log can hold them.
-    A 200 means Exotel accepted the message, not that it was delivered.
-    """
-    s = get_settings()
-    url = f"https://{s.exotel_subdomain}/v1/Accounts/{s.exotel_account_sid}/Sms/send.json"
-    form = {
-        "From": s.exotel_sms_from or "",
-        "To": f"+{phone}",
-        "Body": body,
-        "DltEntityId": s.exotel_dlt_entity_id or "",
-        "DltTemplateId": s.exotel_dlt_template_id or "",
-        "SmsType": "transactional",
-    }
-    req = urllib.request.Request(url, data=urllib.parse.urlencode(form).encode(), method="POST")
-    basic = base64.b64encode(f"{s.exotel_api_key}:{s.exotel_api_token}".encode()).decode()
-    req.add_header("Authorization", f"Basic {basic}")
-    try:
-        with urllib.request.urlopen(req, timeout=10) as res:  # noqa: S310 (a fixed https URL)
-            res.read()
-    except (urllib.error.URLError, TimeoutError, ValueError) as e:
-        log.error("Exotel SMS to the number ending %s failed: %s", phone[-4:], _reason(e))
-        raise HTTPException(503, "Codes cannot be sent right now. Try again shortly.") from e
-
-
 def _reason(e: Exception) -> str:
     """
     What a provider said when it refused, for the log. "HTTP Error 403" alone
@@ -196,8 +144,8 @@ def _reason(e: Exception) -> str:
         body = json.loads(e.read() or b"{}")
     except ValueError:
         return str(e)
-    # Twilio answers {"code", "message"}; Exotel {"RestException": {"Code", "Message"}}.
-    err = body.get("RestException", body) if isinstance(body, dict) else {}
+    # Twilio answers {"code", "message"}.
+    err = body if isinstance(body, dict) else {}
     code = err.get("code") or err.get("Code")
     message = err.get("message") or err.get("Message")
     return f"{e} (code {code}: {message})" if code or message else str(e)
