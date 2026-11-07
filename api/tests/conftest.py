@@ -87,6 +87,24 @@ def _signed_in_as_the_path(request: Any) -> None:
 
 
 @pytest.fixture
+def auto_accept() -> Iterator[None]:
+    """
+    Let the checks settle a prescription line without a clinician.
+
+    Off by default, agreed in review on PR 12: no check reads the drug
+    name and nothing measures the reader yet. The tests that are about
+    the settling path ask for it; the rest see the shipped default.
+    """
+    from healthathon.config import get_settings
+
+    settings = get_settings()
+    was = settings.auto_accept_lines
+    settings.auto_accept_lines = True
+    yield
+    settings.auto_accept_lines = was
+
+
+@pytest.fixture
 def unsigned_client(db: psycopg.Connection[Any]) -> Iterator[Any]:
     from fastapi.testclient import TestClient
 

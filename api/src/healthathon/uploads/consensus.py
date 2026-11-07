@@ -30,9 +30,16 @@ class Consensus:
     other_reads: dict[int, list[str]] = field(default_factory=dict)
     # How many times the page was read.
     reads: int = 1
-    # Boxes whose prescription line the passes read differently. The
-    # line is still written; its reread check is what fails.
-    disagreed: set[int] = field(default_factory=set)
+    # (box index, folded drug name) -> how many passes gave the reading
+    # that was written. The reread check turns that into a share, so a
+    # line two passes of three agreed on records 0.667 and not 1.0.
+    line_votes: dict[tuple[int, str], int] = field(default_factory=dict)
+
+    @property
+    def disagreed(self) -> set[int]:
+        """Boxes whose line no majority of the passes agreed on."""
+        needed = self.reads // 2 + 1
+        return {box for (box, _), seen in self.line_votes.items() if seen < needed}
 
 
 def _line_key(line: RegimenLine) -> str:
@@ -53,28 +60,30 @@ def combine(passes: list[DocumentReading]) -> Consensus:
         for index in other:
             other[index].append(said.get(index, NOTHING))
 
-    lines, disagreed = _agreed_lines(passes)
+    lines, line_votes = _agreed_lines(passes)
     return Consensus(
         reading=DocumentReading(
             values=first.values,
             lines=lines,
             orders=first.orders,
+            advice=first.advice,
             document_date=first.document_date,
             issuing_source=first.issuing_source,
             unreadable=sorted(first.unreadable),
+            ungrounded=sorted({i for p in passes for i in p.ungrounded}),
         ),
         other_reads=other,
         reads=len(passes),
-        disagreed=disagreed,
+        line_votes=line_votes,
     )
 
 
 def _agreed_lines(
     passes: list[DocumentReading],
-) -> tuple[list[RegimenLine], set[int]]:
+) -> tuple[list[RegimenLine], dict[tuple[int, str], int]]:
     """
-    The reading of each line that most passes gave, and the boxes where
-    they did not agree.
+    The reading of each line that most passes gave, and how many passes
+    gave it.
 
     This asked for unanimity once, and on a photographed prescription
     that meant nothing was ever written: three independent reads of
@@ -82,25 +91,31 @@ def _agreed_lines(
     was dropped as unreadable and the record stayed empty.
 
     Nothing is dropped now. The most-agreed reading is written whether
-    or not it won a majority, and a box no majority agreed on is named
-    so its reread check fails. A clinician then confirms it against the
-    crop, which is what disagreement should buy: a person looking, not a
-    medicine disappearing.
+    or not it won a majority, and the count it won is returned so the
+    reread check can record the share and fail the lines no majority
+    agreed on. A clinician then confirms those against the crop, which
+    is what disagreement should buy: a person looking, not a medicine
+    disappearing.
     """
-    needed = len(passes) // 2 + 1
-    seen: dict[int, Counter[str]] = defaultdict(Counter)
-    example: dict[tuple[int, str], RegimenLine] = {}
+    # Grouped by the drug on a region, not by the region alone. A crop
+    # can hold more than one medicine, and keeping only the region's
+    # commonest reading threw the other away: a card with Metformin and
+    # Amlodipine on one region wrote Metformin alone. Grouping by the
+    # whole line is the opposite mistake, writing one drug three times
+    # when three reads disagreed about its dose.
+    votes: dict[tuple[int, str], Counter[str]] = defaultdict(Counter)
+    example: dict[tuple[int, str, str], RegimenLine] = {}
     for one_pass in passes:
         for line in one_pass.lines:
-            key = _line_key(line)
-            seen[line.box_index][key] += 1
-            example[(line.box_index, key)] = line
+            drug = line.drug_text.casefold().strip()
+            reading = _line_key(line)
+            votes[(line.box_index, drug)][reading] += 1
+            example[(line.box_index, drug, reading)] = line
 
     kept: list[RegimenLine] = []
-    disagreed: set[int] = set()
-    for box, counts in seen.items():
-        key, votes = counts.most_common(1)[0]
-        kept.append(example[(box, key)])
-        if votes < needed:
-            disagreed.add(box)
-    return sorted(kept, key=lambda line: line.box_index), disagreed
+    seen: dict[tuple[int, str], int] = {}
+    for (box, drug), counts in votes.items():
+        reading, seen_times = counts.most_common(1)[0]
+        kept.append(example[(box, drug, reading)])
+        seen[(box, drug)] = seen_times
+    return sorted(kept, key=lambda line: line.box_index), seen

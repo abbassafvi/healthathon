@@ -89,6 +89,15 @@ def well_formed(
         number = Decimal(value_text.replace(",", "").strip())
     except (InvalidOperation, AttributeError):
         return CheckOutcome("well_formed", "fail", detail={"why": "not_a_number"})
+    # Decimal parses "NaN" and "Infinity" happily. Neither is a reading,
+    # and comparing NaN against an assay range raises, which failed the
+    # whole page rather than the one value.
+    if not number.is_finite():
+        return CheckOutcome("well_formed", "fail", detail={"why": "not_a_number"})
+    if known_units and (unit_text is None or not unit_text.strip()):
+        # A number with no unit is not a measurement. It was accepted
+        # into the record until a review caught it.
+        return CheckOutcome("well_formed", "fail", detail={"why": "unknown_unit"})
     if unit_text is not None and known_units and unit_text.strip() not in known_units:
         return CheckOutcome(
             "well_formed", "fail", detail={"why": "unknown_unit", "unit": unit_text}

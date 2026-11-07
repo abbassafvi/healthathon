@@ -13,6 +13,13 @@ from typing import Protocol
 
 from PIL import Image, ImageDraw
 
+# Padding around a detected region, as a fraction of its own size. A crop
+# cut exactly on the box loses the ascenders and the decimal point, but a
+# quarter of a tall handwritten line reaches well into the line below,
+# which is how one crop came to hold three medicines.
+CROP_PAD_X = 0.06
+CROP_PAD_Y = 0.10
+
 
 @dataclass(frozen=True)
 class Box:
@@ -34,6 +41,25 @@ class Box:
             int(self.y * height),
             int((self.x + self.w) * width),
             int((self.y + self.h) * height),
+        )
+
+    def padded(self, width: int, height: int) -> tuple[int, int, int, int]:
+        """
+        The crop region for this box, padded and kept on the page.
+
+        One definition, used by the pipeline when it cuts the crop it
+        hashes and by the review screen when it cuts the crop it shows.
+        They padded differently, so the hash stored as "the crop a human
+        was shown" named an image no human ever saw.
+        """
+        left, top, right, bottom = self.pixels(width, height)
+        pad_x = int((right - left) * CROP_PAD_X)
+        pad_y = int((bottom - top) * CROP_PAD_Y)
+        return (
+            max(left - pad_x, 0),
+            max(top - pad_y, 0),
+            min(right + pad_x, width),
+            min(bottom + pad_y, height),
         )
 
 

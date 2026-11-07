@@ -3,6 +3,7 @@ The reader's pure parts: ordering, grounding, the checks and the two
 provider replies. None of these needs a database or a network.
 """
 
+import importlib.util
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
@@ -1108,6 +1109,10 @@ def test_two_unlike_drugs_far_apart_never_fold(tmp_path: Path) -> None:
 # ---- straightening the page -----------------------------------------
 
 
+@pytest.mark.skipif(
+    importlib.util.find_spec("cv2") is None,
+    reason="deskew measures the tilt with OpenCV, which only the ocr extra installs",
+)
 def test_a_tilted_page_is_straightened(tmp_path: Path) -> None:
     """
     A degree or two of tilt makes the detector's regions run into the

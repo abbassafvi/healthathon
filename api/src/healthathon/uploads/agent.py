@@ -60,6 +60,14 @@ class RegimenLine:
 
 
 @dataclass(frozen=True)
+class Advice:
+    """An instruction that is not a medicine, as written."""
+
+    box_index: int
+    text: str
+
+
+@dataclass(frozen=True)
 class RequestedTest:
     """A test the document asks for, as distinct from one it reports."""
 
@@ -74,6 +82,7 @@ class DocumentReading:
     values: list[LabValue] = field(default_factory=list)
     lines: list[RegimenLine] = field(default_factory=list)
     orders: list[RequestedTest] = field(default_factory=list)
+    advice: list[Advice] = field(default_factory=list)
     document_date: date | None = None
     issuing_source: str | None = None
     # Regions the agent was shown but would not commit to, by index. These
@@ -107,7 +116,10 @@ def drop_ungrounded(reading: DocumentReading, box_count: int) -> DocumentReading
         values=[v for v in reading.values if v.box_index in ok],
         lines=[line for line in reading.lines if line.box_index in ok],
         orders=[o for o in reading.orders if o.box_index in ok],
+        advice=[a for a in reading.advice if a.box_index in ok],
         document_date=reading.document_date,
         issuing_source=reading.issuing_source,
         unreadable=sorted({i for i in reading.unreadable if i in ok}),
+        # Kept, or the grounding check has nothing to fail on.
+        ungrounded=sorted({i for i in reading.ungrounded if i in ok}),
     )

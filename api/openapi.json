@@ -1399,6 +1399,42 @@
         }
       }
     },
+    "/api/regimen-advice/{advice_id}/crop": {
+      "get": {
+        "tags": [
+          "regimens"
+        ],
+        "summary": "Get Advice Crop",
+        "operationId": "get_advice_crop_api_regimen_advice__advice_id__crop_get",
+        "parameters": [
+          {
+            "name": "advice_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Advice Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/regimen-items/{item_id}/crop": {
       "get": {
         "tags": [
@@ -1763,6 +1799,7 @@
           "uploads"
         ],
         "summary": "Get Upload",
+        "description": "Where this upload got to. The registry answers while the process\nthat started the read is still running; after a restart, or from a\nsecond worker, the database does.",
         "operationId": "get_upload_api_uploads__upload_id__get",
         "parameters": [
           {
@@ -1942,6 +1979,14 @@
             },
             "type": "array",
             "title": "Items"
+          },
+          "advice": {
+            "items": {
+              "$ref": "#/components/schemas/RegimenAdvice"
+            },
+            "type": "array",
+            "title": "Advice",
+            "default": []
           }
         },
         "type": "object",
@@ -4529,6 +4574,7 @@
             "type": "string",
             "enum": [
               "waiting",
+              "accepted",
               "confirmed",
               "corrected"
             ],
@@ -5033,6 +5079,70 @@
         "title": "RecordValue",
         "description": "A renderable value, exactly as printed. Nothing derived is attached."
       },
+      "RegimenAdvice": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "advice_text": {
+            "type": "string",
+            "title": "Advice Text"
+          },
+          "box": {
+            "$ref": "#/components/schemas/Box"
+          },
+          "crop_url": {
+            "type": "string",
+            "title": "Crop Url"
+          },
+          "accepted_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accepted At"
+          },
+          "confirmed_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confirmed By Name"
+          },
+          "confirmed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confirmed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "advice_text",
+          "box",
+          "crop_url"
+        ],
+        "title": "RegimenAdvice",
+        "description": "An instruction that is not a medicine. Never counted as a dose."
+      },
       "RegimenItem": {
         "properties": {
           "id": {
@@ -5249,6 +5359,14 @@
             },
             "type": "array",
             "title": "Items"
+          },
+          "advice": {
+            "items": {
+              "$ref": "#/components/schemas/RegimenAdvice"
+            },
+            "type": "array",
+            "title": "Advice",
+            "default": []
           },
           "replaces": {
             "anyOf": [

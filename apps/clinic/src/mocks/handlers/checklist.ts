@@ -33,6 +33,7 @@ export const checklistHandlers = [
             activated_by_name: active.activated_by_name!,
             source_document: docRef(active),
             items: active.items,
+            advice: [],
           }
         : null,
       awaiting_review: mine
@@ -60,6 +61,7 @@ export const checklistHandlers = [
       document: docRef(r),
       page: { url: pageUrl(r.document.id), width_px: PAGE_W, height_px: PAGE_H },
       items: r.items,
+      advice: [],
       replaces:
         current && current.id !== r.id ? { activated_at: current.activated_at!, item_count: current.items.length } : null,
       activated_at: r.activated_at,

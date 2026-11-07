@@ -89,6 +89,27 @@ function Active({ regimen }: { regimen: ActiveRegimen }) {
           </li>
         ))}
       </ol>
+
+      {regimen.advice.length > 0 && (
+        <section aria-labelledby="advice" className="mt-8">
+          <h3 id="advice" className="text-base font-semibold">{en.checklist.adviceTitle}</h3>
+          {/* Said plainly, because a walk on a checklist looks like a dose. */}
+          <p className="mt-1 mb-2 text-sm text-ink-2">{en.checklist.adviceNote}</p>
+          <ol className="border-t border-line">
+            {regimen.advice.map((note) => (
+              <li key={note.id} className="grid items-center gap-4 border-b border-line py-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
+                <p className="text-[0.9375rem]">{note.advice_text}</p>
+                <img
+                  src={note.crop_url}
+                  alt={en.checklist.adviceCrop}
+                  loading="lazy"
+                  className="h-12 w-auto max-w-full justify-self-start rounded-md border border-line bg-surface"
+                />
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
     </>
   )
 }
