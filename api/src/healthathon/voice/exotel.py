@@ -68,15 +68,20 @@ def _reply(conn: Conn, step: VoiceStep) -> Response:
     """
     Store the step, and answer in the only way Exotel reads: the status.
 
-    200 means stored, and the flow plays its "recorded" prompt. 302 means
-    it was not, so the flow can take its other path and say so rather
-    than telling the caller something was kept when nothing was. Both are
-    recorded prompts: nothing here is spoken by a machine.
+    200 means the step did what it said, and the flow plays its "taken"
+    prompt. 302 means it did not, so the flow can take its other path and
+    say so rather than telling the caller something was kept when nothing
+    was. Both are recorded prompts: nothing here is spoken by a machine.
+
+    Success is "we have a prompt to play that is not the one asking
+    again", rather than "something was stored", because asking to be rung
+    back stores nothing and is still a step that worked.
     """
     out = service.handle(conn, step)
-    if out.accepted and (out.stored or out.duplicate):
-        return Response(status_code=200)
-    return Response(status_code=302, headers={"Location": "/"})
+    worked = out.accepted and out.prompt not in (None, service.NOT_RECOGNISED)
+    return Response(
+        status_code=200 if worked else 302, headers=None if worked else {"Location": "/"}
+    )
 
 
 def _step(fields: dict[str, Any]) -> VoiceStep | None:
@@ -202,3 +207,33 @@ def answer(
         return Response(status_code=302, headers={"Location": "/"})
     recordings.store_when_ready(step, RecordingUrl)
     return Response(status_code=200)
+
+
+@router.get("/{secret}/callback", include_in_schema=False)
+def callback(
+    secret: str,
+    conn: Conn,
+    CallSid: Annotated[str, Query()],
+    CallFrom: Annotated[str, Query()],
+) -> Response:
+    """
+    The caller asked the clinic to ring them back.
+
+    Needs no dialler and no KYC: the patient made this call, and all the
+    clinic has to do is know they asked. 200 so the flow can say it was
+    taken; 302 when the caller is not a consenting patient, so the flow
+    says something else rather than promising a call back.
+    """
+    _check(secret)
+    return _reply(
+        conn,
+        VoiceStep.model_validate(
+            {
+                "call_id": CallSid,
+                "step": 1,
+                "from": CallFrom,
+                "kind": "callback",
+                "provider_ref": "callback",
+            }
+        ),
+    )

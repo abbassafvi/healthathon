@@ -564,6 +564,24 @@ An unanswered call writes nothing. The compliance score counts a medicine with
 no tick as not ticked, so a call nobody picked up reads the same as a dose not
 taken. Whoever builds outbound decides how the clinician is told.
 
+### A patient asking to be rung back
+
+`/api/voice/exotel/{secret}/callback` after a Gather, and the request
+lands on `core.callback_request`. The clinic reads it at
+`GET /api/callback-requests`, oldest first, and a clinic user marks one
+seen. Nothing says what they did about it, because that is a
+conversation rather than a field, and nothing ranks one patient above
+another.
+
+This is the one half of calling that needs no KYC and no dialler: the
+patient made the call, so the clinic only has to know they asked. It is
+also the right way round for the scope, which excludes the system
+notifying anyone. A patient asking is not a notification.
+
+Asking stores no `pat.entry`. It is a request to the clinic, not
+something the patient reported about themselves, so it stays off their
+record.
+
 ### Exotel, as wired
 
 `voice/exotel.py` is the adapter. Three of Exotel's choices decided its

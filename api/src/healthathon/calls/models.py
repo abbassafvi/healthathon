@@ -31,3 +31,23 @@ class ScheduledCall(BaseModel):
 class ScheduledCalls(BaseModel):
     # Soonest first. Never ordered by anything about the patient.
     calls: list[ScheduledCall] = Field(default_factory=list)
+
+
+class CallbackRequest(BaseModel):
+    """A patient who asked the clinic to ring them back."""
+
+    id: UUID
+    patient_id: UUID
+    patient_name: str
+    registration_no: str
+    # So whoever rings back knows which language to speak.
+    preferred_language: str
+    requested_at: datetime
+    channel: str
+    seen_at: datetime | None
+    seen_by_name: str | None
+
+
+class CallbackRequests(BaseModel):
+    # Oldest first. Never ordered by anything about the patient.
+    requests: list[CallbackRequest] = Field(default_factory=list)

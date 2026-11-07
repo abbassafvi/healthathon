@@ -2155,6 +2155,138 @@
         }
       }
     },
+    "/api/callback-requests": {
+      "get": {
+        "tags": [
+          "calls"
+        ],
+        "summary": "Get Callback Requests",
+        "description": "Patients who asked to be rung back, oldest first.\n\nNever ordered by anything about the patient, and nothing here says\none matters more than another: a clinic user reads the list and\ndecides.",
+        "operationId": "get_callback_requests_api_callback_requests_get",
+        "parameters": [
+          {
+            "name": "include_seen",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Include Seen"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CallbackRequests"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/callback-requests/{request_id}/seen": {
+      "post": {
+        "tags": [
+          "calls"
+        ],
+        "summary": "Post Callback Seen",
+        "description": "Say a clinic user has seen this request. What happens next is a conversation.",
+        "operationId": "post_callback_seen_api_callback_requests__request_id__seen_post",
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CallbackRequest"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/patients/{patient_id}/callback-requests": {
+      "get": {
+        "tags": [
+          "calls"
+        ],
+        "summary": "Get Patient Callback Requests",
+        "description": "This patient's requests, newest first.",
+        "operationId": "get_patient_callback_requests_api_patients__patient_id__callback_requests_get",
+        "parameters": [
+          {
+            "name": "patient_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Patient Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CallbackRequests"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/clinic-day": {
       "get": {
         "tags": [
@@ -3585,6 +3717,91 @@
         ],
         "title": "Box",
         "description": "Normalised 0..1 region on the page, as core.provenance stores it."
+      },
+      "CallbackRequest": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "patient_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Patient Id"
+          },
+          "patient_name": {
+            "type": "string",
+            "title": "Patient Name"
+          },
+          "registration_no": {
+            "type": "string",
+            "title": "Registration No"
+          },
+          "preferred_language": {
+            "type": "string",
+            "title": "Preferred Language"
+          },
+          "requested_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Requested At"
+          },
+          "channel": {
+            "type": "string",
+            "title": "Channel"
+          },
+          "seen_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seen At"
+          },
+          "seen_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seen By Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "patient_id",
+          "patient_name",
+          "registration_no",
+          "preferred_language",
+          "requested_at",
+          "channel",
+          "seen_at",
+          "seen_by_name"
+        ],
+        "title": "CallbackRequest",
+        "description": "A patient who asked the clinic to ring them back."
+      },
+      "CallbackRequests": {
+        "properties": {
+          "requests": {
+            "items": {
+              "$ref": "#/components/schemas/CallbackRequest"
+            },
+            "type": "array",
+            "title": "Requests"
+          }
+        },
+        "type": "object",
+        "title": "CallbackRequests"
       },
       "CandidateReading": {
         "properties": {
@@ -7566,7 +7783,8 @@
               "menu",
               "tick",
               "reading",
-              "answer"
+              "answer",
+              "callback"
             ],
             "title": "Kind"
           },
