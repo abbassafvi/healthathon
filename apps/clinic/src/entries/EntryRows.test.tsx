@@ -27,6 +27,16 @@ describe('AnswerRow', () => {
     expect(screen.getByText('Spoken, kept as recorded, not transcribed')).toBeInTheDocument()
   })
 
+  it('shows what a speech recogniser heard under the recording, labelled as such', () => {
+    render(<AnswerRow e={answer({ answer_text: null, audio_url: '/api/storage/voice/p/a.m4a', audio_transcript: 'नहीं, शाम वाली भूल गया' })} />)
+    expect(screen.getByLabelText('The patient’s recording')).toBeInTheDocument()
+    const transcript = screen.getByTestId('transcript')
+    expect(transcript).toHaveTextContent('Written down by a speech recogniser. Check it against the recording.')
+    expect(screen.getByText('नहीं, शाम वाली भूल गया')).toHaveAttribute('lang', 'hi')
+    expect(screen.getByText('Spoken, kept as recorded')).toBeInTheDocument()
+    expect(screen.queryByText('Spoken, kept as recorded, not transcribed')).toBeNull()
+  })
+
   it('shows a tap and its recording together', () => {
     render(<AnswerRow e={answer({ answer_text: 'नहीं', audio_url: '/api/storage/voice/p/a.m4a' })} />)
     expect(screen.getByText('नहीं')).toBeInTheDocument()

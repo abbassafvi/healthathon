@@ -228,7 +228,7 @@ test('a prescription photographed on the phone is read and reaches the clinician
   expect(fromPhone[0].item_count).toBe(2)
 })
 
-test('a spoken answer reaches the clinic as recorded, and is not transcribed', async ({ page, request }) => {
+test('a spoken answer reaches the clinic as recorded, and is not transcribed by default', async ({ page, request }) => {
   await start(page, 'English', 'Asha Verma')
   await page.getByRole('button', { name: 'Speak your answer' }).click()
   await page.getByRole('button', { name: 'Start recording' }).click()
@@ -246,7 +246,8 @@ test('a spoken answer reaches the clinic as recorded, and is not transcribed', a
   expect(audio.ok()).toBe(true)
   // WebM, as the browser recorded it: the file begins with its own signature.
   expect([...(await audio.body()).subarray(0, 4)]).toEqual([0x1a, 0x45, 0xdf, 0xa3])
-  expect(Object.keys(answers[0]).filter((k) => /transcri/i.test(k))).toEqual([])
+  // Transcription is off unless the clinic switches it on: the voice stays at the clinic.
+  expect((answers[0] as { audio_transcript?: string | null }).audio_transcript).toBeNull()
 })
 
 /* Yesterday as the clinician sees it, read from the clinician's own endpoint. */

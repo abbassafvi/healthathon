@@ -466,6 +466,18 @@ COMMENT ON TABLE pat.felt_low_entry IS
   'There is deliberately no severity column: "required third-party '
   'assistance" is a grading criterion in diabetology and this is not that.';
 
+-- What a speech recogniser heard in a spoken answer. The recording stays
+-- the answer; this is a convenience for reading it, written by a machine,
+-- and is shown as such. Keyed by the recording, so a recording attached to
+-- any answer finds it. Nothing is summarised, translated or scored.
+CREATE TABLE pat.recording_transcript (
+    audio_key       text PRIMARY KEY,
+    transcript_text text NOT NULL,         -- as heard, in the script it was spoken in
+    language        text NOT NULL,         -- the language the recogniser was told to expect
+    transcriber     text NOT NULL,         -- the model that produced it, for reproducibility
+    created_at      timestamptz NOT NULL DEFAULT now()
+);
+
 CREATE TABLE pat.meal_photo (
     entry_id      uuid PRIMARY KEY REFERENCES pat.entry(id) ON DELETE CASCADE,
     storage_key   text NOT NULL,

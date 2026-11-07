@@ -77,6 +77,23 @@ describe('PastDaysScreen', () => {
     expect(within(y).getByText(q.text.en)).toBeTruthy()
   })
 
+  it('shows what was heard in a spoken answer under the recording, labelled', async () => {
+    const q = yesterday.answers[0].question
+    setup(async () => ({
+      days: [day('2026-10-25', { answers: [
+        { question: q, answer_text: null, audio_uri: 'http://clinic.test:8000/api/storage/voice/p/a.m4a', transcript: 'नहीं, शाम वाली भूल गया', occurred_at: '2026-10-25T20:00:00' },
+        { question: q, answer_text: null, audio_uri: 'http://clinic.test:8000/api/storage/voice/p/b.m4a', transcript: null, occurred_at: '2026-10-25T20:05:00' },
+      ] })],
+      next_before: null,
+    }))
+    const y = await screen.findByTestId('day-2026-10-25')
+    expect(within(y).getAllByTestId('playback')).toHaveLength(2)
+    const [heard] = within(y).getAllByTestId('transcript')
+    expect(within(heard!).getByText('Written down from your recording')).toBeTruthy()
+    expect(within(heard!).getByText('नहीं, शाम वाली भूल गया')).toBeTruthy()
+    expect(within(y).getAllByTestId('transcript')).toHaveLength(1)
+  })
+
   it('loads earlier days on request, and stops at the first entry', async () => {
     const { calls } = setup(async (before) =>
       before ? { days: [day('2026-10-18')], next_before: null } : { days: [yesterday], next_before: '2026-10-19' },

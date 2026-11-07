@@ -169,6 +169,14 @@ reach your own phone, put your number on a demo patient in your local
 database only: `uv run python -m dev_seed --phone DEV-0001=+91XXXXXXXXXX`.
 Never deploy in test mode.
 
+### Spoken answers
+
+The patient app keeps a spoken answer as a recording. To also have it
+written down, set `HEALTHATHON_TRANSCRIBE_RECORDINGS=true` with a Gemini
+`HEALTHATHON_AGENT_API_KEY`. This sends the patient's voice to Google, so
+it is off unless set. The clinic's microphone buttons use the browser's own
+speech recognition and need Chrome or Edge over `localhost` or HTTPS.
+
 ### SMS
 
 `POST /api/sms/inbound` stands in for an SMS gateway. The patient writes one

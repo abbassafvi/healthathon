@@ -2547,6 +2547,17 @@
               }
             ],
             "title": "Audio Url"
+          },
+          "audio_transcript": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Transcript"
           }
         },
         "type": "object",
@@ -2971,6 +2982,17 @@
               }
             ],
             "title": "Audio Uri"
+          },
+          "transcript": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Transcript"
           },
           "occurred_at": {
             "type": "string",
@@ -6733,6 +6755,17 @@
               }
             ],
             "title": "Answer Audio Uri"
+          },
+          "answer_transcript": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Answer Transcript"
           },
           "meals": {
             "items": {

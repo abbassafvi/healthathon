@@ -226,6 +226,8 @@ export const en = {
     meals: { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack' } as Record<string, string>,
     calories: '{n} kcal, as the patient typed it',
     spoken: 'Spoken, kept as recorded, not transcribed',
+    spokenTranscribed: 'Spoken, kept as recorded',
+    transcript: 'Written down by a speech recogniser. Check it against the recording.',
     recording: 'The patient’s recording',
     openPhoto: 'Open the photograph',
     answeredIn: 'Answered in {language}',

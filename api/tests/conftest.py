@@ -34,6 +34,7 @@ os.environ.update(
         # Inbound voice is off by default, because no provider is chosen.
         # The tests that cover it set the key, so the refusal is covered too.
         "HEALTHATHON_VOICE_GATEWAY_KEY": "dev-only-voice-key",
+        "HEALTHATHON_TRANSCRIBE_RECORDINGS": "false",
     }
 )
 

@@ -152,6 +152,17 @@ describe('TodayScreen', () => {
     expect(screen.queryByTestId('answer-given')).toBeNull()
   })
 
+  it('shows what was heard in today\'s spoken answer, once the clinic has it', async () => {
+    const { api } = renderApp(<As patient="DEV-0001" />)
+    const today = api.today.bind(api)
+    api.today = async (pid) => ({ ...(await today(pid)), answer: null, answer_audio_uri: 'file:///answer.m4a', answer_transcript: 'No, I forgot the evening one' })
+    const heard = await screen.findByTestId('transcript')
+    expect(within(heard).getByText('Written down from your recording')).toBeTruthy()
+    expect(within(heard).getByText('No, I forgot the evening one')).toBeTruthy()
+    expect(screen.getByTestId('playback')).toBeTruthy()
+    expect(screen.queryByTestId('answer-given')).toBeNull()
+  })
+
   it('keeps a tapped No with the words spoken after it', async () => {
     const { api } = renderApp(<As patient="DEV-0001" />)
     fireEvent.press(await screen.findByTestId('answer-no'))

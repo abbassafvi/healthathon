@@ -87,6 +87,8 @@ class Today(BaseModel):
     answer: str | None
     # The recording with today's answer, when it was spoken.
     answer_audio_uri: str | None
+    # What a speech recogniser heard in it, when transcription is on.
+    answer_transcript: str | None = None
     meals: list[AppMeal]
     survey: SurveyState
 
