@@ -7,6 +7,7 @@ that: where a recording may be fetched from, and that nothing is stored
 until the audio is actually in hand.
 """
 
+import time
 from typing import Any
 
 import httpx
@@ -104,12 +105,19 @@ def test_a_spoken_answer_is_written_down_beside_the_recording(
     transcripts.set_transcriber(Heard())
     try:
         assert recordings.collect(a_step(), URL, serving(MP3)) is True
-        row = db.execute(
-            "SELECT t.transcript_text, t.transcriber FROM pat.recording_transcript t"
-            " JOIN pat.survey_answer sa ON sa.audio_key = t.audio_key"
-            " JOIN pat.entry e ON e.id = sa.entry_id"
-            " WHERE e.client_capture_id = 'voice-exo-ans-1:answer:1'"
-        ).fetchone()
+        # Transcription runs on its own thread, after the answer is stored:
+        # wait for it, as a reader of the record would.
+        deadline = time.monotonic() + 10
+        row = None
+        while row is None and time.monotonic() < deadline:
+            row = db.execute(
+                "SELECT t.transcript_text, t.transcriber FROM pat.recording_transcript t"
+                " JOIN pat.survey_answer sa ON sa.audio_key = t.audio_key"
+                " JOIN pat.entry e ON e.id = sa.entry_id"
+                " WHERE e.client_capture_id = 'voice-exo-ans-1:answer:1'"
+            ).fetchone()
+            if row is None:
+                time.sleep(0.05)
         assert row is not None
         assert (row["transcript_text"], row["transcriber"]) == (
             "thoda chakkar aaya",
