@@ -408,9 +408,26 @@ real code on a demo patient: `uv run python -m dev_seed --phone DEV-0001=+91...`
 breaks the project's first rule (nothing interpretive to the patient, no
 treatment suggestions). Changing that rule is a team and clinical decision.
 
-## Designed, not built: automated voice calls
+## Automated voice calls
 
-Written 7 November 2026. None of this exists in the code. The scope excludes
+Written 7 November 2026 as a design, and the inbound half built the same
+day on Abbas's instruction. The scope still excludes the feature and the
+feature freeze has passed, so say that at the demonstration.
+
+**Inbound is built.** `POST /api/voice/inbound` takes one step of one
+call, matches the caller by `core.patient_phone.phone_hmac`, refuses
+anything without a granted unwithdrawn `voice` consent, and stores key
+presses through `inbound/store.py`, which the SMS path now shares. It is
+off unless `HEALTHATHON_VOICE_GATEWAY_KEY` is set, and that is empty by
+default, because no provider is chosen. Tests: `api/tests/test_voice.py`.
+
+**Outbound is not built**, and is not just more code: see "What outbound
+adds" below. It needs a dialable number, which reverses a privacy choice
+in the frozen schema, and it is a notification, which the scope excludes
+separately. Both are human decisions.
+
+The design below is what was built against. None of the outbound part
+exists in the code. The scope excludes
 automated voice calls, because they need a telephony provider, an account and
 a budget, and the SMS endpoint already proves the data path. Say so at the
 demonstration. Building it needs both tracks to change the scope, and the
@@ -466,7 +483,29 @@ An unanswered call writes nothing. The compliance score counts a medicine with
 no tick as not ticked, so a call nobody picked up reads the same as a dose not
 taken. Whoever builds outbound decides how the clinician is told.
 
+### What the provider adapter has to do
+
+`VoiceStep` is deliberately not Twilio's shape or Exotel's. An adapter
+maps the provider's form fields onto it, so nothing in the record depends
+on which company carries the call:
+
+| VoiceStep field | What the adapter supplies |
+| --- | --- |
+| `call_id`, `step` | the provider's call id, and which step this is. Together they are the capture id, so a redelivered webhook stores once |
+| `from` | caller ID |
+| `kind` | `menu`, `tick`, `reading` or `answer`, from which prompt was playing |
+| `digits` | the keys pressed, with `#` and `*` stripped |
+| `item_number` | which medicine, by its number on the SMS card, carried from the earlier step |
+| `context` | which key the caller pressed for the time of day |
+| `audio_key` | for a spoken answer, the recording already stored |
+
+The reply names a recorded prompt and repeats the digits stored. It
+carries no text to speak, so no machine voice is needed and no recording
+has to pronounce a drug name: a medicine is its number on the card.
+
 ### Open before building
+
+
 
 - **Provider.** Twilio already sends the sign-in codes, but calls from a +91
   caller ID to +91 numbers reportedly stopped working in August 2024. Confirm

@@ -28,6 +28,11 @@ class Settings(BaseSettings):
     phone_hmac_key: str = "dev-only-phone-key"
     # The SMS gateway stand-in sends this in X-Gateway-Key.
     sms_gateway_key: str = "dev-only-gateway-key"
+    # The voice provider's webhook sends this in X-Gateway-Key. Its own key,
+    # not the SMS one: a leaked SMS key must not let anyone post call steps.
+    # Empty means inbound voice is off, and the endpoint refuses everything,
+    # which is the shipped default because no provider is chosen yet.
+    voice_gateway_key: str = ""
     # Patient sign-in by a code sent by SMS. With all three Twilio values set,
     # codes go through Twilio Verify. Without them sign-in is in test mode: the
     # code is shown on the sign-in screen and written to the log, which is for

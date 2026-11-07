@@ -1965,6 +1965,66 @@
         }
       }
     },
+    "/api/voice/inbound": {
+      "post": {
+        "tags": [
+          "voice"
+        ],
+        "summary": "Post Inbound",
+        "description": "One step of one inbound call, as the voice provider's webhook reports it.\n\nOff unless `voice_gateway_key` is set, which it is not by default: no\nprovider has been chosen, and an endpoint that stores patient data\nmust not be reachable because a setting was left at a placeholder.\n\nThe provider's own payload is mapped onto `VoiceStep` by an adapter,\nso nothing in the record depends on which company carries the call.",
+        "operationId": "post_inbound_api_voice_inbound_post",
+        "parameters": [
+          {
+            "name": "x-gateway-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Gateway-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VoiceStep"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoiceReply"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/clinic-day": {
       "get": {
         "tags": [
@@ -2402,7 +2462,8 @@
             "enum": [
               "patient_app",
               "paper_form",
-              "sms"
+              "sms",
+              "voice_call"
             ],
             "title": "Channel"
           },
@@ -4174,7 +4235,8 @@
             "enum": [
               "patient_app",
               "paper_form",
-              "sms"
+              "sms",
+              "voice_call"
             ],
             "title": "Channel"
           },
@@ -4376,7 +4438,8 @@
             "enum": [
               "patient_app",
               "paper_form",
-              "sms"
+              "sms",
+              "voice_call"
             ],
             "title": "Channel"
           },
@@ -6457,7 +6520,8 @@
             "enum": [
               "patient_app",
               "paper_form",
-              "sms"
+              "sms",
+              "voice_call"
             ],
             "title": "Channel"
           },
@@ -7053,6 +7117,193 @@
           "compliance"
         ],
         "title": "VisitSummary"
+      },
+      "VoiceProblem": {
+        "properties": {
+          "line": {
+            "type": "string",
+            "title": "Line"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "line",
+          "reason"
+        ],
+        "title": "VoiceProblem"
+      },
+      "VoiceReply": {
+        "properties": {
+          "accepted": {
+            "type": "boolean",
+            "title": "Accepted"
+          },
+          "duplicate": {
+            "type": "boolean",
+            "title": "Duplicate"
+          },
+          "prompt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt"
+          },
+          "confirm": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confirm"
+          },
+          "expect": {
+            "enum": [
+              "digits",
+              "recording",
+              null
+            ],
+            "title": "Expect"
+          },
+          "stored": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Stored",
+            "default": []
+          },
+          "problems": {
+            "items": {
+              "$ref": "#/components/schemas/VoiceProblem"
+            },
+            "type": "array",
+            "title": "Problems",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "accepted",
+          "duplicate",
+          "prompt",
+          "confirm"
+        ],
+        "title": "VoiceReply",
+        "description": "What the call should do next. No prompt text, only which prompt.\n\nThe audio is recorded by people in each language and played by the\nadapter, so nothing here is spoken by a machine and no drug name is\never read out: a medicine is its number on the patient's SMS card."
+      },
+      "VoiceStep": {
+        "properties": {
+          "call_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9-]{1,64}$",
+            "title": "Call Id",
+            "description": "The provider's id for this call"
+          },
+          "step": {
+            "type": "integer",
+            "maximum": 99.0,
+            "minimum": 1.0,
+            "title": "Step"
+          },
+          "from": {
+            "type": "string",
+            "maxLength": 32,
+            "title": "From",
+            "description": "Caller ID"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "menu",
+              "tick",
+              "reading",
+              "answer"
+            ],
+            "title": "Kind"
+          },
+          "digits": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]{0,12}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Digits"
+          },
+          "audio_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^voice/[0-9a-f-]{36}/[A-Za-z0-9_-]{8,64}\\.(m4a|webm|ogg|wav)$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Key"
+          },
+          "item_number": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 99.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Item Number"
+          },
+          "context": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 20
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context"
+          },
+          "occurred_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Occurred At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "call_id",
+          "step",
+          "from",
+          "kind"
+        ],
+        "title": "VoiceStep",
+        "description": "One step of one inbound call, as the provider's webhook reports it.\n\nDeliberately not any provider's own shape: an adapter maps Twilio's or\nExotel's form fields onto this, so the record never depends on which\ncompany carries the call."
       },
       "Waiting": {
         "properties": {

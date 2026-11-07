@@ -230,7 +230,7 @@ export const en = {
     openPhoto: 'Open the photograph',
     answeredIn: 'Answered in {language}',
     shownAs: 'Shown to the patient as',
-    channels: { patient_app: 'App', paper_form: 'Paper form', sms: 'SMS' } as Record<string, string>,
+    channels: { patient_app: 'App', paper_form: 'Paper form', sms: 'SMS', voice_call: 'Phone call' } as Record<string, string>,
     enteredByCaregiver: 'entered by {name}',
     enteredByStaff: 'entered by clinic staff',
     contexts: {
@@ -565,6 +565,7 @@ export const en = {
       'regimen_item.correct': 'Corrected a prescription line',
       'regimen_item.remove': 'Removed a line that is not a medicine',
       'paper_form.enter': 'Entered a paper form',
+      'voice.receive': 'Received a phone call',
       'record.read': "Opened the patient's documents",
       'entries.read': "Read the patient's entries",
       'visit.read': 'Opened the visit page',
