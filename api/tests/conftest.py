@@ -31,6 +31,9 @@ os.environ.update(
         "HEALTHATHON_AGENT_MAX_CROPS_PER_CALL": "12",
         "HEALTHATHON_CONFIDENCE_THRESHOLD": "1.0",
         "HEALTHATHON_LEGIBILITY_MIN_SHARPNESS": "1450.0",
+        # Inbound voice is off by default, because no provider is chosen.
+        # The tests that cover it set the key, so the refusal is covered too.
+        "HEALTHATHON_VOICE_GATEWAY_KEY": "dev-only-voice-key",
     }
 )
 

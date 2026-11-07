@@ -7,7 +7,10 @@ from pydantic import BaseModel, Field
 # Patient-reported entries, stored as the patient gave them. Nothing here is
 # scored, totalled or interpreted, and no field carries a range or a target.
 
-Channel = Literal["patient_app", "paper_form", "sms"]
+# Which door an entry came in by. A subset of core.intake_channel: the
+# ones a patient's own entry can arrive through. Widened for voice_call,
+# so a reading keyed in on a call is not invisible to the clinician.
+Channel = Literal["patient_app", "paper_form", "sms", "voice_call"]
 EnteredBy = Literal["patient", "caregiver", "clinic_staff"]
 GlucoseContext = Literal["fasting", "before_meal", "after_meal", "bedtime", "overnight", "random"]
 MealName = Literal["breakfast", "lunch", "dinner", "snack"]
