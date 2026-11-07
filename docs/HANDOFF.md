@@ -483,7 +483,58 @@ An unanswered call writes nothing. The compliance score counts a medicine with
 no tick as not ticked, so a call nobody picked up reads the same as a dose not
 taken. Whoever builds outbound decides how the clinician is told.
 
-### What the provider adapter has to do
+### Exotel, as wired
+
+`voice/exotel.py` is the adapter. Three of Exotel's choices decided its
+shape, and all three are in its own documentation:
+
+- The Passthru applet makes a **GET** with query parameters, not a JSON
+  POST, so the adapter is a separate route from `/api/voice/inbound`.
+- Exotel documents no custom HTTP headers, so the shared secret travels
+  in the URL path. That is weaker than `X-Gateway-Key`, because a URL is
+  logged by the provider and by anything in between. Rotate it, and
+  prefer the header route for any provider that supports one. A wrong
+  secret gets 404 rather than 401, so an unguessed URL does not confirm
+  it exists.
+- A Passthru response "cannot be customised" and carries only a binary
+  decision: 200 one path through the flow, 302 the other. So this
+  endpoint cannot tell Exotel what to say. The prompts, the menu and the
+  keypad gathering all live in Exotel's flow builder; 200 means stored
+  and 302 means not, and the flow plays its own recorded prompt either
+  way.
+
+That last point is why the branch is in the URL and not in the payload.
+Exotel hands over only the digits from the gather immediately before, so
+asking "which medicine" at one step and "taken or not" at another would
+need the endpoint to remember a half-finished call. It does not. The flow
+branches first and the branch is part of the address it calls, so nothing
+is held between requests and a restart loses nothing.
+
+The URLs to paste into the flow builder, with the secret from
+`HEALTHATHON_VOICE_GATEWAY_KEY` in `api/.env`:
+
+```
+https://<public-host>/api/voice/exotel/<secret>/tick/yes
+https://<public-host>/api/voice/exotel/<secret>/tick/no
+https://<public-host>/api/voice/exotel/<secret>/reading/fasting
+https://<public-host>/api/voice/exotel/<secret>/reading/before_meal
+https://<public-host>/api/voice/exotel/<secret>/reading/after_meal
+https://<public-host>/api/voice/exotel/<secret>/reading/bedtime
+https://<public-host>/api/voice/exotel/<secret>/reading/random
+```
+
+`digits` arrives wrapped in double quotes, which Exotel's documentation
+says to trim, and the adapter does. Exotel's `CallSid` plus which branch
+and which digits make the capture id, so a redelivered Passthru stores
+once while two instructions in one call both store.
+
+A spoken answer is **not** wired to Exotel. Their Voicemail applet hands
+back a `RecordingUrl` to fetch and store, which nothing here does yet.
+The generic endpoint takes a spoken answer through `audio_key`.
+
+### What a different provider's adapter has to do
+
+
 
 `VoiceStep` is deliberately not Twilio's shape or Exotel's. An adapter
 maps the provider's form fields onto it, so nothing in the record depends

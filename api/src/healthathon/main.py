@@ -21,6 +21,7 @@ from healthathon.regimens.routes import router as regimens_router
 from healthathon.sms.routes import router as sms_router
 from healthathon.uploads.routes import router as uploads_router
 from healthathon.visit.routes import router as visit_router
+from healthathon.voice.exotel import router as exotel_voice_router
 from healthathon.voice.routes import router as voice_router
 
 
@@ -46,6 +47,7 @@ app.include_router(regimens_router)
 app.include_router(visit_router)
 app.include_router(sms_router)
 app.include_router(voice_router)
+app.include_router(exotel_voice_router)
 app.include_router(clinic_day_router)
 app.include_router(reading_router)
 app.include_router(audit_log_router)
