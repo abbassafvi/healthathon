@@ -7,7 +7,7 @@ from healthathon.entries.models import GlucoseContext
 
 # What the caller is being asked for at this step of the call. The provider
 # posts one request per step, so the step says how to read `digits`.
-StepKind = Literal["menu", "tick", "reading", "answer"]
+StepKind = Literal["menu", "tick", "reading", "answer", "callback"]
 
 # A recording the provider already stored for us, as /recordings names them.
 RECORDING_KEY = r"^voice/[0-9a-f-]{36}/[A-Za-z0-9_-]{8,64}\.(mp3|m4a|webm|ogg|wav)$"

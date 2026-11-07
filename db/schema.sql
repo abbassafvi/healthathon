@@ -418,6 +418,35 @@ CREATE TABLE core.scheduled_call (
 CREATE INDEX scheduled_call_due_idx ON core.scheduled_call (scheduled_for)
     WHERE placed_at IS NULL AND cancelled_at IS NULL AND failure IS NULL;
 
+-- A patient asking the clinic to ring them back. They press a key on a
+-- call they made, and it lands here.
+--
+-- Deliberately the other direction from core.scheduled_call: that is a
+-- clinician deciding to ring someone, this is a patient asking. Nothing
+-- here ranks or sorts patients by anything about them; the only order is
+-- when they asked. The clinic rings back by a person deciding to, not by
+-- anything automatic, so there is no column saying whether one matters
+-- more than another.
+CREATE TABLE core.callback_request (
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    patient_id      uuid NOT NULL REFERENCES core.patient(id) ON DELETE CASCADE,
+    requested_at    timestamptz NOT NULL DEFAULT now(),
+    -- How they asked. Only voice_call today; the column is here so a
+    -- request by SMS needs no migration.
+    channel         core.intake_channel NOT NULL,
+    -- The provider's id for the call they asked on, so a redelivered
+    -- webhook records one request rather than several.
+    client_capture_id text NOT NULL UNIQUE,
+    -- Set when a clinic user has seen it. Never says what they did about
+    -- it: that is a conversation, not a field.
+    seen_at         timestamptz,
+    seen_by         uuid REFERENCES core.clinic_user(id),
+    CONSTRAINT callback_seen_by_a_person CHECK ((seen_at IS NULL) = (seen_by IS NULL))
+);
+-- The clinic asks for the ones nobody has looked at yet, oldest first.
+CREATE INDEX callback_request_open_idx ON core.callback_request (requested_at)
+    WHERE seen_at IS NULL;
+
 -- =====================================================================
 --  5 · THE HUMAN IN THE LOOP
 -- =====================================================================

@@ -34,6 +34,7 @@ ASK_WHICH_MEDICINE = "voice.which_medicine"
 ASK_READING = "voice.reading"
 ASK_ANSWER = "voice.todays_question"
 DONE = "voice.done"
+CALLBACK_TAKEN = "voice.callback_taken"
 NOT_RECOGNISED = "voice.not_recognised"
 
 # The main menu, as the recording reads it out.
@@ -67,6 +68,16 @@ def handle(conn: Connection[DictRow], step: VoiceStep) -> VoiceReply:
     patient_id: UUID = patient["id"]
     if step.kind == "menu":
         return _menu(step)
+    if step.kind == "callback":
+        # Not an entry: asking to be rung back is not something the
+        # patient reported about themselves, it is a request to the
+        # clinic, so it goes on its own list rather than into the record.
+        from healthathon.calls import callbacks
+
+        callbacks.record(conn, patient_id, base)
+        return VoiceReply(
+            accepted=True, duplicate=False, prompt=CALLBACK_TAKEN, confirm=None, stored=[]
+        )
 
     instruction, confirm = _instruction(step)
     if instruction is None:
