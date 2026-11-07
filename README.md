@@ -162,7 +162,27 @@ HEALTHATHON_TWILIO_VERIFY_SID=VA...
 HEALTHATHON_SESSION_SECRET=<a long random value>
 ```
 
-Without the Twilio values the API is in test mode: no SMS is sent, and the
+Or send codes through Exotel, which the clinic may already use for voice.
+The API then makes the code itself and sends it as an SMS. India requires
+a business SMS to come from a DLT-registered sender and to match a
+DLT-registered template, so every value is needed:
+
+```
+HEALTHATHON_EXOTEL_API_KEY=...
+HEALTHATHON_EXOTEL_API_TOKEN=...
+HEALTHATHON_EXOTEL_ACCOUNT_SID=...
+HEALTHATHON_EXOTEL_SMS_FROM=<the DLT-approved sender ID>
+HEALTHATHON_EXOTEL_DLT_ENTITY_ID=...
+HEALTHATHON_EXOTEL_DLT_TEMPLATE_ID=<the approved OTP template>
+HEALTHATHON_EXOTEL_OTP_TEMPLATE={code} is your cliniConnect sign-in code. It expires in 10 minutes.
+HEALTHATHON_EXOTEL_SUBDOMAIN=api.exotel.com      # api.in.exotel.com for a Mumbai account
+```
+
+The template setting must match the registered template word for word,
+with `{code}` where the template has its variable, or the operator drops
+the message. If only some of these are set, sign-in stays in test mode.
+
+Without Twilio or Exotel values the API is in test mode: no SMS is sent, and the
 sign-in screen shows the code (it is also in the API's log). The seed's
 fictional patients use 55500 00001 to 55500 00004. To have a real code
 reach your own phone, put your number on a demo patient in your local
