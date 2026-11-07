@@ -7784,6 +7784,7 @@
               "tick",
               "reading",
               "answer",
+              "keyed_answer",
               "callback"
             ],
             "title": "Kind"

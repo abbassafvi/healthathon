@@ -222,3 +222,89 @@ def test_what_a_call_records_reaches_the_patient_and_the_clinician(
     theirs = [r for r in mine["readings"] if r["value_text"] == "142"]
     assert theirs, mine["readings"]
     assert theirs[0]["channel"] == "voice_call"
+
+
+# The day's question on the keypad. This account's Exotel plan has no
+# voicemail applet, so a caller cannot be recorded; the question is a yes
+# or no, so one key carries it.
+
+
+def _answers(client: Any, pid: str) -> list[str | None]:
+    return [e["answer_text"] for e in _entries(client, pid) if e["kind"] == "survey_answer"]
+
+
+def test_pressing_one_answers_the_days_question_yes(
+    client: Any, db: psycopg.Connection[Any], pid: str, agreed: None
+) -> None:
+    """Asha's language is Hindi, so her answer is stored in Hindi."""
+    res = hit(client, "/keyed-answer", digits='"1"')
+    assert res.status_code == 200, res.text
+    assert _answers(client, pid) == ["हाँ"]
+
+
+def test_pressing_two_answers_the_days_question_no(
+    client: Any, db: psycopg.Connection[Any], pid: str, agreed: None
+) -> None:
+    res = hit(client, "/keyed-answer", digits='"2"')
+    assert res.status_code == 200, res.text
+    assert _answers(client, pid) == ["नहीं"]
+
+
+def test_an_english_speaker_gets_her_answer_in_english(
+    client: Any, db: psycopg.Connection[Any]
+) -> None:
+    """The word follows the patient, not the clinic."""
+    meera = patient_id(db, "DEV-0003")
+    db.execute(
+        "INSERT INTO core.consent (patient_id, item, granted, language, captured_by)"
+        " SELECT %s, 'voice', true, 'en', id FROM core.clinic_user LIMIT 1",
+        (meera,),
+    )
+    res = hit(client, "/keyed-answer", CallFrom=MEERA_SMS_ONLY, digits='"1"')
+    assert res.status_code == 200, res.text
+    assert _answers(client, meera) == ["Yes"]
+
+
+@pytest.mark.parametrize("pressed", ['"3"', '"0"', '""', '"12"'])
+def test_a_press_that_is_not_yes_or_no_stores_nothing(
+    client: Any, db: psycopg.Connection[Any], pid: str, agreed: None, pressed: str
+) -> None:
+    """
+    Not answering and answering no are different reports, so an
+    unrecognised press is asked again rather than read as either.
+    """
+    res = hit(client, "/keyed-answer", digits=pressed)
+    assert res.status_code == 302
+    assert _answers(client, pid) == []
+
+
+def test_the_same_press_delivered_twice_is_answered_once(
+    client: Any, db: psycopg.Connection[Any], pid: str, agreed: None
+) -> None:
+    assert hit(client, "/keyed-answer", digits='"1"').status_code == 200
+    assert hit(client, "/keyed-answer", digits='"1"').status_code == 200
+    assert _answers(client, pid) == ["हाँ"]
+
+
+def test_a_caller_without_voice_consent_has_no_answer_stored(
+    client: Any, db: psycopg.Connection[Any]
+) -> None:
+    meera = patient_id(db, "DEV-0003")
+    res = hit(client, "/keyed-answer", CallFrom=MEERA_SMS_ONLY, digits='"1"')
+    assert res.status_code == 302
+    assert _answers(client, meera) == []
+
+
+def test_a_keyed_answer_reaches_the_patients_own_app(
+    client: Any, db: psycopg.Connection[Any], pid: str, agreed: None
+) -> None:
+    """The other half of the wiring: the patient sees what the call took."""
+    from healthathon.patient_app import signin
+
+    hit(client, "/keyed-answer", digits='"2"')
+    token = signin.token_for(UUID(pid))
+    today = client.get(
+        f"/api/app/patients/{pid}/today", headers={"Authorization": f"Bearer {token}"}
+    ).json()
+    assert today["question"]["key"] == "felt_unwell_today"
+    assert today["answer"] == "नहीं"

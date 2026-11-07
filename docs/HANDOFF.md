@@ -564,6 +564,29 @@ An unanswered call writes nothing. The compliance score counts a medicine with
 no tick as not ticked, so a call nobody picked up reads the same as a dose not
 taken. Whoever builds outbound decides how the clinician is told.
 
+### The day's question, on the keypad
+
+`/api/voice/exotel/{secret}/keyed-answer`. One key: 1 is yes, 2 is no.
+The answer is stored as the word in the patient's own language, so a
+clinician reads a spoken, typed and keyed answer the same way and is
+never told which arrived how.
+
+This exists because the Exotel account has no Voicemail applet. Its
+palette offers eighteen applets and voicemail is not among them, and
+Connect only records a conversation with a dialled agent, so there is no
+way to record a caller. `/answer` and the whole recording path are
+untouched and still correct; they simply cannot run on this account.
+When voicemail is enabled, prefer it: a recording is the patient's own
+words, and a key press is two of ours.
+
+A press that is neither key is asked again. Not answering and answering
+no are different reports, and reading one as the other would be the
+system inventing an answer.
+
+`voice_recording_hosts` is deliberately empty. A guessed hostname would
+make the code look configured while `host_allowed` still dropped every
+recording. Set it from a real `RecordingUrl` once one exists.
+
 ### A patient asking to be rung back
 
 `/api/voice/exotel/{secret}/callback` after a Gather, and the request

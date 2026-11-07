@@ -40,6 +40,19 @@ NOT_RECOGNISED = "voice.not_recognised"
 # The main menu, as the recording reads it out.
 _MENU_CHOICES = {"1": ASK_WHICH_MEDICINE, "2": ASK_READING, "3": ASK_ANSWER}
 
+# The day's question is a yes or no, so a caller with no voicemail on
+# their line can still answer it on the keypad. The words are the
+# patient's own language, because that is how every other answer is
+# stored and a clinician reads them side by side.
+#
+# Two keys and nothing else. An unrecognised press is asked again rather
+# than read as a no, since silence and "no" are not the same report.
+_YES_NO: dict[str, dict[str, str]] = {
+    "en": {"1": "Yes", "2": "No"},
+    "hi": {"1": "हाँ", "2": "नहीं"},
+    "ur": {"1": "ہاں", "2": "نہیں"},
+}
+
 
 def handle(conn: Connection[DictRow], step: VoiceStep) -> VoiceReply:
     """
@@ -79,7 +92,7 @@ def handle(conn: Connection[DictRow], step: VoiceStep) -> VoiceReply:
             accepted=True, duplicate=False, prompt=CALLBACK_TAKEN, confirm=None, stored=[]
         )
 
-    instruction, confirm = _instruction(step)
+    instruction, confirm = _instruction(step, str(patient["preferred_language"]))
     if instruction is None:
         return VoiceReply(
             accepted=True,
@@ -130,7 +143,7 @@ def _menu(step: VoiceStep) -> VoiceReply:
     )
 
 
-def _instruction(step: VoiceStep) -> tuple[Instruction | None, str | None]:
+def _instruction(step: VoiceStep, language: str) -> tuple[Instruction | None, str | None]:
     """
     The key presses as an instruction, and what to repeat to the caller.
 
@@ -147,6 +160,11 @@ def _instruction(step: VoiceStep) -> tuple[Instruction | None, str | None]:
         if not digits or step.context is None:
             return None, None
         return Reading(value_text=digits, context=step.context), digits
+    if step.kind == "keyed_answer":
+        word = _YES_NO.get(language, _YES_NO["en"]).get(digits)
+        if word is None:
+            return None, None
+        return Answer(text=word), digits
     if step.kind == "answer":
         if not step.audio_key:
             return None, None
