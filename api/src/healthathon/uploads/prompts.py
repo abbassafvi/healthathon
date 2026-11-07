@@ -81,8 +81,9 @@ A value belongs in "values" when the page reports a result for it, and in
 
 RX_EXTRA = """\
 One item per prescribed medicine. Keep the drug, the dose and the
-schedule in separate fields, each as written. If a line's dose is not
-written, the line is not readable: put its crop index in "unreadable".
+schedule in separate fields, each as written. A medicine whose dose is
+not written is still prescribed: return it with "dose" null rather than
+leaving it out, and a clinician will settle it.
 
 Never map a brand name to a generic one. The generic name is not printed
 on the page, so there would be no region to check it against.
@@ -167,6 +168,9 @@ WHOLE_RX_SHAPE = """\
   ],
   "orders": [
     {"box": [0, 0, 0, 0], "analyte": "a test the page asks for"}
+  ],
+  "advice": [
+    {"box": [0, 0, 0, 0], "text": "an instruction that is not a medicine, as written"}
   ]
 }"""
 
@@ -194,11 +198,32 @@ WHOLE_RX_EXTRA = """\
 One item in "medicines" per prescribed medicine, with its box on the
 line it is written on. Never map a brand name to a generic one: the
 generic is not on the page, so there would be nothing to check it
-against. A line whose dose is not written is one you cannot stand
-behind, so leave it out.
+against. A medicine whose dose is not written is still prescribed:
+return it with "dose" null rather than leaving it out, and a clinician
+will settle it.
 
 A consultation card often writes a result beside the prescribing, such
-as "F = 180" for fasting glucose. Those go in "results"."""
+as "F = 180" for fasting glucose, a weight, or a blood pressure. Those
+go in "results". A blood pressure is one reading of two numbers, so
+give it exactly as written, "108/74", and never as two.
+
+A prescription also asks things of the patient that are not medicines:
+a diet, a daily walk, a measurement to bring next time. Put each in
+"advice".
+
+Read these with the context in mind, because they are a small set of
+familiar instructions in a clinician's hand. A diet is written in
+kilocalories a day, so "Diet = 1000 kcal/day" is what a line reading
+"dict = 1000 ueg / day" actually says: read the word and the unit for
+what they are rather than transcribing the shapes. The same goes for
+"Daily walk", "Low salt diet" and a test named for the next visit.
+
+This is reading the writing correctly, not rewriting it. Never change
+a number, never total a diet, and never add an instruction that is not
+on the page.
+
+Never return a diagnosis. "T2DM", "HTN" and "morbid obesity" name the
+patient's condition and are not yours to return, in any field."""
 
 
 def whole_page_prompt(doc_type: str, codes: list[str]) -> str:

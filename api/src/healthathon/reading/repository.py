@@ -101,7 +101,7 @@ def lines(conn: Connection[DictRow], document_id: UUID) -> list[dict[str, Any]]:
     return conn.execute(
         """
         SELECT ri.id, ri.regimen_id, ri.drug_text, ri.dose_text, ri.schedule_text,
-               ri.confirmed_at, u.full_name AS confirmed_by_name,
+               ri.confirmed_at, ri.accepted_at, u.full_name AS confirmed_by_name,
                pg.page_no, p.bbox_x, p.bbox_y, p.bbox_w, p.bbox_h,
                (SELECT e.old_value FROM audit.event e
                 WHERE e.entity_table = 'core.regimen_item' AND e.entity_id = ri.id

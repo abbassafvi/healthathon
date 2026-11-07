@@ -131,7 +131,14 @@ def _value(
 
 def _line(r: dict[str, Any]) -> ReadLine:
     original = r["original"]
-    state = "waiting" if r["confirmed_at"] is None else "corrected" if original else "confirmed"
+    # A line the checks settled is not waiting, and its text is shown:
+    # hiding it left the page claiming nothing had been read.
+    if r["confirmed_at"] is not None:
+        state = "corrected" if original else "confirmed"
+    elif r.get("accepted_at") is not None:
+        state = "accepted"
+    else:
+        state = "waiting"
     reviewed = state != "waiting"
     return ReadLine(
         id=r["id"],

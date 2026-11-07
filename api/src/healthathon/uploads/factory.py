@@ -27,10 +27,21 @@ _agent_override: DocumentAgent | None = None
 
 
 def build_detector() -> TextDetector:
-    """One detector per process: loading the model costs seconds."""
+    """
+    One detector per process: loading the model costs seconds.
+
+    The configured model and backend are passed through. They were read
+    from settings and then dropped here, so changing either had no
+    effect on what ran.
+    """
     global _detector
     if _detector is None:
-        _detector = StubDetector() if get_settings().detector == "stub" else PaddleDetector()
+        settings = get_settings()
+        _detector = (
+            StubDetector()
+            if settings.detector == "stub"
+            else PaddleDetector(settings.detector_onednn, settings.detector_model)
+        )
     return _detector
 
 

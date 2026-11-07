@@ -87,7 +87,9 @@ class ReadLine(BaseModel):
     id: UUID
     page_no: int | None
     box: Box | None
-    state: Literal["waiting", "confirmed", "corrected"]
+    # "accepted" means every check on the line passed and nobody had to
+    # look. It is not "confirmed": no person is named against it.
+    state: Literal["waiting", "accepted", "confirmed", "corrected"]
     # None while the line waits for review: it is shown on the review page,
     # next to its crop, and nowhere else.
     drug_text: str | None

@@ -56,6 +56,30 @@ def items_of(conn: Connection[DictRow], regimen_ids: list[UUID]) -> list[dict[st
     ).fetchall()
 
 
+_ADVICE = """
+SELECT a.id, a.regimen_id, a.advice_text, a.accepted_at, a.confirmed_at,
+       u.full_name AS confirmed_by_name,
+       p.bbox_x, p.bbox_y, p.bbox_w, p.bbox_h,
+       pg.storage_key AS page_key, pg.width_px, pg.height_px
+FROM core.regimen_advice a
+JOIN core.provenance p ON p.id = a.provenance_id
+LEFT JOIN core.document_page pg ON pg.id = p.page_id
+LEFT JOIN core.clinic_user u ON u.id = a.confirmed_by
+"""
+
+
+def advice(conn: Connection[DictRow], advice_id: UUID) -> dict[str, Any] | None:
+    return conn.execute(_ADVICE + " WHERE a.id = %s", (advice_id,)).fetchone()
+
+
+def advice_of(conn: Connection[DictRow], regimen_ids: list[UUID]) -> list[dict[str, Any]]:
+    """Advice in the order it is written on the page."""
+    return conn.execute(
+        _ADVICE + " WHERE a.regimen_id = ANY(%s) ORDER BY p.bbox_y NULLS LAST, a.id",
+        (regimen_ids,),
+    ).fetchall()
+
+
 def item(conn: Connection[DictRow], item_id: UUID) -> dict[str, Any] | None:
     return conn.execute(_ITEMS + " WHERE ri.id = %s", (item_id,)).fetchone()
 

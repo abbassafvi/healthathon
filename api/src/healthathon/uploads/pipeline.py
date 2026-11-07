@@ -9,36 +9,41 @@ there is never a queue item whose image cannot be rendered.
 """
 
 import hashlib
-import io
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from datetime import datetime
-from pathlib import Path
 from uuid import UUID
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image
 from psycopg import Connection
 from psycopg.rows import DictRow
 from psycopg.types.json import Jsonb
 
 from healthathon import storage
-from healthathon.config import Settings, get_settings
+from healthathon.config import Settings
 from healthathon.uploads.agent import Crop, DocType, DocumentAgent, drop_ungrounded
-from healthathon.uploads.consensus import combine
+from healthathon.uploads.consensus import Consensus, combine
 from healthathon.uploads.detector import Box, TextDetector, draw_boxes, merge_lines
 from healthathon.uploads.normalise import straighten
+from healthathon.uploads.page_images import (
+    context_page,
+    cut_crops,
+    page_key,
+    save_page,
+    storage_path,
+    straight_key,
+)
 from healthathon.uploads.persist import Outcome, persist_lab_report, persist_prescription
 from healthathon.uploads.whole_page import fold_near_duplicates
 from healthathon.uploads.writer import StoredPage, open_intake, store_page
 
 PROFILE_VERSION = "detect-then-agent/1"
-# Padding around a detected region, as a fraction of its size. A crop cut
-# exactly on the box loses the ascenders and the decimal point, but a
-# quarter of a tall handwritten line reaches well into the line below,
-# which is how one crop came to hold three medicines.
-CROP_PAD_X = 0.06
-CROP_PAD_Y = 0.10
-MAX_CROPS = 60
+# A ceiling on the regions one page can produce, so a detection that goes
+# wrong cannot fill the disk with crops. It was 60, which a dense
+# prescription passes halfway down the page: the bottom was dropped and
+# nothing said so. Anything this does cut is recorded on the run.
+MAX_CROPS = 400
 
 
 def code_commit() -> str:
@@ -54,167 +59,40 @@ def code_commit() -> str:
         return "unknown"
 
 
-def _page_key(digest: str) -> str:
-    return f"documents/{digest[:2]}/{digest}/page-1.png"
-
-
-def _context_key(digest: str) -> str:
-    return f"documents/{digest[:2]}/{digest}/context.jpg"
-
-
-def context_page(page: Path, digest: str, widest: int) -> Path:
+@dataclass(frozen=True)
+class PageRead:
     """
-    A smaller copy of the page, for the agent's sense of the layout.
+    What reading a photograph produced, before anything is written.
 
-    The prompt forbids reading a value off the whole page, so it is
-    context and nothing else. Sending it at full size meant the same
-    megabytes travelled with every call, six times for one document.
+    It carries no database handle on purpose. Detection and the model
+    calls take seconds to minutes, and holding a pooled connection
+    across them left it idle in a transaction against a pool of
+    sixteen: a slow provider could take the pool down with it.
     """
-    key = _context_key(digest)
-    made = storage.resolve(key)
-    if made is not None:
-        return made
-    with Image.open(page) as opened:
-        img = opened.convert("RGB")
-    if max(img.size) > widest:
-        img.thumbnail((widest, widest))
-    # JPEG, because a photographed page is a photograph: the same pixels
-    # as PNG cost several times as much to send, for an image the prompt
-    # forbids reading anything off.
-    buf = io.BytesIO()
-    img.save(buf, format="JPEG", quality=80, optimize=True)
-    storage.save(key, buf.getvalue())
-    made = storage.resolve(key)
-    assert made is not None
-    return made
+
+    digest: bytes
+    storage_key: str
+    width: int
+    height: int
+    boxes: list[Box]
+    crops: dict[int, Crop]
+    agreed: Consensus
+    regions_dropped: int
 
 
-def _straight_key(digest: str) -> str:
-    return f"documents/{digest[:2]}/{digest}/straight.png"
-
-
-def _crop_key(digest: str, index: int) -> str:
-    return f"documents/{digest[:2]}/{digest}/crops/{index:03d}.png"
-
-
-def _labelled_key(digest: str, index: int) -> str:
-    """Only the agent reads these, so they live apart from what a person sees."""
-    return f"documents/{digest[:2]}/{digest}/labelled/{index:03d}.png"
-
-
-def _storage_path(key: str) -> Path:
-    """Where a key lives on disk, whether or not anything is there yet."""
-    root = get_settings().storage_dir.resolve()
-    return root / key
-
-
-def save_page(data: bytes, digest: str) -> tuple[Path, int, int]:
-    """
-    Store the photograph as PNG and report its size. Re-encoding once
-    here means every later crop reads the same pixels the detector saw.
-    """
-    key = _page_key(digest)
-    path = storage.resolve(key)
-    if path is None:
-        with Image.open(io.BytesIO(data)) as img:
-            storage.save_image(key, img.convert("RGB"))
-        path = storage.resolve(key)
-    assert path is not None
-    with Image.open(path) as img:
-        return path, img.width, img.height
-
-
-# A crop shown to the agent is never smaller than this, and its index is
-# printed in a band this tall.
-MIN_SHOWN_H = 110
-LABEL_H = 34
-
-
-def _label_font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
-    for path in (
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-    ):
-        try:
-            return ImageFont.truetype(path, size)
-        except OSError:
-            continue
-    return ImageFont.load_default()
-
-
-def _labelled(region: Image.Image, index: int) -> Image.Image:
-    """
-    The crop with its own index printed above it, enlarged if it is small.
-
-    The agent has to say which region each reading came from. Asked to
-    count the images it was shown, it miscounts: on a three-column
-    laboratory table it returned 8, 10, 12, 14, a tidy arithmetic
-    sequence pointing at the wrong rows, while reading every value
-    correctly. Printing the number into the image removes the counting.
-
-    A line of a photographed page is about thirty pixels tall, and at
-    that size neither the number nor the handwriting survives. Both are
-    enlarged together: every reading on one card came back citing box 0
-    and box 12 until they were.
-    """
-    if region.height < MIN_SHOWN_H:
-        scale = MIN_SHOWN_H / max(region.height, 1)
-        region = region.resize(
-            (max(int(region.width * scale), 1), MIN_SHOWN_H), Image.Resampling.LANCZOS
-        )
-    canvas = Image.new("RGB", (max(region.width, 160), region.height + LABEL_H), "white")
-    canvas.paste(region.convert("RGB"), (0, LABEL_H))
-    draw = ImageDraw.Draw(canvas)
-    draw.rectangle((0, 0, canvas.width, LABEL_H - 1), fill=(20, 20, 20))
-    draw.text((6, 4), f"CROP {index}", fill=(255, 255, 255), font=_label_font(LABEL_H - 12))
-    return canvas
-
-
-def cut_crops(page: Path, boxes: list[Box], digest: str) -> dict[int, Crop]:
-    """Cut every detected region out of the page, padded, and store it."""
-    crops: dict[int, Crop] = {}
-    with Image.open(page) as img:
-        width, height = img.size
-        for index, box in enumerate(boxes):
-            left, top, right, bottom = box.pixels(width, height)
-            pad_x = int((right - left) * CROP_PAD_X)
-            pad_y = int((bottom - top) * CROP_PAD_Y)
-            region = (
-                max(left - pad_x, 0),
-                max(top - pad_y, 0),
-                min(right + pad_x, width),
-                min(bottom + pad_y, height),
-            )
-            if region[2] <= region[0] or region[3] <= region[1]:
-                continue
-            cut = img.crop(region)
-            key = _crop_key(digest, index)
-            storage.save_image(key, cut)
-            label_key = _labelled_key(digest, index)
-            storage.save_image(label_key, _labelled(cut, index))
-            path, labelled = storage.resolve(key), storage.resolve(label_key)
-            assert path is not None and labelled is not None
-            crops[index] = Crop(index=index, path=path, storage_key=key, labelled=labelled, box=box)
-    return crops
-
-
-def run(
-    conn: Connection[DictRow],
+def read_page(
     *,
-    capture_id: str,
-    patient_id: UUID,
-    uploaded_by: UUID,
     doc_type: DocType,
-    captured_at: datetime,
     data: bytes,
     detector: TextDetector,
     agent: DocumentAgent,
     settings: Settings,
-) -> Outcome:
+) -> PageRead:
     """
-    Read one page into the record. Raises if the detector or the agent
-    cannot do its work; the caller turns that into a failed upload, and
-    the page itself is already stored either way.
+    Store the photograph, find its regions and read them. No database.
+
+    Raises if the detector or the agent cannot do its work. The page
+    itself is on disk either way, so the upload can be tried again.
     """
     digest_bytes = hashlib.sha256(data).digest()
     digest = digest_bytes.hex()
@@ -224,9 +102,9 @@ def run(
     # are in its frame, so it is the page the record points at. The
     # photograph as it arrived stays beside it under its own name.
     if settings.normalise_deskew:
-        straight = storage.resolve(_straight_key(digest))
+        straight = storage.resolve(straight_key(digest))
         if straight is None:
-            page_path, _ = straighten(page_path, _storage_path(_straight_key(digest)))
+            page_path, _ = straighten(page_path, storage_path(straight_key(digest)))
         else:
             page_path = straight
         with Image.open(page_path) as img:
@@ -237,6 +115,7 @@ def run(
         # A medicine is written across the line, not inside one run of
         # text. A laboratory value is the opposite and keeps its own cell.
         boxes = merge_lines(boxes)
+    found = len(boxes)
     boxes = boxes[:MAX_CROPS]
     if not boxes:
         raise ValueError("The page could not be found in this photograph.")
@@ -269,18 +148,88 @@ def run(
         reading.lines = folded
         reading.ungrounded = sorted(set(reading.ungrounded) | argued)
 
+    return PageRead(
+        digest=digest_bytes,
+        storage_key=page_key(digest)
+        if not settings.normalise_deskew or page_path.name == "page-1.png"
+        else straight_key(digest),
+        width=width,
+        height=height,
+        boxes=boxes,
+        crops=crops,
+        agreed=agreed,
+        regions_dropped=found - len(boxes),
+    )
+
+
+def run(
+    conn: Connection[DictRow],
+    *,
+    capture_id: str,
+    patient_id: UUID,
+    uploaded_by: UUID,
+    doc_type: DocType,
+    captured_at: datetime,
+    data: bytes,
+    detector: TextDetector,
+    agent: DocumentAgent,
+    settings: Settings,
+) -> Outcome:
+    """
+    Read one page into the record, both phases on one connection.
+
+    Kept for callers that have a connection anyway and do not mind
+    holding it. The upload route reads first and writes afterwards, so
+    no connection waits on a model.
+    """
+    read = read_page(
+        doc_type=doc_type, data=data, detector=detector, agent=agent, settings=settings
+    )
+    return write_reading(
+        conn,
+        read,
+        capture_id=capture_id,
+        patient_id=patient_id,
+        uploaded_by=uploaded_by,
+        doc_type=doc_type,
+        captured_at=captured_at,
+        detector=detector,
+        agent=agent,
+        settings=settings,
+    )
+
+
+def write_reading(
+    conn: Connection[DictRow],
+    read: PageRead,
+    *,
+    capture_id: str,
+    patient_id: UUID,
+    uploaded_by: UUID,
+    doc_type: DocType,
+    captured_at: datetime,
+    detector: TextDetector,
+    agent: DocumentAgent,
+    settings: Settings,
+) -> Outcome:
+    """
+    The intake, the document, the run and everything the checks decided,
+    written in one transaction once the reading is already in hand.
+    """
+    agreed = read.agreed
+    reading = agreed.reading
+    boxes, crops = read.boxes, read.crops
+
     intake_id = open_intake(conn, capture_id, patient_id, captured_at, uploaded_by)
     page: StoredPage = store_page(
         conn,
         intake_id=intake_id,
         patient_id=patient_id,
         doc_type=doc_type,
-        digest=digest_bytes,
-        storage_key=_page_key(digest)
-        if not settings.normalise_deskew or page_path.name == "page-1.png"
-        else _straight_key(digest),
-        width=width,
-        height=height,
+        digest=read.digest,
+        storage_key=read.storage_key,
+        width=read.width,
+        height=read.height,
         document_date=reading.document_date,
         issuing_source=reading.issuing_source,
         reader=detector.name,
@@ -297,7 +246,10 @@ def run(
                 {
                     "boxes": [{"x": b.x, "y": b.y, "w": b.w, "h": b.h} for b in boxes],
                     "unreadable": reading.unreadable,
-                    "reads": len(passes),
+                    "reads": agreed.reads,
+                    # Regions the ceiling cut. Not zero means the bottom
+                    # of the page was never read.
+                    "regions_dropped": read.regions_dropped,
                 }
             ),
             page.run_id,
@@ -314,7 +266,8 @@ def run(
             crops,
             settings,
             agreed.reads,
-            agreed.disagreed,
+            agreed.line_votes,
+            agreed.other_reads,
         )
     outcome = persist_lab_report(
         conn, page, patient_id, reading, boxes, crops, settings, agreed.other_reads

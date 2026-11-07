@@ -369,7 +369,7 @@ def test_a_value_that_changes_between_reads_goes_to_a_person(
 
 
 def test_a_line_two_reads_of_three_agree_on_is_written(
-    client: Any, db: psycopg.Connection[Any]
+    client: Any, db: psycopg.Connection[Any], auto_accept: None
 ) -> None:
     """
     Three reads of handwriting differ somewhere nearly every time.
@@ -400,7 +400,7 @@ def test_a_line_two_reads_of_three_agree_on_is_written(
 
 
 def test_a_line_no_two_reads_agree_on_waits_for_a_clinician(
-    client: Any, db: psycopg.Connection[Any]
+    client: Any, db: psycopg.Connection[Any], auto_accept: None
 ) -> None:
     """
     Disagreement means a person should look, not that a medicine should
@@ -437,7 +437,7 @@ def test_a_line_no_two_reads_agree_on_waits_for_a_clinician(
 
 
 def test_the_threshold_decides_where_a_reading_goes(
-    client: Any, db: psycopg.Connection[Any]
+    client: Any, db: psycopg.Connection[Any], auto_accept: None
 ) -> None:
     """
     One smeared region. Three checks apply (the report carries no date,
@@ -518,7 +518,7 @@ def test_a_test_a_prescription_advises_is_recorded_too(
 
 
 def test_a_clean_line_is_accepted_without_a_person(
-    client: Any, db: psycopg.Connection[Any]
+    client: Any, db: psycopg.Connection[Any], auto_accept: None
 ) -> None:
     set_agent(
         FakeAgent(DocumentReading(lines=[RegimenLine(0, "Tab. Metformin", "500 mg", "1-0-1")]))
@@ -540,7 +540,7 @@ def test_a_clean_line_is_accepted_without_a_person(
 
 
 def test_a_dose_nobody_could_act_on_waits_for_a_person(
-    client: Any, db: psycopg.Connection[Any]
+    client: Any, db: psycopg.Connection[Any], auto_accept: None
 ) -> None:
     set_agent(
         FakeAgent(
@@ -602,7 +602,7 @@ def test_every_line_records_the_checks_it_ran(client: Any, db: psycopg.Connectio
 
 
 def test_a_checklist_of_accepted_lines_activates_with_nobody_confirming(
-    client: Any, db: psycopg.Connection[Any]
+    client: Any, db: psycopg.Connection[Any], auto_accept: None
 ) -> None:
     set_agent(
         FakeAgent(
@@ -798,3 +798,68 @@ def test_a_medicine_with_no_dose_reaches_a_clinician(
     ).fetchall()
     assert [r["drug_text"] for r in rows] == ["Tab. Nebimed", "Tab. Rybelsus"]
     assert (rows[0]["settled"], rows[0]["dose_check"]) == (False, "fail")
+
+
+def test_advice_is_written_apart_from_the_medicines(
+    client: Any, db: psycopg.Connection[Any], auto_accept: None
+) -> None:
+    """
+    A walk the patient ticks must never be counted as a dose. Advice
+    lives in its own table so the compliance score, which reads
+    medication ticks, can only ever see medicines.
+    """
+    from healthathon.uploads.agent import Advice
+
+    set_agent(
+        FakeAgent(
+            DocumentReading(
+                lines=[RegimenLine(0, "Tab. Rybelsus", "14 mg", "OD")],
+                advice=[Advice(1, "Diet = 1000 kcal/day"), Advice(2, "Daily walk")],
+            )
+        )
+    )
+    pid = patient_id(db, "DEV-0001")
+    body = wait_for(client, upload(client, pid, page_image(), doc_type="prescription").json()["id"])
+    regimen = body["outcome"]["regimen_id"]
+
+    notes = db.execute(
+        "SELECT a.advice_text, a.accepted_at IS NOT NULL AS settled, p.bbox_y IS NOT NULL AS boxed"
+        " FROM core.regimen_advice a JOIN core.provenance p ON p.id = a.provenance_id"
+        " WHERE a.regimen_id = %s ORDER BY a.advice_text",
+        (regimen,),
+    ).fetchall()
+    assert [n["advice_text"] for n in notes] == ["Daily walk", "Diet = 1000 kcal/day"]
+    # Written as given, with its own region, and never summarised.
+    assert all(n["boxed"] for n in notes)
+
+    # The medicines table holds only the medicine.
+    meds = db.execute(
+        "SELECT drug_text FROM core.regimen_item WHERE regimen_id = %s", (regimen,)
+    ).fetchall()
+    assert [m["drug_text"] for m in meds] == ["Tab. Rybelsus"]
+
+
+def test_a_weight_and_a_blood_pressure_reach_the_record(
+    client: Any, db: psycopg.Connection[Any]
+) -> None:
+    """A blood pressure is one reading of two numbers, kept as written."""
+    set_agent(
+        FakeAgent(
+            DocumentReading(
+                lines=[RegimenLine(0, "Tab. Rybelsus", "14 mg", "OD")],
+                values=[LabValue(1, "weight", "88", "kg"), LabValue(2, "bp", "108/74", "mmHg")],
+            )
+        )
+    )
+    pid = patient_id(db, "DEV-0001")
+    body = wait_for(client, upload(client, pid, page_image(), doc_type="prescription").json()["id"])
+
+    rows = db.execute(
+        "SELECT analyte_code, value_text FROM core.extracted_value WHERE document_id = %s"
+        " ORDER BY analyte_code",
+        (body["outcome"]["document_id"],),
+    ).fetchall()
+    assert [(r["analyte_code"], r["value_text"]) for r in rows] == [
+        ("bp", "108/74"),
+        ("weight", "88"),
+    ]

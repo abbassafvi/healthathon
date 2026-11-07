@@ -20,6 +20,7 @@ from healthathon.regimens.models import (
     DocumentRef,
     ItemDecision,
     PageRef,
+    RegimenAdvice,
     RegimenItem,
     RegimenReview,
     Replaces,
@@ -33,6 +34,7 @@ def checklist(conn: Connection[DictRow], patient_id: UUID) -> Checklist:
         raise HTTPException(404, "No such patient")
     regimens = repo.regimens_of(conn, patient_id)
     items = _items_by_regimen(conn, [r["id"] for r in regimens])
+    advice = _advice_by_regimen(conn, [r["id"] for r in regimens])
     active = next((r for r in regimens if r["activated_at"] and not r["superseded_at"]), None)
     return Checklist(
         active=ActiveRegimen(
@@ -41,6 +43,7 @@ def checklist(conn: Connection[DictRow], patient_id: UUID) -> Checklist:
             activated_by_name=active["activated_by_name"] or "",
             source_document=_document(active),
             items=items.get(active["id"], []),
+            advice=advice.get(active["id"], []),
         )
         if active
         else None,
@@ -87,6 +90,7 @@ def review(conn: Connection[DictRow], regimen_id: UUID) -> RegimenReview:
             height_px=page_row["height_px"],
         ),
         items=[_item(i) for i in rows],
+        advice=_advice_by_regimen(conn, [regimen_id]).get(regimen_id, []),
         replaces=replaces,
         activated_at=clinic_time.local(r["activated_at"]) if r["activated_at"] else None,
     )
@@ -194,6 +198,18 @@ def crop_path(conn: Connection[DictRow], item_id: UUID) -> str:
     return key
 
 
+def advice_crop_path(conn: Connection[DictRow], advice_id: UUID) -> str:
+    from healthathon.regimens.crop import ensure_crop
+
+    row = repo.advice(conn, advice_id)
+    if row is None:
+        raise HTTPException(404, "No such advice")
+    key = ensure_crop(row)
+    if key is None:
+        raise HTTPException(404, "The page for this advice is missing")
+    return key
+
+
 def _editable_item(conn: Connection[DictRow], item_id: UUID) -> dict[str, Any]:
     row = repo.item(conn, item_id)
     if row is None:
@@ -203,6 +219,27 @@ def _editable_item(conn: Connection[DictRow], item_id: UUID) -> dict[str, Any]:
     if r["activated_at"]:
         raise HTTPException(409, "This checklist is already active")
     return row
+
+
+def _advice_by_regimen(
+    conn: Connection[DictRow], regimen_ids: list[UUID]
+) -> dict[UUID, list[RegimenAdvice]]:
+    out: dict[UUID, list[RegimenAdvice]] = {}
+    for row in repo.advice_of(conn, regimen_ids):
+        out.setdefault(row["regimen_id"], []).append(
+            RegimenAdvice(
+                id=row["id"],
+                advice_text=row["advice_text"],
+                box=Box(x=row["bbox_x"], y=row["bbox_y"], w=row["bbox_w"], h=row["bbox_h"]),
+                crop_url=f"/api/regimen-advice/{row['id']}/crop",
+                accepted_at=clinic_time.local(row["accepted_at"]) if row["accepted_at"] else None,
+                confirmed_by_name=row["confirmed_by_name"],
+                confirmed_at=clinic_time.local(row["confirmed_at"])
+                if row["confirmed_at"]
+                else None,
+            )
+        )
+    return out
 
 
 def _items_by_regimen(

@@ -39,12 +39,25 @@ class RegimenItem(BaseModel):
     failed_check: str | None = None
 
 
+class RegimenAdvice(BaseModel):
+    """An instruction that is not a medicine. Never counted as a dose."""
+
+    id: UUID
+    advice_text: str
+    box: Box
+    crop_url: str
+    accepted_at: datetime | None = None
+    confirmed_by_name: str | None = None
+    confirmed_at: datetime | None = None
+
+
 class ActiveRegimen(BaseModel):
     id: UUID
     activated_at: datetime
     activated_by_name: str
     source_document: DocumentRef
     items: list[RegimenItem]
+    advice: list[RegimenAdvice] = []
 
 
 class AwaitingReview(BaseModel):
@@ -82,6 +95,7 @@ class RegimenReview(BaseModel):
     document: DocumentRef
     page: PageRef
     items: list[RegimenItem]
+    advice: list[RegimenAdvice] = []
     # The checklist activation would replace, if there is one.
     replaces: Replaces | None
     activated_at: datetime | None

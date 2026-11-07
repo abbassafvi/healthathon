@@ -347,17 +347,21 @@ CREATE TABLE core.check_result (
     id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     extracted_value_id uuid REFERENCES core.extracted_value(id)
                             ON DELETE CASCADE,
-    -- The foreign key is added after core.regimen_item exists, below.
+    -- The foreign keys are added after their tables exist, below.
     regimen_item_id    uuid,
+    regimen_advice_id  uuid,
     check_code         core.check_code   NOT NULL,
     outcome            core.check_outcome NOT NULL,
     signal             numeric,            -- agreement score, sharpness, etc.
     detail             jsonb,
     checked_at         timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT check_result_one_subject CHECK (
-        (extracted_value_id IS NOT NULL) <> (regimen_item_id IS NOT NULL)),
+        (extracted_value_id IS NOT NULL)::int
+        + (regimen_item_id IS NOT NULL)::int
+        + (regimen_advice_id IS NOT NULL)::int = 1),
     UNIQUE (extracted_value_id, check_code),
-    UNIQUE (regimen_item_id, check_code)
+    UNIQUE (regimen_item_id, check_code),
+    UNIQUE (regimen_advice_id, check_code)
 );
 COMMENT ON TABLE core.check_result IS
   'The five checks are stored separately rather than collapsed into one '
@@ -576,6 +580,29 @@ COMMENT ON TABLE core.regimen_item IS
   'prescription, so it would be the one displayed string with no crop to '
   'check it against.';
 
+-- What the prescription asks of the patient besides a medicine: a diet,
+-- a walk, a measurement to bring. Its own table, not a kind column on
+-- regimen_item, because pat.medication_tick points at that table and
+-- the compliance score is computed from medication ticks alone. A walk
+-- counted as a dose would corrupt the one clinical number this project
+-- allows itself, and one forgotten filter is all it would take.
+CREATE TABLE core.regimen_advice (
+    id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    regimen_id    uuid NOT NULL REFERENCES core.regimen(id) ON DELETE CASCADE,
+    advice_text   text NOT NULL,              -- as written, never summarised
+    provenance_id uuid NOT NULL REFERENCES core.provenance(id),
+    confirmed_by  uuid REFERENCES core.clinic_user(id),
+    confirmed_at  timestamptz,
+    accepted_at   timestamptz,
+    CONSTRAINT advice_confirmed_by_a_person CHECK (
+        (confirmed_at IS NULL) = (confirmed_by IS NULL))
+);
+COMMENT ON TABLE core.regimen_advice IS
+  'Instructions a prescription gives that are not medicines, held apart '
+  'from core.regimen_item so that pat.medication_tick, and therefore the '
+  'compliance score, can only ever count medicines. Stored as written: '
+  'no calorie total is computed and no advice is rephrased.';
+
 ALTER TABLE pat.medication_tick
     ADD CONSTRAINT tick_regimen_item_fk
     FOREIGN KEY (regimen_item_id) REFERENCES core.regimen_item(id);
@@ -584,6 +611,10 @@ ALTER TABLE pat.medication_tick
 ALTER TABLE core.check_result
     ADD CONSTRAINT check_result_regimen_item_fk
     FOREIGN KEY (regimen_item_id) REFERENCES core.regimen_item(id) ON DELETE CASCADE;
+
+ALTER TABLE core.check_result
+    ADD CONSTRAINT check_result_regimen_advice_fk
+    FOREIGN KEY (regimen_advice_id) REFERENCES core.regimen_advice(id) ON DELETE CASCADE;
 
 -- =====================================================================
 --  8 · ORDERS AND RECONCILIATION

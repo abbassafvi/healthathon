@@ -54,7 +54,12 @@ def _post_with_retry(
                 time.sleep(min(2 ** (attempt + 2), 32))
                 continue
             reply.raise_for_status()
-            parsed: dict[str, Any] = reply.json()
+            try:
+                parsed: dict[str, Any] = reply.json()
+            except ValueError as exc:
+                # A 200 that is not JSON. Uncaught, its message reached
+                # the clinician as "Expecting value: line 1 column 1".
+                raise ModelUnavailable("the provider sent a reply that was not JSON") from exc
             return parsed
         except (httpx.TimeoutException, httpx.TransportError) as exc:
             last = exc
