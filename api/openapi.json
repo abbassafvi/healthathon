@@ -1716,6 +1716,89 @@
         }
       }
     },
+    "/api/uploads": {
+      "post": {
+        "tags": [
+          "uploads"
+        ],
+        "summary": "Create Upload",
+        "operationId": "create_upload_api_uploads_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_create_upload_api_uploads_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadStatus"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/uploads/{upload_id}": {
+      "get": {
+        "tags": [
+          "uploads"
+        ],
+        "summary": "Get Upload",
+        "operationId": "get_upload_api_uploads__upload_id__get",
+        "parameters": [
+          {
+            "name": "upload_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Upload Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadStatus"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/health": {
       "get": {
         "tags": [
@@ -2526,6 +2609,11 @@
           "confirmed_count": {
             "type": "integer",
             "title": "Confirmed Count"
+          },
+          "settled_count": {
+            "type": "integer",
+            "title": "Settled Count",
+            "default": 0
           }
         },
         "type": "object",
@@ -2536,6 +2624,47 @@
           "confirmed_count"
         ],
         "title": "AwaitingReview"
+      },
+      "Body_create_upload_api_uploads_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "description": "The photograph of the page"
+          },
+          "client_capture_id": {
+            "type": "string",
+            "title": "Client Capture Id"
+          },
+          "patient_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Patient Id"
+          },
+          "doc_type": {
+            "type": "string",
+            "enum": [
+              "prescription",
+              "lab_report"
+            ],
+            "title": "Doc Type"
+          },
+          "captured_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Captured At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file",
+          "client_capture_id",
+          "patient_id",
+          "doc_type",
+          "captured_at"
+        ],
+        "title": "Body_create_upload_api_uploads_post"
       },
       "Box": {
         "properties": {
@@ -4349,6 +4478,25 @@
         ],
         "title": "QueuePatient"
       },
+      "QueueReason": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "title": "Reason",
+            "description": "The check that sent these values to a person"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reason",
+          "count"
+        ],
+        "title": "QueueReason"
+      },
       "ReadLine": {
         "properties": {
           "id": {
@@ -4940,6 +5088,39 @@
               }
             ],
             "title": "Confirmed At"
+          },
+          "accepted_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accepted At"
+          },
+          "checks_passed": {
+            "type": "integer",
+            "title": "Checks Passed",
+            "default": 0
+          },
+          "checks_ran": {
+            "type": "integer",
+            "title": "Checks Ran",
+            "default": 0
+          },
+          "failed_check": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failed Check"
           }
         },
         "type": "object",
@@ -5903,6 +6084,109 @@
           "height_px"
         ],
         "title": "TracePage"
+      },
+      "UploadOutcome": {
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Document Id"
+          },
+          "values_in_record": {
+            "type": "integer",
+            "title": "Values In Record",
+            "description": "Values that passed every check and are in the record"
+          },
+          "sent_to_queue": {
+            "items": {
+              "$ref": "#/components/schemas/QueueReason"
+            },
+            "type": "array",
+            "title": "Sent To Queue",
+            "description": "Values waiting for a person, by reason"
+          },
+          "regimen_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Regimen Id",
+            "description": "For a prescription: the regimen this document produced"
+          },
+          "lines_accepted": {
+            "type": "integer",
+            "title": "Lines Accepted",
+            "description": "Prescription lines every check passed, settled without a person",
+            "default": 0
+          },
+          "lines_for_a_person": {
+            "type": "integer",
+            "title": "Lines For A Person",
+            "description": "Prescription lines a clinician still has to confirm",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "document_id",
+          "values_in_record",
+          "sent_to_queue",
+          "regimen_id"
+        ],
+        "title": "UploadOutcome"
+      },
+      "UploadStatus": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "stage": {
+            "type": "string",
+            "enum": [
+              "uploading",
+              "reading",
+              "done",
+              "duplicate",
+              "failed"
+            ],
+            "title": "Stage"
+          },
+          "outcome": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UploadOutcome"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "failure": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failure"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "stage",
+          "outcome",
+          "failure"
+        ],
+        "title": "UploadStatus"
       },
       "ValidationError": {
         "properties": {

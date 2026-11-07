@@ -1,8 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router'
 
-import type { UploadStatus } from '../api/pending'
-import { pendingApi } from '../api/pendingClient'
+import { api, type UploadStatus } from '../api/client'
 import { en, fmt } from '../strings/en'
 
 export type SessionUpload = {
@@ -21,7 +20,7 @@ const STAGES = ['uploading', 'reading', 'done'] as const
 export function UploadRow({ u, onRetry }: { u: SessionUpload; onRetry: () => void }) {
   const status = useQuery({
     queryKey: ['upload', u.first.id],
-    queryFn: () => pendingApi.uploadStatus(u.first.id),
+    queryFn: () => api.uploadStatus(u.first.id),
     initialData: u.first,
     refetchInterval: (q) => (['uploading', 'reading'].includes(q.state.data?.stage ?? '') ? 500 : false),
   })

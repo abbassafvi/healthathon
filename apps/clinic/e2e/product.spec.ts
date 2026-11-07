@@ -2,11 +2,9 @@ import { expect, test, type Page } from '@playwright/test'
 
 import { expectNoViolations } from './axe'
 import { query, reseed } from './db'
-import { withoutMocks } from './mocks'
 
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async () => {
   reseed()
-  await withoutMocks(page)
 })
 
 const asha = () => query<{ id: string }>("SELECT id FROM core.patient WHERE registration_no = 'DEV-0001'")[0].id

@@ -42,6 +42,7 @@ export const checklistHandlers = [
           document: docRef(r),
           item_count: r.items.length,
           confirmed_count: r.items.filter((i) => i.confirmed_at).length,
+          settled_count: r.items.filter((i) => i.confirmed_at || i.accepted_at).length,
         })),
     }
     return HttpResponse.json(body)

@@ -28,6 +28,10 @@ type Props = {
  */
 export function ReviewRow(p: Props) {
   const confirmed = p.item.confirmed_at !== null
+  // A line the checks settled. It still shows its crop and its actions:
+  // accepted means nobody has to look, never that nobody may.
+  const accepted = !confirmed && p.item.accepted_at !== null
+  const failed = p.item.failed_check
   const locked = !p.rendered || p.busy
   return (
     <li
@@ -57,6 +61,20 @@ export function ReviewRow(p: Props) {
             onFailed={() => {}}
           />
           <ItemText item={p.item} size="lg" />
+          {accepted && (
+            <p className="text-sm text-ink-2">
+              {en.review.acceptedByChecks}{' '}
+              {p.item.checks_ran > 0 &&
+                fmt(en.review.checksPassed, { passed: p.item.checks_passed, ran: p.item.checks_ran })}
+            </p>
+          )}
+          {!confirmed && !accepted && failed && (
+            <p className="text-sm text-ink">
+              {fmt(en.review.needsYou, {
+                reason: en.reasons[failed as keyof typeof en.reasons] ?? failed,
+              })}
+            </p>
+          )}
           {confirmed ? (
             <p className="text-sm text-ink-2">
               {fmt(en.review.confirmedBy, { name: p.item.confirmed_by_name ?? '' })}

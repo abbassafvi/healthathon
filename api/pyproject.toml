@@ -8,8 +8,22 @@ dependencies = [
     "uvicorn[standard]>=0.30",
     "psycopg[binary,pool]>=3.2",
     "pydantic-settings>=2.4",
-    # Crops regimen item lines out of their page.
+    # Crops regimen item lines out of their page, and crops each detected
+    # region out of an uploaded page.
     "pillow>=10",
+    # Talks to the document agent's model provider.
+    "httpx>=0.27",
+    # Multipart form parsing: an upload carries its photograph.
+    "python-multipart>=0.0.9",
+]
+
+[project.optional-dependencies]
+# The text detector. Heavy (paddlepaddle is a few hundred MB), and needed
+# only to read a real photograph: the tests run against a fake detector,
+# so neither CI nor `uv sync` pulls this in.
+ocr = [
+    "paddleocr>=3.7",
+    "paddlepaddle>=3.3",
 ]
 
 [dependency-groups]
@@ -41,6 +55,13 @@ known-first-party = ["healthathon", "dev_seed"]
 strict = true
 packages = ["healthathon"]
 mypy_path = "src"
+
+# paddleocr ships no stubs, and it is an optional install: without the
+# "ocr" extra the import is missing entirely, with it the module is
+# untyped. One override covers both, where an inline ignore cannot.
+[[tool.mypy.overrides]]
+module = ["paddleocr.*"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

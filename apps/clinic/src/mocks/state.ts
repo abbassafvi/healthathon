@@ -67,6 +67,10 @@ function regimen(
         crop_url: cropUrl(docId, box),
         confirmed_by_name: activated ? DEMO_CLINICIAN : null,
         confirmed_at: activated ? `${activated.at}T10:00:00` : null,
+        accepted_at: null,
+        checks_passed: 0,
+        checks_ran: 0,
+        failed_check: null,
       }
     }),
     activated_at: activated ? `${activated.at}T10:05:00` : null,

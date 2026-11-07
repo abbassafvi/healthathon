@@ -1,7 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 
 import { query, reseed } from './db'
-import { withoutMocks } from './mocks'
 
 /*
  * Seeded queue, in arrival order:
@@ -13,9 +12,8 @@ import { withoutMocks } from './mocks'
  */
 const UNDO_WINDOW_MS = 5000
 
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async () => {
   reseed()
-  await withoutMocks(page)
 })
 
 const reading = (page: Page) => page.locator('#queue-reading')

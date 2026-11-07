@@ -340,16 +340,24 @@ CREATE INDEX ev_renderable_idx
     ON core.extracted_value (patient_id, observed_at DESC)
     WHERE state IN ('accepted', 'confirmed');
 
+-- A check belongs to exactly one subject: a laboratory value, or a line
+-- of a prescription. Both are read the same way and both are settled by
+-- the same five checks, so they share this table rather than diverging.
 CREATE TABLE core.check_result (
     id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    extracted_value_id uuid NOT NULL REFERENCES core.extracted_value(id)
+    extracted_value_id uuid REFERENCES core.extracted_value(id)
                             ON DELETE CASCADE,
+    -- The foreign key is added after core.regimen_item exists, below.
+    regimen_item_id    uuid,
     check_code         core.check_code   NOT NULL,
     outcome            core.check_outcome NOT NULL,
     signal             numeric,            -- agreement score, sharpness, etc.
     detail             jsonb,
     checked_at         timestamptz NOT NULL DEFAULT now(),
-    UNIQUE (extracted_value_id, check_code)
+    CONSTRAINT check_result_one_subject CHECK (
+        (extracted_value_id IS NOT NULL) <> (regimen_item_id IS NOT NULL)),
+    UNIQUE (extracted_value_id, check_code),
+    UNIQUE (regimen_item_id, check_code)
 );
 COMMENT ON TABLE core.check_result IS
   'The five checks are stored separately rather than collapsed into one '
@@ -550,18 +558,32 @@ CREATE TABLE core.regimen_item (
     schedule_text text,
     provenance_id uuid NOT NULL REFERENCES core.provenance(id),
     confirmed_by  uuid REFERENCES core.clinic_user(id),
-    confirmed_at  timestamptz
+    confirmed_at  timestamptz,
+    -- Set when every check this line ran passed. Kept apart from
+    -- confirmed_by so the record never says a person looked at a line
+    -- the deterministic layer settled on its own.
+    accepted_at   timestamptz,
+    CONSTRAINT item_confirmed_by_a_person CHECK (
+        (confirmed_at IS NULL) = (confirmed_by IS NULL))
 );
 COMMENT ON TABLE core.regimen_item IS
-  'No item reaches a patient checklist until a clinician activates the '
-  'regimen, and activation requires every item to have been confirmed by a '
-  'person. Brand-to-generic mapping is deliberately absent: a generic name '
-  'is not printed on the prescription, so it would be the one displayed '
-  'string with no crop to check it against.';
+  'A line reaches a patient checklist when the regimen is activated, and '
+  'activation requires every line to have been settled: either accepted by '
+  'the five checks (accepted_at) or confirmed by a named clinician '
+  '(confirmed_by). The two are separate columns because the audit must '
+  'never attribute to a person a line nobody looked at. Brand-to-generic '
+  'mapping is deliberately absent: a generic name is not printed on the '
+  'prescription, so it would be the one displayed string with no crop to '
+  'check it against.';
 
 ALTER TABLE pat.medication_tick
     ADD CONSTRAINT tick_regimen_item_fk
     FOREIGN KEY (regimen_item_id) REFERENCES core.regimen_item(id);
+
+-- Declared with core.check_result, which is created before this table.
+ALTER TABLE core.check_result
+    ADD CONSTRAINT check_result_regimen_item_fk
+    FOREIGN KEY (regimen_item_id) REFERENCES core.regimen_item(id) ON DELETE CASCADE;
 
 -- =====================================================================
 --  8 · ORDERS AND RECONCILIATION

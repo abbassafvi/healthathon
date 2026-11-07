@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, within } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { MemoryRouter, Route, Routes } from 'react-router'
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { patientListItem } from '../test/fixtures'
 import { installMockServer } from '../test/msw'
@@ -38,6 +38,15 @@ function setup(path: string, patient = asha) {
     </QueryClientProvider>,
   )
 }
+
+/*
+ * The header writes a near date in words ("Tomorrow, 10:00"), so a test
+ * that names an absolute date only holds on days when the fixture's
+ * visit is not near. The clock is fixed here so the assertion means the
+ * same thing whatever day the suite runs.
+ */
+beforeEach(() => vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-10-20T09:00:00+05:30') }))
+afterEach(() => vi.useRealTimers())
 
 describe('PatientLayout', () => {
   it('says who the patient is and where their care stands, in dates and counts', async () => {

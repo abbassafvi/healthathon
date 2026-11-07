@@ -49,11 +49,13 @@ scope document.
 | `api/` | FastAPI service over the schema. Python 3.12, managed with `uv` |
 | `api/openapi.json` | The API contract. A test fails if it drifts from the code |
 | `api/dev_seed/` | Stand-in seed: four fictional patients with generated lab reports, until the Track A seed script lands |
+| `api/src/healthathon/uploads/` | The reading pipeline: PaddleOCR finds the regions, a document agent reads them |
 | `apps/clinic/` | Clinician web app. Vite, React, TypeScript |
 | `apps/patient/` | Patient Android app. Expo, tested on its web target |
 | `docs/HANDOFF.md` | What is real, what is mocked, and what comes next |
 
-Requires Docker, `uv`, and Node 20 or later.
+Requires Docker, `uv`, and Node 20 or later. Reading a real photograph
+also needs the detector and a model key; see "Reading a document" below.
 
 ```
 docker compose up -d                      # PostgreSQL 16 on 127.0.0.1:5434, schema loaded
@@ -73,6 +75,80 @@ uvicorn with `--host 0.0.0.0`), or `http://127.0.0.1:8000` for the web
 target. Without it the app runs on its in-memory mock.
 
 Page images and crops go to `storage/`, which is never committed.
+
+### Reading a document
+
+A page is read in two steps. PaddleOCR finds every region that holds
+writing, and only that: its recogniser is never run. Each region is cut
+out and shown to a document agent, one per document type, which reads
+the crop and must cite the region every reading came from. A reading
+that cites no region is dropped, so nothing reaches the record that
+cannot be pointed at on the page.
+
+The detector is an optional install, because paddlepaddle is a few
+hundred megabytes and nothing but a real read needs it:
+
+```
+cd api && uv sync --extra ocr
+```
+
+The agent needs a key. Gemini through AI Studio is free and needs no
+card; anything speaking the OpenAI chat protocol works too. Set these
+outside git:
+
+```
+HEALTHATHON_AGENT_API_KEY=...
+HEALTHATHON_AGENT_PROVIDER=gemini        # or: openai
+HEALTHATHON_AGENT_MODEL=gemini-2.5-flash
+HEALTHATHON_AGENT_BASE_URL=...           # "openai" only, e.g. Groq or OpenRouter
+```
+
+Without a key the API stores the page and refuses to read it, rather
+than guessing: an unread page can be read again, an invented value
+cannot be taken back.
+
+Each page is read three times and the passes are compared, which is the
+"ask again" check: a reading that changes between passes is not trusted.
+That costs three requests per page, and Gemini's free tier allows twenty
+a day, so about six pages. `HEALTHATHON_AGENT_READS=1` trades the check
+for about twenty pages instead.
+
+`HEALTHATHON_LEGIBILITY_MIN_SHARPNESS` is the floor a region must clear
+to be read without a person. It is measured rather than chosen: see the
+figures in `config.py`. It separates blur from legible writing, and does
+not see smudging at all.
+
+### What decides where a reading goes
+
+Every reading runs the five checks, and the share it passes is its
+confidence, from 0 to 1. A check that did not apply, because the report
+carries no date or the page was read once, is left out of both sides
+rather than counted against the reading. Grounding is a gate rather than
+a share of the score: a reading with no region on the page scores 0,
+because there is nothing to point at and nothing to show a person.
+
+The number never comes from the model. A reader's own certainty is the
+one thing that cannot be audited, so the score is built from the checks
+alone.
+
+A prescription line is settled the same way. Four of the five checks
+apply to a medicine, with the dose checked for a quantity and a unit a
+dose is measured in. A line that passes every check it ran is accepted
+and needs nobody; one that does not waits for a clinician beside its
+crop. An accepted line never carries a clinician's name, because the
+record must not say a person looked at something nobody looked at.
+
+At or above `HEALTHATHON_CONFIDENCE_THRESHOLD` the reading joins the
+record with its box. Below it, the reading waits in the confirm queue
+with its crop, and a clinician reads that region themselves. The
+threshold defaults to 1.0, meaning every check that applied has to
+pass. That is deliberately strict: the number is only as good as the
+gold set it was tuned against, and there is no gold set yet.
+
+`HEALTHATHON_DETECTOR=stub` and `HEALTHATHON_AGENT_PROVIDER=stub` select
+a built-in stand-in that needs neither paddlepaddle nor a network. The
+browser tests run on it. It is for development only and never reads a
+real document.
 
 ### Patient sign-in
 

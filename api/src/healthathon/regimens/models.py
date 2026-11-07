@@ -30,6 +30,13 @@ class RegimenItem(BaseModel):
     crop_url: str
     confirmed_by_name: str | None
     confirmed_at: datetime | None
+    # What the deterministic layer made of this line. accepted_at is set
+    # when every check it ran passed, and is never a substitute for a
+    # clinician's name: a line can be accepted and later confirmed.
+    accepted_at: datetime | None = None
+    checks_passed: int = 0
+    checks_ran: int = 0
+    failed_check: str | None = None
 
 
 class ActiveRegimen(BaseModel):
@@ -44,7 +51,13 @@ class AwaitingReview(BaseModel):
     regimen_id: UUID
     document: DocumentRef
     item_count: int
+    # Lines a named clinician confirmed. Never counts a line the checks
+    # settled: the record must not say a person looked at one.
     confirmed_count: int
+    # Lines that need nobody else, whether a person confirmed them or
+    # every check on them passed. This is what says how far review has
+    # to go, and what activation needs.
+    settled_count: int = 0
 
 
 class Checklist(BaseModel):
