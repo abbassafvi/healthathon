@@ -3240,6 +3240,11 @@
             "type": "string",
             "format": "date-time",
             "title": "Occurred At"
+          },
+          "channel": {
+            "type": "string",
+            "title": "Channel",
+            "default": "patient_app"
           }
         },
         "type": "object",

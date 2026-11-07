@@ -97,6 +97,7 @@ def _day(
             AppReading(
                 id=r["id"], value_text=r["value_text"], context=r["context"],
                 occurred_at=clinic_time.local(r["occurred_at"]),
+                channel=r["channel"],
             )
             for r in on_day
             if r["kind"] == "glucose_reading"

@@ -43,6 +43,7 @@ def today(conn: Connection[DictRow], patient_id: UUID) -> Today:
             value_text=r["value_text"],
             context=r["context"],
             occurred_at=clinic_time.local(r["occurred_at"]),
+            channel=r["channel"],
         )
         for r in rows
         if r["kind"] == "glucose_reading"

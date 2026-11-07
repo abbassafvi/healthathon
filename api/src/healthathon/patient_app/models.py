@@ -54,6 +54,9 @@ class AppReading(BaseModel):
     value_text: str
     context: GlucoseContext
     occurred_at: datetime
+    # How the patient recorded it: in the app, by SMS, or on a phone call.
+    # A fact about what they did, never a judgement about the reading.
+    channel: str = "patient_app"
 
 
 class AppQuestion(BaseModel):

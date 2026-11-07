@@ -8,6 +8,7 @@ reads only as a status code.
 """
 
 from typing import Any
+from uuid import UUID
 
 import psycopg
 import pytest
@@ -194,3 +195,30 @@ def test_a_secret_with_non_ascii_text_is_not_found(client: Any, pid: str, agreed
         follow_redirects=False,
     )
     assert res.status_code == 404
+
+
+def test_what_a_call_records_reaches_the_patient_and_the_clinician(
+    client: Any, db: psycopg.Connection[Any], pid: str, agreed: None
+) -> None:
+    """
+    The point of the whole path: one reading keyed in on a call, visible
+    to the clinician and to the patient, each told it came from a call.
+    """
+    from healthathon.patient_app import signin
+
+    hit(client, "/reading/fasting", digits='"142"')
+
+    # The clinician's timeline.
+    day = clinic_time.today().isoformat()
+    seen = client.get(f"/api/patients/{pid}/entries?from={day}&to={day}").json()["entries"]
+    from_call = [e for e in seen if e["channel"] == "voice_call"]
+    assert [(e["kind"], e["value_text"]) for e in from_call] == [("glucose_reading", "142")]
+
+    # The patient's own app, where it is theirs and says how it arrived.
+    token = signin.token_for(UUID(pid))
+    mine = client.get(
+        f"/api/app/patients/{pid}/today", headers={"Authorization": f"Bearer {token}"}
+    ).json()
+    theirs = [r for r in mine["readings"] if r["value_text"] == "142"]
+    assert theirs, mine["readings"]
+    assert theirs[0]["channel"] == "voice_call"
