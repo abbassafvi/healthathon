@@ -306,6 +306,54 @@ These came up while building and need a decision from the schema owner.
    does not follow (tested by editing a row), but the chain only detects a
    change; a grant or a trigger would prevent one.
 
+## Voice and paper surveys, 7 November
+
+Added after the feature freeze, by agreement between both tracks. Each
+change only adds: nothing existing was removed or renamed.
+
+- **Paper survey photographs.** The Upload page has a third type, Paper
+  survey. `POST /api/uploads` takes `doc_type=survey_form`, stores the page
+  (`uploads/keep.py`) and returns `done` at once: no detector, no agent, no
+  extraction run, no values. `PatientRecord` gains `survey_forms`, shown
+  above the documents on the Documents tab. Typing the answers from paper is
+  still the Paper form page. Tests: `api/tests/test_survey_forms.py`.
+- **Dictation in the clinic.** A microphone beside the paper form's
+  free-text answers and the patient search (`app/DictateButton.tsx`). It
+  uses the browser's Web Speech API, so Chrome or Edge, on `localhost` or
+  HTTPS; it is hidden where the browser has none. Chrome sends the audio
+  to Google to be recognised. Deliberately not offered on values, doses,
+  dates or phone numbers.
+- **Spoken answers written down.** `HEALTHATHON_TRANSCRIBE_RECORDINGS=true`
+  (off by default) sends each new recording to Gemini, on the document
+  agent's key, and stores what it heard in `pat.recording_transcript`. This
+  reverses the earlier rule that a recording never leaves the clinic, which
+  is why it is a switch. The recording stays the answer. `AnswerEntry`
+  gains `audio_transcript`, `Today` gains `answer_transcript`, past answers
+  gain `transcript`; both apps show it under the player, labelled as
+  machine-written. Tests: `api/tests/test_transcripts.py`.
+
+Schema: `core.doc_type` gains `survey_form`, and `pat.recording_transcript`
+is new. A database made before this needs:
+
+```sql
+ALTER TYPE core.doc_type ADD VALUE 'survey_form';
+-- then the CREATE TABLE pat.recording_transcript statement from db/schema.sql
+```
+
+Found while testing the real reader on 7 November (Track A): on the seeded
+DEV-0003 lab report, Gemini read three of four values and left out the
+blurred serum creatinine in all three reads, without listing its region as
+unreadable. So `raw_output.unreadable` was empty and the value left no trace
+anywhere: not in the record, not in the queue, not in the run. The pipeline
+relies on the model to report what it skipped, and it does not always.
+A deterministic check would close it: a detected region in the value column
+of a row whose test name was read, cited by no reading.
+
+New English strings: `upload.surveyForm*`, `upload.submitKeep*`,
+`upload.surveyDone`, `upload.openSurveys`, `record.survey*`, `dictation.*`,
+`entries.spokenTranscribed`, `entries.transcript`, and the patient app's
+`voice.heard` in all three languages (Hindi and Urdu are drafts).
+
 ## Not finished
 
 - **Hindi and Urdu strings are drafts.** `apps/patient/src/i18n/hi.ts` and
