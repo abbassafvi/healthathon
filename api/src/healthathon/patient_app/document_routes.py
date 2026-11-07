@@ -115,9 +115,7 @@ def get_documents(patient_id: UUID, conn: Conn) -> list[AppDocument]:
     return documents.listing(conn, patient_id)
 
 
-@router.get(
-    "/patients/{patient_id}/documents/{document_id}", response_model=AppDocument
-)
+@router.get("/patients/{patient_id}/documents/{document_id}", response_model=AppDocument)
 def get_document(patient_id: UUID, document_id: UUID, conn: Conn) -> AppDocument:
     found = documents.one(conn, patient_id, document_id)
     if found is None:
@@ -125,9 +123,7 @@ def get_document(patient_id: UUID, document_id: UUID, conn: Conn) -> AppDocument
     return found
 
 
-@router.get(
-    "/patients/{patient_id}/documents/{document_id}/page", response_class=FileResponse
-)
+@router.get("/patients/{patient_id}/documents/{document_id}/page", response_class=FileResponse)
 def get_document_page(patient_id: UUID, document_id: UUID, conn: Conn) -> FileResponse:
     """The photograph itself, only ever this patient's own."""
     key = documents.page_key(conn, patient_id, document_id)
